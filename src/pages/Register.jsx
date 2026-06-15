@@ -65,7 +65,7 @@ export default function Register() {
   }
 
   return (
-    <main className="page-shell register-page">
+    <main className="register-page">
       <section className="page-panel card">
         <h1>Create an account</h1>
         <p className="subtitle">Register with a secure account and receive your auto-generated Customer ID.</p>

@@ -13,6 +13,6 @@
       <path d="M8 22c2 2 6 4 12 4s10-2 12-4" stroke="#2B7BE4" stroke-width="2" stroke-linecap="round"/>
     </g>
   </g>
-  <text x="48" y="250" fill="#1F3A5F" font-size="20" font-family="Arial">Refer friends and earn rewards</text>
-  <text x="48" y="278" fill="#4B6B87" font-size="14" font-family="Arial">Share your Introducer ID to invite new customers quickly.</text>
+  <text x="48" y="250" fill="#1F3A5F" font-size="28" font-family="Arial">Refer friends and earn rewards</text>
+  <text x="48" y="284" fill="#4B6B87" font-size="18" font-family="Arial">Share your Introducer ID to invite new customers quickly.</text>
 </svg>

@@ -167,7 +167,7 @@ export default function AdminCustomers() {
         </form>
 
         <div className="table-scroll">
-          <table>
+          <table className="customers-table">
             <thead>
               <tr>
                 <th>Customer ID</th>

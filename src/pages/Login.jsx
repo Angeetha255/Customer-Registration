@@ -35,7 +35,7 @@ export default function Login() {
   }
 
   return (
-    <main className="page-shell">
+    <main className="page-shell login-page">
       <section className="page-panel card login-layout">
         <div className="login-illustration">
           <img src={illustration} alt="Referral illustration" />
