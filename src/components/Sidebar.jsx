@@ -1,8 +1,8 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 
-export default function Sidebar() {
-  const { user, signOut } = useAuth()
+export default function Sidebar({ onToggle }) {
+  const { user } = useAuth()
   const navItems = user?.role === 'admin' ? [
     { label: 'Dashboard', path: '/admin' },
     { label: 'Customers', path: '/admin/customers' },
@@ -13,7 +13,11 @@ export default function Sidebar() {
 
   return (
     <aside className="sidebar">
-      <div className="brand">Customer Management</div>
+      <button className="mobile-hamburger" onClick={() => onToggle && onToggle()} aria-label="Close sidebar">✕</button>
+      <div className="brand">
+        <div className="logo">CM</div>
+        <div className="brand-text">Customer Management</div>
+      </div>
       <nav>
         {navItems.map((item) => (
           <NavLink key={item.path} to={item.path} className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
@@ -21,10 +25,7 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
-      <div className="sidebar-footer">
-        {user && <span>{user.role === 'admin' ? 'Admin' : 'Customer'} signed in</span>}
-        <button type="button" className="button button-muted" onClick={signOut}>Logout</button>
-      </div>
+      <div className="sidebar-bottom-space" />
     </aside>
   )
 }

@@ -35,8 +35,11 @@ export const AuthProvider = ({ children }) => {
   }
 
   const signOut = () => {
+    const role = user?.role
     window.localStorage.removeItem('authToken')
     setUser(null)
+    // Redirect to common login page
+    window.location.href = '/login'
   }
 
   return (

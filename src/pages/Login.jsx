@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import Alert from '../components/Alert.jsx'
+import FloatingInput from '../components/FloatingInput.jsx'
 import illustration from '../assets/referral-illustration.svg'
 
 export default function Login() {
@@ -43,15 +44,9 @@ export default function Login() {
           <h1>Customer Login</h1>
           <p className="subtitle">Secure access to your customer dashboard.</p>
           <Alert type="danger" message={error} />
-          <form onSubmit={handleSubmit} className="form-grid">
-            <label>
-              Email Address
-              <input name="email" type="email" value={credentials.email} onChange={handleChange} required />
-            </label>
-            <label>
-              Password
-              <input name="password" type="password" value={credentials.password} onChange={handleChange} required />
-            </label>
+          <form onSubmit={handleSubmit} className="form-grid login-form">
+            <FloatingInput label="Email Address" name="email" type="email" value={credentials.email} onChange={handleChange} required />
+            <FloatingInput label="Password" name="password" type="password" value={credentials.password} onChange={handleChange} required showToggle />
             <button className="button button-primary" type="submit" disabled={loading}>
               {loading ? 'Signing in...' : 'Login'}
             </button>

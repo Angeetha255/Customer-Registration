@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { useState } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import Sidebar from './components/Sidebar.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
@@ -17,11 +18,39 @@ import './index.css'
 import './App.css'
 
 function AppLayout({ children }) {
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(typeof window !== 'undefined' ? window.innerWidth <= 900 : false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+
   return (
-    <div className="app-shell">
-      {user && <Sidebar />}
-      <div className={`app-content ${user ? 'with-sidebar' : ''}`}>{children}</div>
+    <div className={`app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`} onClick={(e) => {
+      // close user menu when clicking outside
+      if (!e.target.closest || !e.target.closest('.user-menu')) {
+        setUserMenuOpen(false)
+      }
+    }}>
+      {user && <Sidebar onToggle={() => setSidebarCollapsed((s) => !s)} />}
+      <div className={`app-content ${user ? 'with-sidebar' : ''}`}>
+        {user && (
+          <header className="topbar">
+            <button className="hamburger" onClick={() => setSidebarCollapsed((s) => !s)} aria-label="Toggle sidebar">☰</button>
+            <div className="topbar-right">
+              <div className="user-menu">
+                <button className="user-icon" onClick={() => setUserMenuOpen((v) => !v)}>{user.name?.[0] || 'U'}</button>
+                {userMenuOpen && (
+                  <div className="user-dropdown">
+                    {user?.role !== 'admin' && (
+                      <button className="button button-link" onClick={() => { setUserMenuOpen(false); window.location.href = '/profile' }}>View Profile</button>
+                    )}
+                    <button className="button button-link" onClick={() => { setUserMenuOpen(false); signOut() }}>Logout</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </header>
+        )}
+        {children}
+      </div>
     </div>
   )
 }

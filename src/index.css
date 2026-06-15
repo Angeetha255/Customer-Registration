@@ -15,7 +15,7 @@
   font-size: 16px;
   line-height: 1.6;
   color: var(--text);
-  background: var(--bg);
+  background: transparent;
 }
 
 * {
@@ -29,8 +29,8 @@ body,
 }
 
 body {
-  margin: 0;
-  background: linear-gradient(180deg, #eef2ff 0%, #f8fafc 100%);
+    margin: 0;
+    background: none;
 }
 
 button,
@@ -54,26 +54,38 @@ a {
 
 .app-content {
   width: 100%;
-  padding: 30px;
+  padding: 18px;
 }
 
-.with-sidebar {
-  margin-left: 250px;
-}
+
 
 .sidebar {
   position: fixed;
-  left: 0;
+  left: -320px;
   top: 0;
   bottom: 0;
   width: 250px;
   background: #0f172a;
   color: white;
-  padding: 28px 18px;
+  padding: 18px 14px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 1rem;
+  gap: 0.5rem;
+  transition: left 200ms ease;
+}
+
+.sidebar .mobile-hamburger { display: none; }
+
+/* Sidebar visibility: controlled by .app-shell.sidebar-open */
+.app-shell:not(.sidebar-collapsed) .sidebar { left: 0; }
+.app-shell:not(.sidebar-collapsed) .app-content { margin-left: 250px; }
+
+/* Mobile: default collapsed (hidden). The hamburger toggles .sidebar-collapsed to show/hide on all screens. */
+@media (max-width: 900px) {
+  .app-shell:not(.sidebar-collapsed) .sidebar { left: 0; z-index: 60; }
+  .app-shell:not(.sidebar-collapsed) .app-content { margin-left: 0; }
+  .sidebar .mobile-hamburger { display: block; position: absolute; top: 8px; right: 8px; background: transparent; border: none; color: white; font-size: 20px; z-index: 70; }
+  .topbar .hamburger { z-index: 50; }
 }
 
 .brand {
@@ -106,16 +118,23 @@ a {
   margin: 0 auto;
 }
 
+.page-panel.no-border-panel {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  padding: 6px 0 0 0;
+}
+
 .page-panel {
   background: var(--surface);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
   border-radius: var(--radius);
-  padding: 28px;
+  padding: 12px;
 }
 
 .card {
-  margin-bottom: 28px;
+  margin-bottom: 16px;
 }
 
 h1 {
@@ -130,8 +149,14 @@ h1 {
 
 .form-grid {
   display: grid;
-  gap: 1rem;
+  gap: 0.75rem;
 }
+
+/* Auth form width controls */
+.admin-login .admin-login-panel { max-width: 520px; margin: 0 auto; }
+.admin-login .admin-login-form { max-width: 420px; margin: 0 auto; }
+.login-layout .login-panel { max-width: 480px; }
+.login-layout .login-form { max-width: 420px; margin: 0; }
 
 label {
   display: grid;
@@ -142,8 +167,8 @@ label {
 input {
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 14px 16px;
+  border-radius: 10px;
+  padding: 10px 12px;
   background: var(--surface-strong);
   outline: none;
 }
@@ -246,10 +271,103 @@ tbody tr:hover {
   background: #fbfbff;
 }
 
+
 .grid-card {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  /* allow narrower cards while keeping responsive columns */
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 1rem;
+  column-gap: 1.5rem; /* increase horizontal spacing between cards */
+  row-gap: 1rem;
+  align-items: start;
+  grid-auto-rows: 1fr; /* make rows equal height so cards match */
+}
+
+/* Profile field cards inside grid-card */
+.grid-card > div {
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  padding: 12px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 56px;
+  height: 100%; /* fill the grid row to ensure equal heights */
+}
+.grid-card > div strong {
+  display: block;
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin-bottom: 2px;
+}
+.grid-card > div span {
+  display: block;
+  font-weight: 600;
+  color: var(--text);
+  word-break: break-word;
+}
+
+/* Referral list styles */
+.page-panel{
+  margin-top: 1.5rem;
+}
+.referred-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+.referred-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.referred-item.no-border-item { border: none; background: transparent; }
+.referred-item .ref-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.referred-item .ref-name { font-weight: 700; }
+.referred-item .ref-email { color: var(--muted); font-size: 0.95rem; }
+.referred-item .ref-phone { color: var(--muted); font-size: 0.95rem; }
+
+@media (max-width: 600px) {
+  .referred-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* External actions for referral link */
+.ref-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 600px) {
+  .ref-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+/* Slightly smaller font for referral link input for visual balance */
+.referral-input {
+  font-size: 0.73rem;
+  padding: 12px 10px;
+}
+
+@media (max-width: 600px) {
+  .referral-input { font-size: 0.95rem; }
 }
 
 .stat-card,
@@ -305,6 +423,130 @@ tbody tr:hover {
   flex-wrap: wrap;
 }
 
+/* Floating label fields */
+.floating-field {
+  position: relative;
+  margin-bottom: 0.9rem;
+}
+.floating-field input {
+  width: 100%;
+  padding: 12px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-strong);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+/* Profile form width */
+.profile-form { max-width: 520px; margin: 0 auto; }
+
+/* center headings and subtitles for a cleaner centered layout */
+.page-panel h1, .page-panel h2, .page-panel .subtitle { text-align: center; }
+
+.status-badge { display: inline-block; padding: 4px 8px; border-radius: 12px; font-weight: 700; font-size: 0.85rem; }
+.status-badge.active { background: #dcfce7; color: #166534; }
+.status-badge.inactive { background: #fee2e2; color: #991b1b; }
+
+/* Profile edit layout: make read-only and editable fields uniform */
+.profile-edit-grid { display: grid; gap: 1rem; grid-template-columns: 1fr 1fr; align-items: start; }
+.profile-edit-grid .profile-readonly, .profile-edit-grid .profile-form { display: grid; gap: 0.75rem; }
+.profile-edit-grid label { margin: 0; }
+.profile-edit-grid input { height: 44px; padding: 10px 12px; border-radius: 10px; }
+.profile-form input { height: 44px; padding: 10px 12px; border-radius: 10px; }
+.profile-edit-grid input[disabled] { background: var(--surface-strong); color: var(--muted); }
+
+@media (max-width: 900px) {
+  .profile-edit-grid { grid-template-columns: 1fr; }
+}
+.floating-field input.with-toggle { padding-right: 72px; }
+.floating-field input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 6px rgba(79, 70, 229, 0.06);
+  outline: none;
+}
+.floating-field label {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: all 0.22s ease;
+  background: transparent;
+  padding: 0 6px;
+  color: var(--muted);
+  pointer-events: none;
+}
+.floating-field .field-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--accent-strong);
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.floating-field .field-toggle:active { transform: translateY(-50%) scale(0.98); }
+.floating-field input:focus + label,
+.floating-field input:not(:placeholder-shown) + label {
+  top: -8px;
+  left: 12px;
+  font-size: 12px;
+  color: var(--accent-strong);
+  background: var(--surface);
+  transform: none;
+}
+.floating-field .field-error {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--danger);
+}
+.floating-field input.invalid { border-color: var(--danger); }
+
+/* Dashboard stat cards */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.dashboard-stats .stat-row.single {
+  grid-template-columns: 1fr;
+}
+
+.stat-card,
+.section-block {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--surface-strong);
+}
+
+/* Remove section background as requested */
+.section-block { background: transparent; border: none; box-shadow: none; padding: 0; }
+.stat-card { transition: transform 120ms ease, box-shadow 120ms ease; padding: 12px 14px; min-height: 72px; display: flex; align-items: center; gap: 12px; }
+.stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(2,6,23,0.05); }
+
+.stat-card:hover { transform: translateY(-4px); box-shadow: 0 6px 18px rgba(2,6,23,0.06); }
+
+.stat-icon { width: 48px; height: 48px; display:flex; align-items:center; justify-content:center; border-radius:10px; background: rgba(99,102,241,0.06); flex: 0 0 48px; }
+.stat-content { flex: 1 1 auto; }
+.stat-content .stat-label { color: var(--muted); font-size: 0.85rem; }
+.stat-content .stat-value { font-size: 1.25rem; font-weight: 700; color: var(--text); }
+.stat-content .stat-meta { color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; }
+
+@media (max-width: 900px) {
+  .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .dashboard-grid { grid-template-columns: 1fr; }
+}
+
+
 @media (max-width: 900px) {
   .app-shell {
     flex-direction: column;
@@ -315,11 +557,45 @@ tbody tr:hover {
     padding: 20px;
   }
   .sidebar {
-    position: relative;
-    width: 100%;
-    min-height: auto;
+    position: fixed;
+    left: -320px;
+    transition: left 220ms ease;
   }
   .search-row {
     grid-template-columns: 1fr;
   }
 }
+
+/* Topbar styles */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0 12px;
+  position: relative;
+}
+.hamburger { font-size: 20px; background: transparent; border: none; padding: 6px 10px; cursor: pointer; }
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+.user-icon { width: 36px; height: 36px; border-radius: 999px; background: var(--accent); color: white; border: none; font-weight: 700; }
+
+.user-dropdown {
+  position: absolute;
+  right: 18px;
+  top: 56px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 30px rgba(2,6,23,0.08);
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  z-index: 70;
+}
+.user-dropdown .button-link { padding: 8px 12px; text-align: left; }
+
+.logo { width: 44px; height: 44px; border-radius: 8px; background: #fff; color: #0f172a; display:flex; align-items:center; justify-content:center; font-weight:800; margin-right:8px; }
+.brand-text { display:inline-block; font-size:1rem; margin-top:6px; }
+
+/* Registration form width reduction */
+.register-page .register-form { max-width: 520px; }

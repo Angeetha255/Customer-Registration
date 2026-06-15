@@ -16,7 +16,7 @@ export const authMiddleware = async (req, res, next) => {
 
   try {
     const payload = jwt.verify(token, JWT_SECRET)
-    const user = await User.findById(payload.id).select('-password')
+    const user = await User.findByPk(payload.id, { attributes: { exclude: ['password'] } })
     if (!user) {
       return res.status(401).json({ message: 'Invalid token' })
     }

@@ -1,19 +1,30 @@
-import mongoose from 'mongoose'
+import { sequelize, DataTypes } from './index.js'
 
-const userSchema = new mongoose.Schema({
-  name: { type: String, required: true, trim: true },
-  email: { type: String, required: true, trim: true, unique: true, lowercase: true },
-  phone: { type: String, required: true, trim: true },
-  password: { type: String, required: true },
-  customerId: { type: String, unique: true, sparse: true },
-  introducerId: { type: String, unique: true, sparse: true },
-  referredBy: { type: String, default: null },
-  referralCount: { type: Number, default: 0 },
-  role: { type: String, enum: ['customer', 'admin'], default: 'customer' },
-  registeredAt: { type: Date, default: () => new Date() },
-  resetPasswordToken: String,
-  resetPasswordExpires: Date,
-})
+const User = sequelize.define(
+  'User',
+  {
+    id: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+    name: { type: DataTypes.STRING, allowNull: false },
+    email: { type: DataTypes.STRING, allowNull: false, unique: true },
+    phone: { type: DataTypes.STRING, allowNull: false },
+    password: { type: DataTypes.STRING, allowNull: false },
+    customerId: { type: DataTypes.STRING, unique: true },
+    introducerId: { type: DataTypes.STRING, unique: true },
+    referredBy: { type: DataTypes.STRING, allowNull: true },
+    referralCount: { type: DataTypes.INTEGER, defaultValue: 0 },
+    role: { type: DataTypes.ENUM('customer', 'admin'), defaultValue: 'customer' },
+    active: { type: DataTypes.BOOLEAN, defaultValue: true },
+    registeredAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    resetPasswordToken: { type: DataTypes.STRING, allowNull: true },
+    resetPasswordExpires: { type: DataTypes.DATE, allowNull: true },
+  },
+  {
+    tableName: 'users',
+  }
+)
 
-const User = mongoose.model('User', userSchema)
 export default User

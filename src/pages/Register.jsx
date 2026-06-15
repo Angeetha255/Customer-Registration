@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { registerCustomer, fetchIntroducer } from '../services/api.js'
 import Modal from '../components/Modal.jsx'
 import Alert from '../components/Alert.jsx'
+import FloatingInput from '../components/FloatingInput.jsx'
 
 export default function Register() {
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '' })
@@ -26,7 +27,14 @@ export default function Register() {
   }, [location.search])
 
   const handleChange = (event) => {
-    setForm({ ...form, [event.target.name]: event.target.value })
+    const { name, value } = event.target
+    if (name === 'phone') {
+      // allow only digits and max length 10
+      const digits = value.replace(/\D/g, '').slice(0, 10)
+      setForm({ ...form, phone: digits })
+    } else {
+      setForm({ ...form, [name]: value })
+    }
   }
 
   const handleSubmit = async (event) => {
@@ -35,6 +43,12 @@ export default function Register() {
     setSuccess('')
     setLoading(true)
     try {
+      // client-side phone validation
+      if (!/^[0-9]{10}$/.test(form.phone)) {
+        setError('Phone number must be 10 digits.')
+        setLoading(false)
+        return
+      }
       const payload = { ...form }
       if (introducer && introducer.introducerId) payload.referredBy = introducer.introducerId
       const response = await registerCustomer(payload)
@@ -51,43 +65,26 @@ export default function Register() {
   }
 
   return (
-    <main className="page-shell">
+    <main className="page-shell register-page">
       <section className="page-panel card">
         <h1>Create an account</h1>
         <p className="subtitle">Register with a secure account and receive your auto-generated Customer ID.</p>
         <Alert type={error ? 'danger' : 'success'} message={error || success} />
-        <form onSubmit={handleSubmit} className="form-grid">
+        <form onSubmit={handleSubmit} className="form-grid register-form">
           {introducer && (
             <div className="card card-quiet">
               <strong>Introduced By:</strong>
               <div>
                 <div>Name: {introducer.name}</div>
                 <div>Introducer ID: {introducer.introducerId}</div>
-                <div>Email: {introducer.email}</div>
-                <div>Phone: {introducer.phone}</div>
               </div>
             </div>
           )}
-          <label>
-            Full Name
-            <input name="name" value={form.name} onChange={handleChange} required />
-          </label>
-          <label>
-            Email Address
-            <input name="email" type="email" value={form.email} onChange={handleChange} required />
-          </label>
-          <label>
-            Phone Number
-            <input name="phone" type="tel" value={form.phone} onChange={handleChange} required />
-          </label>
-          <label>
-            Password
-            <input name="password" type="password" value={form.password} onChange={handleChange} required minLength={6} />
-          </label>
-          <label>
-            Confirm Password
-            <input name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} required minLength={6} />
-          </label>
+          <FloatingInput label="Full Name" name="name" value={form.name} onChange={handleChange} required />
+          <FloatingInput label="Email Address" name="email" type="email" value={form.email} onChange={handleChange} required />
+          <FloatingInput label="Phone Number" name="phone" type="tel" value={form.phone} onChange={handleChange} required inputProps={{ inputMode: 'numeric', maxLength: 10 }} />
+          <FloatingInput label="Password" name="password" type="password" value={form.password} onChange={handleChange} required minLength={6} showToggle />
+          <FloatingInput label="Confirm Password" name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} required minLength={6} showToggle />
           <button type="submit" className="button button-primary" disabled={loading}>
             {loading ? 'Registering...' : 'Sign up'}
           </button>

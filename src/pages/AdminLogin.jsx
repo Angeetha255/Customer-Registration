@@ -33,12 +33,12 @@ export default function AdminLogin() {
   }
 
   return (
-    <main className="page-shell">
-      <section className="page-panel card">
+    <main className="page-shell admin-login">
+      <section className="page-panel card admin-login-panel">
         <h1>Admin Login</h1>
         <p className="subtitle">Access the admin panel to manage customers.</p>
         <Alert type="danger" message={error} />
-        <form onSubmit={handleSubmit} className="form-grid">
+        <form onSubmit={handleSubmit} className="form-grid admin-login-form">
           <label>
             Email Address
             <input name="email" type="email" value={credentials.email} onChange={handleChange} required />

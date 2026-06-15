@@ -6,7 +6,16 @@ import User from '../models/User.js'
 const router = express.Router()
 
 router.get('/me', authMiddleware, async (req, res) => {
-  res.json(req.user)
+  try {
+    const user = req.user
+    // include referralLink and referred customers for dashboard
+    const referralLink = user.introducerId ? `${process.env.FRONTEND_BASE || ''}/register?ref=${user.introducerId}` : null
+    const referred = user.introducerId ? await User.findAll({ where: { referredBy: user.introducerId }, attributes: { exclude: ['password', 'resetPasswordToken', 'resetPasswordExpires'] } }) : []
+    res.json({ ...user.toJSON(), referralLink, referredCustomers: referred })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: 'Unable to fetch profile.' })
+  }
 })
 
 router.put('/me', authMiddleware, async (req, res) => {
@@ -28,28 +37,24 @@ router.put('/me', authMiddleware, async (req, res) => {
 router.get('/', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
     const { search, customerId, introducerId, email, name, phone, page = 1, limit = 10, sort = 'registeredAt' } = req.query
-    const query = { role: 'customer' }
-    if (customerId) query.customerId = customerId
-    if (introducerId) query.introducerId = introducerId
-    if (email) query.email = new RegExp(email, 'i')
-    if (name) query.name = new RegExp(name, 'i')
-    if (phone) query.phone = new RegExp(phone, 'i')
+    const where = { role: 'customer' }
+    const { Op } = await import('sequelize')
+    if (customerId) where.customerId = customerId
+    if (introducerId) where.introducerId = introducerId
+    if (email) where.email = { [Op.like]: `%${email}%` }
+    if (name) where.name = { [Op.like]: `%${name}%` }
+    if (phone) where.phone = { [Op.like]: `%${phone}%` }
     if (search) {
-      query.$or = [
-        { customerId: new RegExp(search, 'i') },
-        { introducerId: new RegExp(search, 'i') },
-        { name: new RegExp(search, 'i') },
-        { email: new RegExp(search, 'i') },
-        { phone: new RegExp(search, 'i') },
+      where[Op.or] = [
+        { customerId: { [Op.like]: `%${search}%` } },
+        { introducerId: { [Op.like]: `%${search}%` } },
+        { name: { [Op.like]: `%${search}%` } },
+        { email: { [Op.like]: `%${search}%` } },
+        { phone: { [Op.like]: `%${search}%` } },
       ]
     }
-    const skip = (Number(page) - 1) * Number(limit)
-    const total = await User.countDocuments(query)
-    const customers = await User.find(query)
-      .sort({ [sort]: -1 })
-      .skip(skip)
-      .limit(Number(limit))
-      .select('-password -resetPasswordToken -resetPasswordExpires')
+    const offset = (Number(page) - 1) * Number(limit)
+    const { count: total, rows: customers } = await User.findAndCountAll({ where, order: [[sort, 'DESC']], offset, limit: Number(limit), attributes: { exclude: ['password', 'resetPasswordToken', 'resetPasswordExpires'] } })
     res.json({ total, page: Number(page), limit: Number(limit), customers })
   } catch (error) {
     console.error(error)
@@ -59,32 +64,18 @@ router.get('/', authMiddleware, requireRole('admin'), async (req, res) => {
 
 router.get('/stats', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
-    const totalCustomers = await User.countDocuments({ role: 'customer' })
+    const totalCustomers = await User.count({ where: { role: 'customer' } })
     const startOfDay = new Date()
     startOfDay.setHours(0, 0, 0, 0)
-    const todayRegistrations = await User.countDocuments({ role: 'customer', registeredAt: { $gte: startOfDay } })
-    const recentCustomers = await User.find({ role: 'customer' })
-      .sort({ registeredAt: -1 })
-      .limit(5)
-      .select('name email phone customerId introducerId registeredAt')
+    const { Op } = await import('sequelize')
+    const todayRegistrations = await User.count({ where: { role: 'customer', registeredAt: { [Op.gte]: startOfDay } } })
+    const recentCustomers = await User.findAll({ where: { role: 'customer' }, order: [['registeredAt', 'DESC']], limit: 5, attributes: ['id', 'name', 'email', 'phone', 'customerId', 'introducerId', 'registeredAt'] })
 
-    const weekAgo = new Date()
-    weekAgo.setDate(weekAgo.getDate() - 6)
-    weekAgo.setHours(0, 0, 0, 0)
-    const growth = []
-    for (let offset = 0; offset < 7; offset += 1) {
-      const day = new Date(weekAgo)
-      day.setDate(weekAgo.getDate() + offset)
-      const nextDay = new Date(day)
-      nextDay.setDate(day.getDate() + 1)
-      const count = await User.countDocuments({
-        role: 'customer',
-        registeredAt: { $gte: day, $lt: nextDay },
-      })
-      growth.push({ date: day.toISOString().slice(0, 10), count })
-    }
+    // referral metrics
+    const totalReferrals = (await User.sum('referralCount', { where: { role: 'customer' } })) || 0
+    const topReferrer = await User.findOne({ where: { role: 'customer' }, order: [['referralCount', 'DESC']], attributes: ['name', 'email', 'phone', 'customerId', 'introducerId', 'referralCount'] })
 
-    res.json({ totalCustomers, todayRegistrations, recentCustomers, growth })
+    res.json({ totalCustomers, todayRegistrations, recentCustomers, totalReferrals, topReferrer })
   } catch (error) {
     console.error(error)
     res.status(500).json({ message: 'Unable to load stats.' })
@@ -94,7 +85,7 @@ router.get('/stats', authMiddleware, requireRole('admin'), async (req, res) => {
 router.get('/export', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
     const { format = 'csv' } = req.query
-    const customers = await User.find({ role: 'customer' }).select('name email phone customerId introducerId registeredAt')
+    const customers = await User.findAll({ where: { role: 'customer' }, attributes: ['name', 'email', 'phone', 'customerId', 'introducerId', 'registeredAt'] })
     if (format === 'pdf') {
       const doc = new pdfkit({ size: 'A4', margin: 40 })
       res.setHeader('Content-Type', 'application/pdf')
@@ -140,7 +131,7 @@ router.get('/export', authMiddleware, requireRole('admin'), async (req, res) => 
 
 router.get('/:id', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
-    const customer = await User.findOne({ _id: req.params.id, role: 'customer' }).select('-password')
+    const customer = await User.findOne({ where: { id: req.params.id, role: 'customer' }, attributes: { exclude: ['password'] } })
     if (!customer) {
       return res.status(404).json({ message: 'Customer not found.' })
     }
@@ -153,14 +144,21 @@ router.get('/:id', authMiddleware, requireRole('admin'), async (req, res) => {
 
 router.put('/:id', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
-    const { name, email, phone } = req.body
-    const customer = await User.findOne({ _id: req.params.id, role: 'customer' })
+    const { name, email, phone, introducerId, active } = req.body
+    const customer = await User.findOne({ where: { id: req.params.id, role: 'customer' } })
     if (!customer) {
       return res.status(404).json({ message: 'Customer not found.' })
     }
+    // basic validation
+    if (email && email !== customer.email) {
+      const exists = await User.findOne({ where: { email } })
+      if (exists) return res.status(409).json({ message: 'Email already in use.' })
+      customer.email = email
+    }
     customer.name = name || customer.name
-    customer.email = email || customer.email
     customer.phone = phone || customer.phone
+    if (typeof introducerId !== 'undefined') customer.introducerId = introducerId || null
+    if (typeof active !== 'undefined') customer.active = !!active
     await customer.save()
     res.json({ message: 'Customer updated.', customer })
   } catch (error) {
@@ -171,10 +169,11 @@ router.put('/:id', authMiddleware, requireRole('admin'), async (req, res) => {
 
 router.delete('/:id', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
-    const customer = await User.findOneAndDelete({ _id: req.params.id, role: 'customer' })
+    const customer = await User.findOne({ where: { id: req.params.id, role: 'customer' } })
     if (!customer) {
       return res.status(404).json({ message: 'Customer not found.' })
     }
+    await customer.destroy()
     res.json({ message: 'Customer deleted.' })
   } catch (error) {
     console.error(error)
@@ -186,7 +185,7 @@ router.get('/referred/list', authMiddleware, async (req, res) => {
   try {
     const user = req.user
     if (!user || !user.introducerId) return res.json({ referred: [] })
-    const referred = await User.find({ referredBy: user.introducerId }).select('-password -resetPasswordToken -resetPasswordExpires')
+    const referred = await User.findAll({ where: { referredBy: user.introducerId }, attributes: { exclude: ['password', 'resetPasswordToken', 'resetPasswordExpires'] } })
     res.json({ referred })
   } catch (err) {
     console.error(err)

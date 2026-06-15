@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { forgotPassword } from '../services/api.js'
 import Alert from '../components/Alert.jsx'
+import { useNavigate } from 'react-router-dom'
 
 export default function ForgotPassword() {
+  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -16,6 +18,10 @@ export default function ForgotPassword() {
     try {
       const result = await forgotPassword(email)
       setMessage(result.message)
+      // If token returned, navigate to reset page with token in query
+      if (result.resetToken) {
+        navigate(`/reset-password?token=${encodeURIComponent(result.resetToken)}`)
+      }
     } catch (err) {
       setError(err.message)
     } finally {
