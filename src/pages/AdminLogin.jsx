@@ -71,13 +71,22 @@ export default function AdminLogin() {
           </button>
         </form>
 
-        <button
-          type="button"
-          className="admin-login-back"
-          onClick={() => navigate('/')}
-        >
-          ← Back to Home
-        </button>
+        <div className="admin-login-links">
+          <button
+            type="button"
+            className="admin-login-link"
+            onClick={() => navigate('/forgot-password')}
+          >
+            Forgot Password?
+          </button>
+          <button
+            type="button"
+            className="admin-login-link"
+            onClick={() => navigate('/')}
+          >
+            Back to Home
+          </button>
+        </div>
       </div>
     </main>
   )

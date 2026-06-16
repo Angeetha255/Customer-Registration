@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useLocation } from 'react-router-dom'
 import { updateProfile, fetchIntroducer, fetchReferredCustomers } from '../services/api.js'
 import Alert from '../components/Alert.jsx'
 import BackButton from '../components/BackButton.jsx'
@@ -24,6 +25,8 @@ function AvatarIcon() {
 
 export default function Profile() {
   const { user, setUser } = useAuth()
+  const location = useLocation()
+  const fromUserIcon = location.state?.fromUserIcon === true
   const [form, setForm] = useState({ name: user?.name || '', phone: user?.phone || '', email: user?.email || '' })
   const [introducerInfo, setIntroducerInfo] = useState(null)
   const [referred, setReferred] = useState([])
@@ -111,7 +114,7 @@ export default function Profile() {
 
   return (
     <main className="page-shell layout-with-sidebar">
-      <BackButton />
+      
 
       <Toast
         message={toast.message}
@@ -120,6 +123,7 @@ export default function Profile() {
       />
 
       <div className="profile-layout">
+        
 
         {/* ── Left: profile card ── */}
         <section className="profile-card">
@@ -140,9 +144,11 @@ export default function Profile() {
             <ProfileRow label="Phone"           value={user?.phone || '—'} />
             <ProfileRow label="Email"           value={user?.email || '—'} />
             <ProfileRow label="Date Joined"     value={formatDate(user?.registeredAt)} />
-            <div className="profile-edit-trigger">
-              <button className="button button-secondary" onClick={openEdit}>Edit Profile</button>
-            </div>
+            {fromUserIcon && (
+              <div className="profile-edit-trigger">
+                <button className="button button-secondary" onClick={openEdit}>Edit Profile</button>
+              </div>
+            )}
           </div>
         </section>
 

@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import Sidebar from './components/Sidebar.jsx'
@@ -21,6 +21,7 @@ import './App.css'
 function AppLayout({ children }) {
   const { user, signOut } = useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(
     typeof window !== 'undefined' ? window.innerWidth > 900 : true
   )
@@ -75,7 +76,10 @@ function AppLayout({ children }) {
                     {user?.role !== 'admin' && (
                       <button
                         className="button button-link"
-                        onClick={() => { setUserMenuOpen(false); window.location.href = '/profile' }}
+                        onClick={() => { 
+                          setUserMenuOpen(false)
+                          navigate('/profile', { state: { fromUserIcon: true } })
+                        }}
                       >
                         View Profile
                       </button>

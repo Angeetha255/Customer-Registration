@@ -4,7 +4,8 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import authRoutes from './routes/auth.js'
 import customerRoutes from './routes/customers.js'
-import User from './models/User.js'
+import Admin from './models/Admin.js'
+import Customer from './models/Customer.js'
 import bcrypt from 'bcrypt'
 import { sequelize } from './models/index.js'
 
@@ -12,7 +13,6 @@ dotenv.config()
 
 const app = express()
 const PORT = process.env.PORT || 5000
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/customer-management'
 
 app.use(cors())
 app.use(express.json())
@@ -25,18 +25,17 @@ app.get('/', (_req, res) => {
 })
 
 async function createDefaultAdmin() {
-  const existingAdmin = await User.findOne({ where: { role: 'admin' } })
+  const existingAdmin = await Admin.findOne({ where: { email: process.env.ADMIN_EMAIL || 'admin@example.com' } })
   if (existingAdmin) return
 
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com'
   const adminPassword = process.env.ADMIN_PASSWORD || 'Admin123!'
   const hashedPassword = await bcrypt.hash(adminPassword, 10)
-  await User.create({
+  await Admin.create({
     name: 'Admin User',
     email: adminEmail,
     phone: process.env.ADMIN_PHONE || '0000000000',
     password: hashedPassword,
-    role: 'admin',
     registeredAt: new Date(),
   })
   console.log(`Default admin created: ${adminEmail}`)
@@ -45,8 +44,8 @@ async function createDefaultAdmin() {
 const start = async () => {
   try {
     await sequelize.authenticate()
-    // In development, allow Sequelize to alter tables to match models (adds new columns like `active`).
-    // Avoid using `alter` in production.
+    // Sync models without forcing ALTER operations to avoid repeated index/schema changes
+    // If you need schema changes, run migrations or enable alter temporarily.
     await sequelize.sync()
     console.log('Connected to MySQL via Sequelize')
     await createDefaultAdmin()

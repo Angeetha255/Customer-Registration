@@ -38,8 +38,12 @@ export const AuthProvider = ({ children }) => {
     const role = user?.role
     window.localStorage.removeItem('authToken')
     setUser(null)
-    // Redirect to common login page
-    window.location.href = '/login'
+    // Redirect to admin or customer login depending on role
+    if (role === 'admin') {
+      window.location.href = '/admin-login'
+    } else {
+      window.location.href = '/login'
+    }
   }
 
   return (

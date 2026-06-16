@@ -20,6 +20,8 @@ export default function Sidebar({ open, onToggle }) {
 
   return (
     <aside className={`sidebar ${open ? 'sidebar-open' : ''}`}>
+      <div className="sidebar-header">
+        <span className="sidebar-logo">CM</span>
       <button
         className="sidebar-toggle"
         onClick={onToggle}
@@ -31,9 +33,8 @@ export default function Sidebar({ open, onToggle }) {
         <span className="bar" />
       </button>
 
-      <div className="brand">
-        <div className="logo">CM</div>
-        <span className="brand-text">Customer Management</span>
+     
+       
       </div>
 
       <nav>

@@ -34,6 +34,8 @@ export default function AdminCustomers() {
     }
   }
 
+  
+
   useEffect(() => {
     const run = async () => {
       await load(query)
@@ -152,7 +154,7 @@ export default function AdminCustomers() {
       />
 
       <section className="page-panel card no-border-panel">
-        <BackButton />
+        
         <h1>Customer Management</h1>
         <p className="subtitle">Search, sort, edit and export customer records.</p>
 
@@ -169,7 +171,7 @@ export default function AdminCustomers() {
         <div className="table-scroll">
           <table className="customers-table">
             <thead>
-              <tr>
+                <tr>
                 <th>Customer ID</th>
                 <th>Name</th>
                 <th>Email</th>
