@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import Sidebar from './components/Sidebar.jsx'
@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute.jsx'
 import AdminRoute from './components/AdminRoute.jsx'
 import Register from './pages/Register.jsx'
 import Login from './pages/Login.jsx'
+import Landing from './pages/Landing.jsx'
 import ForgotPassword from './pages/ForgotPassword.jsx'
 import ResetPassword from './pages/ResetPassword.jsx'
 import CustomerDashboard from './pages/CustomerDashboard.jsx'
@@ -19,30 +20,72 @@ import './App.css'
 
 function AppLayout({ children }) {
   const { user, signOut } = useAuth()
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(typeof window !== 'undefined' ? window.innerWidth <= 900 : false)
+  const location = useLocation()
+  const [sidebarOpen, setSidebarOpen] = useState(
+    typeof window !== 'undefined' ? window.innerWidth > 900 : true
+  )
   const [userMenuOpen, setUserMenuOpen] = useState(false)
 
+  const toggleSidebar = () => setSidebarOpen((v) => !v)
+
+  // Public routes — never show sidebar or topbar
+  const PUBLIC_ROUTES = ['/', '/register', '/login', '/forgot-password', '/reset-password', '/admin-login']
+  const isPublic = PUBLIC_ROUTES.includes(location.pathname)
+  const showShell = user && !isPublic
+
   return (
-    <div className={`app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`} onClick={(e) => {
-      // close user menu when clicking outside
-      if (!e.target.closest || !e.target.closest('.user-menu')) {
-        setUserMenuOpen(false)
-      }
-    }}>
-      {user && <Sidebar onToggle={() => setSidebarCollapsed((s) => !s)} />}
-      <div className={`app-content ${user ? 'with-sidebar' : ''}`}>
-        {user && (
+    <div
+      className={`app-shell ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}
+      onClick={(e) => {
+        if (!e.target.closest || !e.target.closest('.user-menu')) {
+          setUserMenuOpen(false)
+        }
+      }}
+    >
+      {showShell && <Sidebar open={sidebarOpen} onToggle={toggleSidebar} />}
+
+      {/* Overlay — closes sidebar on mobile when tapping outside */}
+      {showShell && sidebarOpen && (
+        <div className="sidebar-overlay" onClick={toggleSidebar} aria-hidden="true" />
+      )}
+
+      <div className={`app-content ${showShell ? 'with-sidebar' : ''}`}>
+        {showShell && (
           <header className="topbar">
-            <button className="hamburger" onClick={() => setSidebarCollapsed((s) => !s)} aria-label="Toggle sidebar">☰</button>
+            {/* Outside hamburger — only visible when sidebar is closed */}
+            {!sidebarOpen && (
+              <button
+                className="hamburger"
+                onClick={toggleSidebar}
+                aria-label="Open sidebar"
+                aria-expanded={false}
+              >
+                <span className="bar" />
+                <span className="bar" />
+                <span className="bar" />
+              </button>
+            )}
             <div className="topbar-right">
               <div className="user-menu">
-                <button className="user-icon" onClick={() => setUserMenuOpen((v) => !v)}>{user.name?.[0] || 'U'}</button>
+                <button className="user-icon" onClick={() => setUserMenuOpen((v) => !v)}>
+                  {user.name?.[0] || 'U'}
+                </button>
                 {userMenuOpen && (
                   <div className="user-dropdown">
                     {user?.role !== 'admin' && (
-                      <button className="button button-link" onClick={() => { setUserMenuOpen(false); window.location.href = '/profile' }}>View Profile</button>
+                      <button
+                        className="button button-link"
+                        onClick={() => { setUserMenuOpen(false); window.location.href = '/profile' }}
+                      >
+                        View Profile
+                      </button>
                     )}
-                    <button className="button button-link" onClick={() => { setUserMenuOpen(false); signOut() }}>Logout</button>
+                    <button
+                      className="button button-link"
+                      onClick={() => { setUserMenuOpen(false); signOut() }}
+                    >
+                      Logout
+                    </button>
                   </div>
                 )}
               </div>
@@ -58,7 +101,7 @@ function AppLayout({ children }) {
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/" element={<Landing />} />
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />

@@ -30,18 +30,21 @@ export default function ForgotPassword() {
   }
 
   return (
-    <main className="page-shell">
-      <section className="page-panel card">
+    <main className="auth-page">
+      <section className="page-panel card auth-card">
         <h1>Forgot Password</h1>
         <p className="subtitle">Enter your email to receive a password reset token.</p>
         <Alert type={error ? 'danger' : 'success'} message={error || message} />
-        <form onSubmit={handleSubmit} className="form-grid">
+        <form onSubmit={handleSubmit} className="form-grid auth-form">
           <label>
             Email Address
             <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
           </label>
           <button className="button button-primary" type="submit" disabled={loading}>
             {loading ? 'Sending...' : 'Request reset'}
+          </button>
+          <button type="button" className="button button-muted" onClick={() => navigate('/login')}>
+            Cancel
           </button>
         </form>
       </section>

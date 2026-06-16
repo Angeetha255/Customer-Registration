@@ -1,27 +1,22 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
-import { updateProfile, fetchIntroducer } from '../services/api.js'
+import { updateProfile, fetchIntroducer, fetchReferredCustomers } from '../services/api.js'
 import Alert from '../components/Alert.jsx'
 import BackButton from '../components/BackButton.jsx'
+import Toast from '../components/Toast.jsx'
 
 /* Generic avatar SVG — business person illustration */
 function AvatarIcon() {
   return (
     <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" width="110" height="110">
       <circle cx="60" cy="60" r="60" fill="#dce8f5" />
-      {/* head */}
       <circle cx="60" cy="44" r="22" fill="#f0c08a" />
-      {/* hair */}
       <ellipse cx="60" cy="27" rx="22" ry="12" fill="#7a4a1e" />
       <ellipse cx="42" cy="34" rx="8" ry="10" fill="#7a4a1e" />
       <ellipse cx="78" cy="34" rx="8" ry="10" fill="#7a4a1e" />
-      {/* neck */}
       <rect x="54" y="64" width="12" height="10" fill="#f0c08a" />
-      {/* body / suit */}
       <path d="M20 120 Q20 88 60 84 Q100 88 100 120Z" fill="#2d2d2d" />
-      {/* shirt */}
       <path d="M52 84 L60 100 L68 84 Q64 82 60 82 Q56 82 52 84Z" fill="#ffffff" />
-      {/* tie */}
       <path d="M58 86 L60 98 L62 86 L60 83Z" fill="#e07820" />
     </svg>
   )
@@ -31,10 +26,12 @@ export default function Profile() {
   const { user, setUser } = useAuth()
   const [form, setForm] = useState({ name: user?.name || '', phone: user?.phone || '', email: user?.email || '' })
   const [introducerInfo, setIntroducerInfo] = useState(null)
-  const [message, setMessage] = useState('')
+  const [referred, setReferred] = useState([])
+  const [copied, setCopied] = useState(false)
+  const [toast, setToast] = useState({ message: '', type: 'success' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [editing, setEditing] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
 
   useEffect(() => {
     setForm({ name: user?.name || '', phone: user?.phone || '', email: user?.email || '' })
@@ -54,6 +51,24 @@ export default function Profile() {
     loadIntroducer()
   }, [user])
 
+  useEffect(() => {
+    fetchReferredCustomers()
+      .then((data) => setReferred(data.referred || []))
+      .catch(() => setReferred([]))
+  }, [])
+
+  const openEdit = () => {
+    // reset form to current user values each time modal opens
+    setForm({ name: user?.name || '', phone: user?.phone || '', email: user?.email || '' })
+    setError('')
+    setEditOpen(true)
+  }
+
+  const closeEdit = () => {
+    setEditOpen(false)
+    setError('')
+  }
+
   const handleChange = (event) => {
     setForm({ ...form, [event.target.name]: event.target.value })
   }
@@ -61,13 +76,12 @@ export default function Profile() {
   const handleSubmit = async (event) => {
     event.preventDefault()
     setError('')
-    setMessage('')
     setLoading(true)
     try {
       const { user: updated } = await updateProfile(form)
       if (updated) setUser(updated)
-      setMessage('Profile updated successfully.')
-      setEditing(false)
+      closeEdit()
+      setToast({ message: 'Profile updated successfully.', type: 'success' })
     } catch (err) {
       setError(err.message || 'Failed to update profile.')
     } finally {
@@ -84,29 +98,42 @@ export default function Profile() {
     return `${dd}/${mm}/${yyyy}`
   }
 
+  const referralUrl = user?.introducerId
+    ? `${window.location.origin}/register?ref=${user.introducerId}`
+    : null
+
+  const handleCopy = () => {
+    if (!referralUrl) return
+    navigator.clipboard.writeText(referralUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   return (
     <main className="page-shell layout-with-sidebar">
       <BackButton />
-      <Alert type={error ? 'danger' : 'success'} message={error || message} />
 
-      <section className="profile-card">
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ message: '', type: 'success' })}
+      />
 
-        {/* ── Avatar + identity ── */}
-        <div className="profile-hero">
-          <div className="profile-avatar">
-            <AvatarIcon />
+      <div className="profile-layout">
+
+        {/* ── Left: profile card ── */}
+        <section className="profile-card">
+          <div className="profile-hero">
+            <div className="profile-avatar"><AvatarIcon /></div>
+            <h2 className="profile-name">
+              {user?.name || '—'}
+              {user?.customerId && <span className="profile-cid"> ({user.customerId})</span>}
+            </h2>
+            {user?.registeredAt && (
+              <span className="profile-since">Member since {formatDate(user.registeredAt)}</span>
+            )}
           </div>
-          <h2 className="profile-name">
-            {user?.name || '—'}
-            {user?.customerId && <span className="profile-cid"> ({user.customerId})</span>}
-          </h2>
-          {user?.registeredAt && (
-            <span className="profile-since">Member since {formatDate(user.registeredAt)}</span>
-          )}
-        </div>
 
-        {/* ── Info rows ── */}
-        {!editing && (
           <div className="profile-info-list">
             <ProfileRow label="Introducer Name" value={introducerInfo?.name || '—'} />
             <ProfileRow label="Introducer ID"   value={user?.introducerId || '—'} />
@@ -114,40 +141,129 @@ export default function Profile() {
             <ProfileRow label="Email"           value={user?.email || '—'} />
             <ProfileRow label="Date Joined"     value={formatDate(user?.registeredAt)} />
             <div className="profile-edit-trigger">
-              <button className="button button-secondary" onClick={() => setEditing(true)}>
-                Edit Profile
-              </button>
+              <button className="button button-secondary" onClick={openEdit}>Edit Profile</button>
             </div>
           </div>
-        )}
+        </section>
 
-        {/* ── Edit form ── */}
-        {editing && (
-          <form onSubmit={handleSubmit} className="profile-edit-form">
-            <label>
-              Full Name
-              <input name="name" value={form.name} onChange={handleChange} required />
-            </label>
-            <label>
-              Phone Number
-              <input name="phone" value={form.phone} onChange={handleChange} required />
-            </label>
-            <label>
-              Email
-              <input name="email" type="email" value={form.email} onChange={handleChange} required />
-            </label>
-            <div className="profile-edit-actions">
-              <button type="button" className="button button-muted" onClick={() => { setEditing(false); setError(''); setMessage('') }}>
-                Cancel
-              </button>
-              <button type="submit" className="button button-primary" disabled={loading}>
+        {/* ── Right: referral card ── */}
+        <div className="profile-referral-col">
+
+          {/* Referral link card */}
+          <div className="pref-card">
+            <div className="pref-card-header">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+              </svg>
+              <h3>Referral Link</h3>
+            </div>
+
+            {referralUrl ? (
+              <>
+                <div className="pref-url">{referralUrl}</div>
+                <div className="pref-actions">
+                  <button className="button button-primary button-small" onClick={handleCopy}>
+                    {copied ? '✓ Copied!' : 'Copy Link'}
+                  </button>
+                  <button className="button button-secondary button-small" onClick={() => window.open(referralUrl, '_blank')}>
+                    Open
+                  </button>
+                </div>
+              </>
+            ) : (
+              <p className="pref-empty">No introducer ID assigned yet.</p>
+            )}
+          </div>
+
+          {/* Stats card */}
+          <div className="pref-card">
+            <div className="pref-card-header">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              <h3>Referral Stats</h3>
+            </div>
+            <div className="pref-stats">
+              <div className="pref-stat">
+                <span className="pref-stat-value">{user?.referralCount ?? 0}</span>
+                <span className="pref-stat-label">Total Referrals</span>
+              </div>
+              <div className="pref-stat">
+                <span className="pref-stat-value">{referred.length}</span>
+                <span className="pref-stat-label">Referred Users</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Recent referrals */}
+          <div className="pref-card">
+            <div className="pref-card-header">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+              <h3>Recent Referrals</h3>
+              <span className="pref-badge">{referred.length}</span>
+            </div>
+
+            {referred.length === 0 ? (
+              <p className="pref-empty">No referrals yet. Share your link!</p>
+            ) : (
+              <ul className="pref-referral-list">
+                {referred.slice(0, 5).map((r) => (
+                  <li key={r.id || r._id} className="pref-referral-item">
+                    <div className="pref-referral-avatar">
+                      {r.name?.[0]?.toUpperCase() || '?'}
+                    </div>
+                    <div className="pref-referral-info">
+                      <div className="pref-referral-name">{r.name}</div>
+                      <div className="pref-referral-meta">{r.email}</div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+        </div>
+      </div>
+
+      {/* ── Edit Profile Modal ── */}
+      {editOpen && (
+        <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) closeEdit() }}>
+          <div className="modal-card profile-edit-modal">
+            <div className="modal-header">
+              <h3>Edit Profile</h3>
+              <button className="modal-close" onClick={closeEdit} aria-label="Close">✕</button>
+            </div>
+            <div className="modal-body">
+              {error && <Alert type="danger" message={error} />}
+              <form id="profile-edit-form" onSubmit={handleSubmit} className="form-grid">
+                <label className="profile-modal-label">
+                  Full Name
+                  <input name="name" value={form.name} onChange={handleChange} required />
+                </label>
+                <label className="profile-modal-label">
+                  Phone Number
+                  <input name="phone" value={form.phone} onChange={handleChange} required />
+                </label>
+                <label className="profile-modal-label">
+                  Email Address
+                  <input name="email" type="email" value={form.email} onChange={handleChange} required />
+                </label>
+              </form>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="button button-muted" onClick={closeEdit}>Cancel</button>
+              <button type="submit" form="profile-edit-form" className="button button-primary" disabled={loading}>
                 {loading ? 'Saving…' : 'Save Changes'}
               </button>
             </div>
-          </form>
-        )}
+          </div>
+        </div>
+      )}
 
-      </section>
     </main>
   )
 }

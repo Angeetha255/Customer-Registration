@@ -54,6 +54,7 @@ export default function Login() {
           <div className="form-footer">
             <button type="button" className="button-link" onClick={() => navigate('/forgot-password')}>Forgot password?</button>
             <button type="button" className="button-link" onClick={() => navigate('/register')}>Create account</button>
+            <button type="button" className="button-link" onClick={() => navigate('/')}> Home</button>
           </div>
         </div>
       </section>

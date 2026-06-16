@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { resetPassword } from '../services/api.js'
 import Alert from '../components/Alert.jsx'
 import FloatingInput from '../components/FloatingInput.jsx'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 export default function ResetPassword() {
   const [form, setForm] = useState({ token: '', password: '', confirmPassword: '' })
@@ -10,6 +10,7 @@ export default function ResetPassword() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
 
   const handleChange = (event) => {
     setForm({ ...form, [event.target.name]: event.target.value })
@@ -40,17 +41,20 @@ export default function ResetPassword() {
   }
 
   return (
-    <main className="page-shell">
-      <section className="page-panel card">
+    <main className="auth-page">
+      <section className="page-panel card auth-card">
         <h1>Reset Password</h1>
         <p className="subtitle">Enter the reset token and a new password.</p>
         <Alert type={error ? 'danger' : 'success'} message={error || message} />
-        <form onSubmit={handleSubmit} className="form-grid">
-          <FloatingInput label="Reset Token" name="token" value={form.token} onChange={handleChange} required />
+        <form onSubmit={handleSubmit} className="form-grid auth-form">
+          <input type="hidden" name="token" value={form.token} onChange={handleChange} />
           <FloatingInput label="New Password" name="password" type="password" value={form.password} onChange={handleChange} required minLength={6} showToggle />
           <FloatingInput label="Confirm Password" name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} required minLength={6} showToggle />
           <button type="submit" className="button button-primary" disabled={loading}>
             {loading ? 'Resetting...' : 'Reset password'}
+          </button>
+          <button type="button" className="button button-muted" onClick={() => navigate('/login')}>
+            Cancel
           </button>
         </form>
       </section>

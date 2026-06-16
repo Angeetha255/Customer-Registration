@@ -82,6 +82,18 @@ router.get('/stats', authMiddleware, requireRole('admin'), async (req, res) => {
   }
 })
 
+router.get('/referred/list', authMiddleware, async (req, res) => {
+  try {
+    const user = req.user
+    if (!user || !user.introducerId) return res.json({ referred: [] })
+    const referred = await User.findAll({ where: { referredBy: user.introducerId }, attributes: { exclude: ['password', 'resetPasswordToken', 'resetPasswordExpires'] } })
+    res.json({ referred })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: 'Unable to fetch referred customers.' })
+  }
+})
+
 router.get('/export', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
     const { format = 'csv' } = req.query
@@ -178,18 +190,6 @@ router.delete('/:id', authMiddleware, requireRole('admin'), async (req, res) => 
   } catch (error) {
     console.error(error)
     res.status(500).json({ message: 'Unable to delete customer.' })
-  }
-})
-
-router.get('/referred/list', authMiddleware, async (req, res) => {
-  try {
-    const user = req.user
-    if (!user || !user.introducerId) return res.json({ referred: [] })
-    const referred = await User.findAll({ where: { referredBy: user.introducerId }, attributes: { exclude: ['password', 'resetPasswordToken', 'resetPasswordExpires'] } })
-    res.json({ referred })
-  } catch (err) {
-    console.error(err)
-    res.status(500).json({ message: 'Unable to fetch referred customers.' })
   }
 })
 

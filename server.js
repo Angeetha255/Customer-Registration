@@ -47,8 +47,7 @@ const start = async () => {
     await sequelize.authenticate()
     // In development, allow Sequelize to alter tables to match models (adds new columns like `active`).
     // Avoid using `alter` in production.
-    const syncOptions = process.env.NODE_ENV === 'production' ? {} : { alter: true }
-    await sequelize.sync(syncOptions)
+    await sequelize.sync()
     console.log('Connected to MySQL via Sequelize')
     await createDefaultAdmin()
     const server = app.listen(PORT, () => {

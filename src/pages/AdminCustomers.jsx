@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { deleteCustomer, exportCustomers, fetchAdminCustomers, updateCustomer } from '../services/api.js'
 import Alert from '../components/Alert.jsx'
+import Toast from '../components/Toast.jsx'
 import BackButton from '../components/BackButton.jsx'
 
 const initialQuery = { page: 1, limit: 10, sort: 'registeredAt' }
@@ -10,9 +11,14 @@ export default function AdminCustomers() {
   const [customers, setCustomers] = useState([])
   const [meta, setMeta] = useState({ total: 0, page: 1, limit: 10 })
   const [search, setSearch] = useState('')
-  const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+
+  // Toast state — separate from the inline Alert (used only for load errors)
+  const [toast, setToast] = useState({ message: '', type: 'success' })
+  const showToast = useCallback((msg, type = 'success') => {
+    setToast({ message: msg, type })
+  }, [])
 
   const load = async (params) => {
     setError('')
@@ -38,19 +44,6 @@ export default function AdminCustomers() {
   const handleSearch = (event) => {
     event.preventDefault()
     setQuery({ ...query, search, page: 1 })
-  }
-
-  const handleDelete = async (id) => {
-    // use modal confirmation flow handled below
-    // kept for backward compatibility
-    if (!window.confirm('Delete this customer?')) return
-    try {
-      await deleteCustomer(id)
-      setMessage('Customer deleted successfully.')
-      load(query)
-    } catch (err) {
-      setError(err.message)
-    }
   }
 
   // Edit modal state
@@ -82,9 +75,7 @@ export default function AdminCustomers() {
 
   const saveEdit = async () => {
     setError('')
-    setMessage('')
     try {
-      // basic validation
       if (!editForm.name || !editForm.email || !editForm.phone) {
         setError('Name, email and phone are required.')
         return
@@ -96,9 +87,9 @@ export default function AdminCustomers() {
         introducerId: editForm.introducerId,
         active: editForm.active,
       })
-      setMessage('Customer updated successfully.')
       closeEdit()
       await load(query)
+      showToast('Customer updated successfully.')
     } catch (err) {
       setError(err.message)
     }
@@ -122,11 +113,11 @@ export default function AdminCustomers() {
     if (!deleteTarget) return
     try {
       await deleteCustomer(deleteTarget.id)
-      setMessage('Customer deleted successfully.')
       closeDelete()
       await load(query)
+      showToast('Customer deleted successfully.')
     } catch (err) {
-      setError(err.message)
+      showToast(err.message, 'danger')
     }
   }
 
@@ -153,11 +144,20 @@ export default function AdminCustomers() {
 
   return (
     <main className="page-shell layout-with-sidebar">
+      {/* Toast — slides up from bottom-right */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ message: '', type: 'success' })}
+      />
+
       <section className="page-panel card no-border-panel">
         <BackButton />
         <h1>Customer Management</h1>
         <p className="subtitle">Search, sort, edit and export customer records.</p>
-        <Alert type={error ? 'danger' : 'success'} message={error || message} />
+
+        {/* Only show inline alert for load/fetch errors */}
+        <Alert type="danger" message={error} />
 
         <form className="search-row" onSubmit={handleSearch}>
           <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by customer ID, introducer ID, name, email, phone" />
