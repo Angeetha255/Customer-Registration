@@ -5,7 +5,7 @@ import dotenv from 'dotenv'
 import authRoutes from './routes/auth.js'
 import userRoutes from './routes/users.js'
 import Admin from './models/Admin.js'
-import User from './models/User.js'
+import User from './models/User.js'   // must be imported so sequelize.sync() creates the users table
 import Settings from './models/Settings.js'
 import bcrypt from 'bcrypt'
 import { sequelize } from './models/index.js'
@@ -53,7 +53,8 @@ async function seedDefaultSettings() {
 const start = async () => {
   try {
     await sequelize.authenticate()
-    // Sync all models — use alter:true to safely apply schema changes (add/remove columns)
+    // Schema changes are handled by: npm run migrate
+    // Do NOT use alter:true here — it conflicts with ENUM columns on MySQL
     await sequelize.sync()
     console.log('Connected to MySQL via Sequelize')
     await createDefaultAdmin()

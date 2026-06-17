@@ -5,7 +5,7 @@ export default function Sidebar({ open, onToggle }) {
   const { user } = useAuth()
   const navItems = user?.role === 'admin' ? [
     { label: 'Dashboard',  path: '/admin' },
-    { label: 'Customers',  path: '/admin/customers' },
+    { label: 'Users',  path: '/admin/customers' },
   ] : [
     { label: 'Dashboard', path: '/dashboard' },
     { label: 'Profile',   path: '/profile' },

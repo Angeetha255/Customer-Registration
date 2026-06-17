@@ -11,6 +11,8 @@
     "server": "nodemon server.js",
     "client": "vite",
     "rename-table": "node scripts/rename-customers-to-users.js",
+    "migrate": "node scripts/run-migration.js",
+    "backfill": "node scripts/backfill-placement.js",
     "lint": "eslint ."
   },
   "dependencies": {

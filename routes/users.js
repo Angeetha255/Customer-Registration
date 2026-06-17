@@ -1,8 +1,7 @@
 import express from 'express'
 import pdfkit from 'pdfkit'
-import bcrypt from 'bcrypt'
 import { authMiddleware, requireRole } from '../middleware/auth.js'
-import User from '../models/User.js'
+import User, { HIDDEN_FIELDS } from '../models/User.js'
 import Settings from '../models/Settings.js'
 
 const router = express.Router()
@@ -55,16 +54,21 @@ router.put('/settings', authMiddleware, requireRole('admin'), async (req, res) =
 // GET /api/users/me
 router.get('/me', authMiddleware, async (req, res) => {
   try {
-    const user = req.user
-    const prefix = await getReferralPrefix()
-    const referralLink = `${process.env.FRONTEND_BASE || ''}/register?ref=${user.id}`
-    const referralId = toReferralId(prefix, user.id)
+    // Re-fetch from DB to guarantee HIDDEN_FIELDS are excluded
+    const userRecord = await User.findByPk(req.user.id, {
+      attributes: { exclude: HIDDEN_FIELDS },
+    })
+    if (!userRecord) return res.status(404).json({ message: 'User not found.' })
 
-    // Resolve referrer name
+    const prefix = await getReferralPrefix()
+    const referralLink = `${process.env.FRONTEND_BASE || ''}/register?ref=${userRecord.id}`
+    const referralId = toReferralId(prefix, userRecord.id)
+
+    // Resolve referrer name and display id
     let referrerName = null
     let referrerDisplayId = null
-    if (user.referredBy) {
-      const referrer = await User.findByPk(user.referredBy, { attributes: ['id', 'name'] })
+    if (userRecord.referredBy) {
+      const referrer = await User.findByPk(userRecord.referredBy, { attributes: ['id', 'name'] })
       if (referrer) {
         referrerName = referrer.name
         referrerDisplayId = toReferralId(prefix, referrer.id)
@@ -72,12 +76,12 @@ router.get('/me', authMiddleware, async (req, res) => {
     }
 
     const referred = await User.findAll({
-      where: { referredBy: user.id },
-      attributes: { exclude: ['password', 'resetPasswordToken', 'resetPasswordExpires'] },
+      where: { referredBy: userRecord.id },
+      attributes: { exclude: HIDDEN_FIELDS },
     })
 
     res.json({
-      ...user,
+      ...userRecord.toJSON(),
       referralId,
       referralLink,
       referrerName,
@@ -101,7 +105,9 @@ router.put('/me', authMiddleware, async (req, res) => {
     userRecord.name = name
     userRecord.phone = phone
     await userRecord.save()
-    res.json({ message: 'Profile updated.', user: userRecord })
+    // Return without hidden fields
+    const safe = await User.findByPk(req.user.id, { attributes: { exclude: HIDDEN_FIELDS } })
+    res.json({ message: 'Profile updated.', user: safe })
   } catch (error) {
     console.error(error)
     res.status(500).json({ message: 'Unable to update profile.' })
@@ -134,7 +140,7 @@ router.get('/', authMiddleware, requireRole('admin'), async (req, res) => {
       order: [[sort, 'ASC']],
       offset,
       limit: Number(limit),
-      attributes: { exclude: ['password', 'resetPasswordToken', 'resetPasswordExpires'] },
+      attributes: { exclude: HIDDEN_FIELDS },
     })
 
     const prefix = await getReferralPrefix()
@@ -210,7 +216,7 @@ router.get('/referred/list', authMiddleware, async (req, res) => {
     const user = req.user
     const referred = await User.findAll({
       where: { referredBy: user.id },
-      attributes: { exclude: ['password', 'resetPasswordToken', 'resetPasswordExpires'] },
+      attributes: { exclude: HIDDEN_FIELDS },
     })
     res.json({ referred })
   } catch (err) {
@@ -292,7 +298,7 @@ router.get('/:id', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
     const customer = await User.findOne({
       where: { id: req.params.id },
-      attributes: { exclude: ['password'] },
+      attributes: { exclude: HIDDEN_FIELDS },
     })
     if (!customer) return res.status(404).json({ message: 'Customer not found.' })
 
@@ -335,7 +341,8 @@ router.put('/:id', authMiddleware, requireRole('admin'), async (req, res) => {
     customer.phone = phone || customer.phone
     if (typeof active !== 'undefined') customer.active = !!active
     await customer.save()
-    res.json({ message: 'Customer updated.', customer })
+    const safe = await User.findByPk(customer.id, { attributes: { exclude: HIDDEN_FIELDS } })
+    res.json({ message: 'Customer updated.', customer: safe })
   } catch (error) {
     console.error(error)
     res.status(500).json({ message: 'Unable to update customer.' })

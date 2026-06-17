@@ -5,8 +5,9 @@ import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 import dotenv from 'dotenv'
 import Admin from '../models/Admin.js'
-import User from '../models/User.js'
+import User, { HIDDEN_FIELDS } from '../models/User.js'
 import Settings from '../models/Settings.js'
+import { findPlacement, determinePlacement } from '../services/binaryTree.js'
 
 dotenv.config()
 
@@ -49,13 +50,23 @@ router.post('/register', async (req, res) => {
       if (!isNaN(refId)) {
         const referrer = await User.findByPk(refId)
         if (referrer) {
-          // Prevent self-referral
           if (referrer.email === email) {
             return res.status(400).json({ message: 'You cannot refer yourself.' })
           }
           referredById = refId
         }
       }
+    }
+
+    // ── Binary-tree auto-placement ────────────────────────────────────────
+    // Always place every user — referred users start BFS from referrer,
+    // non-referred users start BFS from the global tree root.
+    let placementId = null
+    let position = null
+    const slot = await determinePlacement(referredById)
+    if (slot) {
+      placementId = slot.parentId
+      position = slot.position
     }
 
     const hashedPassword = await bcrypt.hash(password, 10)
@@ -65,6 +76,8 @@ router.post('/register', async (req, res) => {
       phone,
       password: hashedPassword,
       referredBy: referredById,
+      placementId,
+      position,
       registeredAt: new Date(),
     })
 
@@ -79,7 +92,7 @@ router.post('/register', async (req, res) => {
 
     const prefix = await getReferralPrefix()
     const saved = await User.findByPk(user.id, {
-      attributes: { exclude: ['password', 'resetPasswordToken', 'resetPasswordExpires'] },
+      attributes: { exclude: HIDDEN_FIELDS },
     })
 
     res.status(201).json({
@@ -138,6 +151,7 @@ router.post('/login', async (req, res) => {
       userData.referralId = `${prefix}${user.id}`
     }
 
+    // placementId and position are intentionally excluded from the response
     res.json({ token, user: userData })
   } catch (error) {
     console.error(error)

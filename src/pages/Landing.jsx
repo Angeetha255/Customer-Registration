@@ -75,14 +75,14 @@ export default function Landing() {
 
         <div className="landing-hero-inner">
           <div className="landing-hero-text">
-            <span className="landing-pill">✦ Trusted Customer Management Platform</span>
+            <span className="landing-pill">✦ Trusted User Management Platform</span>
             <h1 className="landing-hero-title">
-              Manage Customers,<br />
+              Manage Users,<br />
               <span className="landing-hero-accent">Track Referrals</span><br />
               &amp; Grow Faster
             </h1>
             <p className="landing-hero-desc">
-              A complete platform for registering customers, managing referral networks,
+              A complete platform for registering Users, managing referral networks,
               and tracking growth — all secured with role-based access control.
             </p>
             <div className="landing-hero-cta">
@@ -93,7 +93,7 @@ export default function Landing() {
                 </svg>
               </button>
               <button className="button landing-cta-secondary" onClick={() => navigate('/login')}>
-                Customer Login
+             User Login
               </button>
             </div>
             <p className="landing-hero-admin-link">
@@ -115,7 +115,7 @@ export default function Landing() {
       <section className="landing-features">
         <div className="landing-features-inner">
           <div className="landing-section-label">Features</div>
-          <h2 className="landing-section-title">Everything you need to manage customers</h2>
+          <h2 className="landing-section-title">Everything you need to manage users</h2>
           <div className="landing-features-grid">
             {features.map((f) => (
               <div key={f.title} className="landing-feature-card">
@@ -140,7 +140,7 @@ export default function Landing() {
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
                 </svg>
               </div>
-              <h3>Customer Portal</h3>
+              <h3>User Portal</h3>
               <p>View your profile, track referrals, and manage your account details.</p>
               <ul className="landing-portal-features">
                 <li>✓ Personal dashboard</li>
@@ -149,7 +149,7 @@ export default function Landing() {
               </ul>
               <div className="landing-portal-actions">
                 <button className="button landing-portal-btn-primary" onClick={() => navigate('/login')}>
-                  Customer Login
+                  User Login
                 </button>
                 <button className="button landing-portal-btn-ghost" onClick={() => navigate('/register')}>
                   Register
@@ -165,9 +165,9 @@ export default function Landing() {
                 </svg>
               </div>
               <h3>Admin Portal</h3>
-              <p>Full control over customer data, registrations, and platform analytics.</p>
+              <p>Full control over User data, registrations, and platform analytics.</p>
               <ul className="landing-portal-features">
-                <li>✓ Customer management</li>
+                <li>✓ User management</li>
                 <li>✓ Analytics & reporting</li>
                 <li>✓ Export CSV / PDF</li>
               </ul>
@@ -186,9 +186,9 @@ export default function Landing() {
         <div className="landing-footer-inner">
           <div className="landing-logo">
             <div className="landing-logo-mark">CM</div>
-            <span className="landing-logo-text" style={{color:'#94a3b8'}}>CustomerPro</span>
+            <span className="landing-logo-text" style={{color:'#94a3b8'}}>UserPro</span>
           </div>
-          <p className="landing-footer-copy">© {new Date().getFullYear()} CustomerPro. All rights reserved.</p>
+          <p className="landing-footer-copy">© {new Date().getFullYear()} UserPro. All rights reserved.</p>
         </div>
       </footer>
 

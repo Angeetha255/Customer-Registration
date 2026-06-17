@@ -41,7 +41,7 @@ export default function Login() {
           <img src={illustration} alt="Referral illustration" />
         </div>
         <div className="login-panel">
-          <h1>Customer Login</h1>
+          <h1>User Login</h1>
           <p className="subtitle">Secure access to your customer dashboard.</p>
           <Alert type="danger" message={error} />
           <form onSubmit={handleSubmit} className="form-grid login-form">
