@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { loginAdmin } from '../services/api.js'
 import Alert from '../components/Alert.jsx'
 import FloatingInput from '../components/FloatingInput.jsx'
 
 export default function AdminLogin() {
-  const { signIn } = useAuth()
+  const { setUser } = useAuth()
   const [credentials, setCredentials] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -20,7 +21,10 @@ export default function AdminLogin() {
     setError('')
     setLoading(true)
     try {
-      const response = await signIn(credentials)
+      const response = await loginAdmin(credentials)
+      // store token and set user context
+      window.localStorage.setItem('authToken', response.token)
+      setUser(response.user)
       if (response.user.role === 'admin') {
         navigate('/admin')
       } else {

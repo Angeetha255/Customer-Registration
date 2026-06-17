@@ -9,10 +9,11 @@ const User = sequelize.define(
       primaryKey: true,
     },
     name: { type: DataTypes.STRING, allowNull: false },
-    email: { type: DataTypes.STRING, allowNull: false, unique: true },
     phone: { type: DataTypes.STRING, allowNull: false },
+    email: { type: DataTypes.STRING, allowNull: false, unique: true },
+   
     password: { type: DataTypes.STRING, allowNull: false },
-    customerId: { type: DataTypes.STRING, unique: true },
+    //customerId: { type: DataTypes.STRING, unique: true },
     introducerId: { type: DataTypes.STRING, unique: true },
     referredBy: { type: DataTypes.STRING, allowNull: true },
     referralCount: { type: DataTypes.INTEGER, defaultValue: 0 },

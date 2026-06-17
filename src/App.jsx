@@ -104,7 +104,7 @@ function AppLayout({ children }) {
 
 function AppRoutes() {
   return (
-    <Routes>
+    <Routes future={{ v7_relativeSplatPath: true }}>
       <Route path="/" element={<Landing />} />
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />

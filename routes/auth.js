@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 import dotenv from 'dotenv'
 import Admin from '../models/Admin.js'
-import Customer from '../models/Customer.js'
+import User from '../models/User.js'
 import Counter from '../models/Counter.js'
 
 dotenv.config()
@@ -17,7 +17,7 @@ const JWT_EXPIRES = '7d'
 const createUniqueCustomerId = async () => {
   const suffix = Math.floor(10000 + Math.random() * 90000)
   let customerId = `CUST${suffix}`
-  while (await Customer.findOne({ where: { customerId } })) {
+  while (await User.findOne({ where: { customerId } })) {
     const suffix2 = Math.floor(10000 + Math.random() * 90000)
     customerId = `CUST${suffix2}`
   }
@@ -51,7 +51,7 @@ router.post('/register', async (req, res) => {
     if (password !== confirmPassword) {
       return res.status(400).json({ message: 'Passwords do not match.' })
     }
-    const existingCustomer = await Customer.findOne({ where: { email } })
+    const existingCustomer = await User.findOne({ where: { email } })
     if (existingCustomer) {
       return res.status(409).json({ message: 'Email is already registered.' })
     }
@@ -59,7 +59,8 @@ router.post('/register', async (req, res) => {
     const customerId = await createUniqueCustomerId()
     const introducerId = await getNextIntroducerId()
     const hashedPassword = await bcrypt.hash(password, 10)
-    const user = new Customer({
+    // Use Model.create to ensure sequelize handles the instance correctly
+    const user = await User.create({
       name,
       email,
       phone,
@@ -69,11 +70,11 @@ router.post('/register', async (req, res) => {
       referredBy: referredBy || null,
       registeredAt: new Date(),
     })
-    await user.save()
+    // Debug: ensure password was saved as a bcrypt hash (length ~60)
 
     // If user was referred, validate and increment referral count on introducer
     if (referredBy) {
-      const introducer = await Customer.findOne({ where: { introducerId: referredBy } })
+      const introducer = await User.findOne({ where: { introducerId: referredBy } })
       if (introducer) {
         // prevent self-referral by email match
         if (introducer.email === email) {
@@ -86,7 +87,7 @@ router.post('/register', async (req, res) => {
       }
     }
 
-    const saved = await Customer.findByPk(user.id, { attributes: { exclude: ['password', 'resetPasswordToken', 'resetPasswordExpires'] } })
+    const saved = await User.findByPk(user.id, { attributes: { exclude: ['password', 'resetPasswordToken', 'resetPasswordExpires'] } })
     res.status(201).json({
       message: 'Customer registered successfully.',
       customerId,
@@ -107,24 +108,30 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Email and password are required.' })
     }
     
-    // Check in Customer table first
-    let user = await Customer.findOne({ where: { email } })
+    const isAdminLogin = req.query.admin === '1' || req.body?.admin === true
+
+    let user = null
     let role = 'customer'
-    
-    // If not found in Customer, check Admin table
-    if (!user) {
+
+    if (isAdminLogin) {
+      // Admin login must use Admin table
       user = await Admin.findOne({ where: { email } })
       role = 'admin'
+      if (!user) return res.status(401).json({ message: 'Invalid credentials.' })
+    } else {
+      // Customer login must use User table only
+      user = await User.findOne({ where: { email } })
+      if (!user) {
+        return res.status(401).json({ message: 'Invalid credentials.' })
+      }
+      // If the user record is an admin, require admin login
+      if (user.role === 'admin') {
+        return res.status(401).json({ message: 'Admin accounts must sign in via the admin login page.' })
+      }
     }
-    
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials.' })
-    }
-    
+
     const validPassword = await bcrypt.compare(password, user.password)
-    if (!validPassword) {
-      return res.status(401).json({ message: 'Invalid credentials.' })
-    }
+    if (!validPassword) return res.status(401).json({ message: 'Invalid credentials.' })
     
     const token = jwt.sign({ id: user.id, role }, JWT_SECRET, {
       expiresIn: JWT_EXPIRES,
@@ -158,7 +165,7 @@ router.post('/login', async (req, res) => {
 
 router.get('/introducer/:id', async (req, res) => {
   try {
-    const introducer = await Customer.findOne({ 
+    const introducer = await User.findOne({ 
       where: { introducerId: req.params.id }, 
       attributes: ['name', 'email', 'phone', 'introducerId'] 
     })
@@ -178,9 +185,9 @@ router.post('/forgot-password', async (req, res) => {
     }
     
     // Check both tables
-    let user = await Customer.findOne({ where: { email } })
-    let userModel = Customer
-    
+    let user = await User.findOne({ where: { email } })
+    let userModel = User
+
     if (!user) {
       user = await Admin.findOne({ where: { email } })
       userModel = Admin
@@ -218,13 +225,13 @@ router.post('/reset-password', async (req, res) => {
     const { Op } = await import('sequelize')
     
     // Check both tables
-    let user = await Customer.findOne({ 
+    let user = await User.findOne({ 
       where: { 
         resetPasswordToken: token, 
         resetPasswordExpires: { [Op.gt]: new Date() } 
       } 
     })
-    
+
     if (!user) {
       user = await Admin.findOne({ 
         where: { 
@@ -238,10 +245,13 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ message: 'Invalid or expired reset token.' })
     }
     
-    user.password = await bcrypt.hash(password, 10)
+    const newHashed = await bcrypt.hash(password, 10)
+    // hashed password created on reset
+    user.password = newHashed
     user.resetPasswordToken = null
     user.resetPasswordExpires = null
     await user.save()
+    // stored password after reset saved
     
     res.json({ message: 'Password has been reset successfully.' })
   } catch (error) {

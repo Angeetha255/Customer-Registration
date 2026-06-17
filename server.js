@@ -3,9 +3,8 @@ import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import authRoutes from './routes/auth.js'
-import customerRoutes from './routes/customers.js'
+import userRoutes from './routes/users.js'
 import Admin from './models/Admin.js'
-import Customer from './models/Customer.js'
 import bcrypt from 'bcrypt'
 import { sequelize } from './models/index.js'
 
@@ -18,10 +17,10 @@ app.use(cors())
 app.use(express.json())
 
 app.use('/api/auth', authRoutes)
-app.use('/api/customers', customerRoutes)
+app.use('/api/users', userRoutes)
 
 app.get('/', (_req, res) => {
-  res.send({ message: 'Customer Registration and Management API is running.' })
+  res.send({ message: 'User Registration and Management API is running.' })
 })
 
 async function createDefaultAdmin() {

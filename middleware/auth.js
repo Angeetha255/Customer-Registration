@@ -2,7 +2,7 @@
 import jwt from 'jsonwebtoken'
 import dotenv from 'dotenv'
 import Admin from '../models/Admin.js'
-import Customer from '../models/Customer.js'
+import User from '../models/User.js'
 
 dotenv.config()
 
@@ -23,7 +23,7 @@ export const authMiddleware = async (req, res, next) => {
     if (payload.role === 'admin') {
       user = await Admin.findByPk(payload.id, { attributes: { exclude: ['password'] } })
     } else {
-      user = await Customer.findByPk(payload.id, { attributes: { exclude: ['password'] } })
+      user = await User.findByPk(payload.id, { attributes: { exclude: ['password'] } })
     }
     
     if (!user) {

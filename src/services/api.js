@@ -32,6 +32,13 @@ export const login = (credentials) =>
     body: JSON.stringify(credentials),
   })
 
+export const loginAdmin = (credentials) =>
+  send('/auth/login?admin=1', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(credentials),
+  })
+
 export const forgotPassword = (email) =>
   send('/auth/forgot-password', {
     method: 'POST',
@@ -47,37 +54,37 @@ export const resetPassword = (data) =>
   })
 
 export const fetchMe = () =>
-  send('/customers/me', { headers: authHeaders() })
+  send('/users/me', { headers: authHeaders() })
 
 export const updateProfile = (data) =>
-  send('/customers/me', {
+  send('/users/me', {
     method: 'PUT',
     headers: authHeaders(),
     body: JSON.stringify(data),
   })
 
 export const fetchAdminStats = () =>
-  send('/customers/stats', { headers: authHeaders() })
+  send('/users/stats', { headers: authHeaders() })
 
 export const fetchAdminCustomers = (params) => {
   const query = new URLSearchParams(params).toString()
-  return send(`/customers?${query}`, { headers: authHeaders() })
+  return send(`/users?${query}`, { headers: authHeaders() })
 }
 
 export const deleteCustomer = (id) =>
-  send(`/customers/${id}`, { method: 'DELETE', headers: authHeaders() })
+  send(`/users/${id}`, { method: 'DELETE', headers: authHeaders() })
 
 export const updateCustomer = (id, data) =>
-  send(`/customers/${id}`, {
+  send(`/users/${id}`, {
     method: 'PUT',
     headers: authHeaders(),
     body: JSON.stringify(data),
   })
 
 export const exportCustomers = (format = 'csv') =>
-  fetch(`${API_BASE}/customers/export?format=${format}`, { headers: authHeaders() })
+  fetch(`${API_BASE}/users/export?format=${format}`, { headers: authHeaders() })
 
 export const fetchReferredCustomers = () =>
-  send('/customers/referred/list', { headers: authHeaders() })
+  send('/users/referred/list', { headers: authHeaders() })
 
 export const loginWithApi = login

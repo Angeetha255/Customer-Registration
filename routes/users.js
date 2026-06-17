@@ -2,16 +2,15 @@ import express from 'express'
 import pdfkit from 'pdfkit'
 import bcrypt from 'bcrypt'
 import { authMiddleware, requireRole } from '../middleware/auth.js'
-import Customer from '../models/Customer.js'
+import User from '../models/User.js'
 
 const router = express.Router()
 
 router.get('/me', authMiddleware, async (req, res) => {
   try {
     const user = req.user
-    // include referralLink and referred customers for dashboard
     const referralLink = user.introducerId ? `${process.env.FRONTEND_BASE || ''}/register?ref=${user.introducerId}` : null
-    const referred = user.introducerId ? await Customer.findAll({ where: { referredBy: user.introducerId }, attributes: { exclude: ['password', 'resetPasswordToken', 'resetPasswordExpires'] } }) : []
+    const referred = user.introducerId ? await User.findAll({ where: { referredBy: user.introducerId }, attributes: { exclude: ['password', 'resetPasswordToken', 'resetPasswordExpires'] } }) : []
     res.json({ ...user.toJSON(), referralLink, referredCustomers: referred })
   } catch (err) {
     console.error(err)
@@ -55,8 +54,8 @@ router.get('/', authMiddleware, requireRole('admin'), async (req, res) => {
       ]
     }
     const offset = (Number(page) - 1) * Number(limit)
-    const { count: total, rows: customers } = await Customer.findAndCountAll({ where, order: [[sort, 'DESC']], offset, limit: Number(limit), attributes: { exclude: ['password', 'resetPasswordToken', 'resetPasswordExpires'] } })
-    res.json({ total, page: Number(page), limit: Number(limit), customers })
+    const { count: total, rows: users } = await User.findAndCountAll({ where, order: [[sort, 'DESC']], offset, limit: Number(limit), attributes: { exclude: ['password', 'resetPasswordToken', 'resetPasswordExpires'] } })
+    res.json({ total, page: Number(page), limit: Number(limit), customers: users })
   } catch (error) {
     console.error(error)
     res.status(500).json({ message: 'Unable to retrieve customers.' })
@@ -65,16 +64,15 @@ router.get('/', authMiddleware, requireRole('admin'), async (req, res) => {
 
 router.get('/stats', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
-    const totalCustomers = await Customer.count()
+    const totalCustomers = await User.count()
     const startOfDay = new Date()
     startOfDay.setHours(0, 0, 0, 0)
     const { Op } = await import('sequelize')
-    const todayRegistrations = await Customer.count({ where: { registeredAt: { [Op.gte]: startOfDay } } })
-    const recentCustomers = await Customer.findAll({ order: [['registeredAt', 'DESC']], limit: 5, attributes: ['id', 'name', 'email', 'phone', 'customerId', 'introducerId', 'registeredAt'] })
+    const todayRegistrations = await User.count({ where: { registeredAt: { [Op.gte]: startOfDay } } })
+    const recentCustomers = await User.findAll({ order: [['registeredAt', 'DESC']], limit: 5, attributes: ['id', 'name', 'email', 'phone', 'customerId', 'introducerId', 'registeredAt'] })
 
-    // referral metrics
-    const totalReferrals = (await Customer.sum('referralCount')) || 0
-    const topReferrer = await Customer.findOne({ order: [['referralCount', 'DESC']], attributes: ['name', 'email', 'phone', 'customerId', 'introducerId', 'referralCount'] })
+    const totalReferrals = (await User.sum('referralCount')) || 0
+    const topReferrer = await User.findOne({ order: [['referralCount', 'DESC']], attributes: ['name', 'email', 'phone', 'customerId', 'introducerId', 'referralCount'] })
 
     res.json({ totalCustomers, todayRegistrations, recentCustomers, totalReferrals, topReferrer })
   } catch (error) {
@@ -87,7 +85,7 @@ router.get('/referred/list', authMiddleware, async (req, res) => {
   try {
     const user = req.user
     if (!user || !user.introducerId) return res.json({ referred: [] })
-    const referred = await Customer.findAll({ where: { referredBy: user.introducerId }, attributes: { exclude: ['password', 'resetPasswordToken', 'resetPasswordExpires'] } })
+    const referred = await User.findAll({ where: { referredBy: user.introducerId }, attributes: { exclude: ['password', 'resetPasswordToken', 'resetPasswordExpires'] } })
     res.json({ referred })
   } catch (err) {
     console.error(err)
@@ -98,7 +96,7 @@ router.get('/referred/list', authMiddleware, async (req, res) => {
 router.get('/export', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
     const { format = 'csv' } = req.query
-    const customers = await Customer.findAll({ attributes: ['name', 'email', 'phone', 'customerId', 'introducerId', 'registeredAt'] })
+    const customers = await User.findAll({ attributes: ['name', 'email', 'phone', 'customerId', 'introducerId', 'registeredAt'] })
     if (format === 'pdf') {
       const doc = new pdfkit({ size: 'A4', margin: 40 })
       res.setHeader('Content-Type', 'application/pdf')
@@ -144,7 +142,7 @@ router.get('/export', authMiddleware, requireRole('admin'), async (req, res) => 
 
 router.get('/:id', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
-    const customer = await Customer.findOne({ where: { id: req.params.id }, attributes: { exclude: ['password'] } })
+    const customer = await User.findOne({ where: { id: req.params.id }, attributes: { exclude: ['password'] } })
     if (!customer) {
       return res.status(404).json({ message: 'Customer not found.' })
     }
@@ -158,13 +156,12 @@ router.get('/:id', authMiddleware, requireRole('admin'), async (req, res) => {
 router.put('/:id', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
     const { name, email, phone, introducerId, active } = req.body
-    const customer = await Customer.findOne({ where: { id: req.params.id } })
+    const customer = await User.findOne({ where: { id: req.params.id } })
     if (!customer) {
       return res.status(404).json({ message: 'Customer not found.' })
     }
-    // basic validation
     if (email && email !== customer.email) {
-      const exists = await Customer.findOne({ where: { email } })
+      const exists = await User.findOne({ where: { email } })
       if (exists) return res.status(409).json({ message: 'Email already in use.' })
       customer.email = email
     }
@@ -182,7 +179,7 @@ router.put('/:id', authMiddleware, requireRole('admin'), async (req, res) => {
 
 router.delete('/:id', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
-    const customer = await Customer.findOne({ where: { id: req.params.id } })
+    const customer = await User.findOne({ where: { id: req.params.id } })
     if (!customer) {
       return res.status(404).json({ message: 'Customer not found.' })
     }
@@ -193,6 +190,5 @@ router.delete('/:id', authMiddleware, requireRole('admin'), async (req, res) => 
     res.status(500).json({ message: 'Unable to delete customer.' })
   }
 })
-// (removed admin temporary-password endpoint)
 
 export default router
