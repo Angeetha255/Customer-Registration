@@ -51,7 +51,7 @@ const CARD_COLORS = [
   { bg: 'linear-gradient(135deg,#ffecd2 0%,#fcb69f 100%)', icon: '#fff5ee' },
 ]
 
-function StatCard({ icon, label, value, colorIdx = 0, children }) {
+function StatCard({ icon, label, value, colorIdx = 0 }) {
   const c = CARD_COLORS[colorIdx % CARD_COLORS.length]
   return (
     <div className="cd-stat-card" style={{ background: c.bg }}>
@@ -61,7 +61,6 @@ function StatCard({ icon, label, value, colorIdx = 0, children }) {
       <div className="cd-stat-body">
         <div className="cd-stat-label">{label}</div>
         <div className="cd-stat-value">{value}</div>
-        {children}
       </div>
     </div>
   )
@@ -73,23 +72,18 @@ export default function CustomerDashboard() {
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    const loadReferred = async () => {
-      try {
-        const data = await fetchReferredCustomers()
-        setReferred(data.referred || [])
-      } catch {
-        setReferred([])
-      }
-    }
-    loadReferred()
+    fetchReferredCustomers()
+      .then((data) => setReferred(data.referred || []))
+      .catch(() => setReferred([]))
   }, [])
 
   if (!user) return <div className="page-panel">Loading dashboard...</div>
 
   const profile = user
-  const referralUrl = profile.introducerId
-    ? `${window.location.origin}/register?ref=${profile.introducerId}`
-    : null
+  // Referral link always uses the user's primary key id
+  const referralUrl = profile.id ? `${window.location.origin}/register?ref=${profile.id}` : null
+  // referralId comes from the /me endpoint (prefix + id)
+  const displayReferralId = profile.referralId || `REF${profile.id}`
 
   const formatDate = (d) => {
     if (!d) return '—'
@@ -118,7 +112,6 @@ export default function CustomerDashboard() {
             <p className="cd-hero-sub">Here's an overview of your account and referral activity.</p>
           </div>
         </div>
-        {/* decorative illustration */}
         <div className="cd-hero-illo" aria-hidden>
           <svg viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg" width="200">
             <circle cx="100" cy="80" r="70" fill="rgba(255,255,255,0.07)"/>
@@ -135,12 +128,12 @@ export default function CustomerDashboard() {
 
       {/* ── Stat cards ── */}
       <div className="cd-cards">
-        <StatCard icon={Icons.user}     label="Full Name"         value={profile.name}                      colorIdx={0} />
-        <StatCard icon={Icons.mail}     label="Email"             value={profile.email}                     colorIdx={1} />
-        <StatCard icon={Icons.phone}    label="Phone"             value={profile.phone}                     colorIdx={2} />
-        <StatCard icon={Icons.id}       label="Introducer ID"     value={profile.introducerId || 'Pending'} colorIdx={3} />
-        <StatCard icon={Icons.users}    label="Total Referrals"   value={profile.referralCount ?? 0}        colorIdx={4} />
-        <StatCard icon={Icons.calendar} label="Registration Date" value={formatDate(profile.registeredAt)}  colorIdx={5} />
+        <StatCard icon={Icons.user}     label="Full Name"         value={profile.name}                     colorIdx={0} />
+        <StatCard icon={Icons.mail}     label="Email"             value={profile.email}                    colorIdx={1} />
+        <StatCard icon={Icons.phone}    label="Phone"             value={profile.phone}                    colorIdx={2} />
+        <StatCard icon={Icons.id}       label="Your Referral ID"  value={displayReferralId}                colorIdx={3} />
+        <StatCard icon={Icons.users}    label="Total Referrals"   value={profile.referralCount ?? 0}       colorIdx={4} />
+        <StatCard icon={Icons.calendar} label="Registration Date" value={formatDate(profile.registeredAt)} colorIdx={5} />
       </div>
 
       {/* ── Referral link card ── */}
@@ -173,13 +166,18 @@ export default function CustomerDashboard() {
 
         {referred.length === 0 ? (
           <div className="cd-referred-empty">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
             <p>No referrals yet. Share your link to get started!</p>
           </div>
         ) : (
           <div className="cd-referred-grid">
             {referred.map((r, i) => (
-              <div key={r.id || r._id} className="cd-referred-item" style={{ '--delay': `${i * 60}ms` }}>
+              <div key={r.id} className="cd-referred-item" style={{ '--delay': `${i * 60}ms` }}>
                 <div className="cd-referred-avatar">{r.name?.[0]?.toUpperCase() || '?'}</div>
                 <div className="cd-referred-info">
                   <div className="cd-referred-name">{r.name}</div>
@@ -187,7 +185,11 @@ export default function CustomerDashboard() {
                   <div className="cd-referred-meta">{r.phone}</div>
                 </div>
                 <div className="cd-referred-date">
-                  {(function(d){ if(!d) return '—'; const dt=new Date(d); return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear() })(r.registeredAt || r.createdAt)}
+                  {(function(d) {
+                    if (!d) return '—'
+                    const dt = new Date(d)
+                    return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`
+                  })(r.registeredAt || r.createdAt)}
                 </div>
               </div>
             ))}

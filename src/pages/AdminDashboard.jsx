@@ -113,18 +113,7 @@ export default function AdminDashboard() {
             <h1 className="ad-hero-title">Admin Dashboard</h1>
             <p className="ad-hero-sub">Monitor registrations, referrals, and platform performance in real time.</p>
           </div>
-          {/* <button
-            className="button ad-manage-btn"
-            onClick={() => navigate('/admin/customers')}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:6}}>
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-            Manage Customers
-          </button> */}
         </div>
-        {/* decorative illustration */}
         <div className="ad-hero-illo" aria-hidden>
           <svg viewBox="0 0 220 140" fill="none" xmlns="http://www.w3.org/2000/svg" width="220">
             <rect x="30" y="20" width="160" height="100" rx="14" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" strokeWidth="1"/>
@@ -162,7 +151,6 @@ export default function AdminDashboard() {
         <div className="ad-table-header">
           <div>
             <h2 className="ad-table-title">Recent Customers</h2>
-            {/* <p className="ad-table-sub">Last {stats.recentCustomers.length} registrations</p> */}
           </div>
           <button className="button button-secondary button-small" onClick={() => navigate('/admin/customers')}>
             View All
@@ -173,7 +161,7 @@ export default function AdminDashboard() {
           <table>
             <thead>
               <tr>
-                <th>Customer ID</th>
+                <th>ID</th>
                 <th>Name</th>
                 <th>Email</th>
                 <th>Phone</th>
@@ -184,9 +172,9 @@ export default function AdminDashboard() {
               {stats.recentCustomers.length === 0 ? (
                 <tr><td colSpan="5" style={{textAlign:'center',color:'var(--muted)',padding:'24px'}}>No customers yet.</td></tr>
               ) : stats.recentCustomers.map((c, i) => (
-                <tr key={c.id || c._id} style={{ animationDelay: `${i * 50}ms` }} className="ad-table-row">
+                <tr key={c.id} style={{ animationDelay: `${i * 50}ms` }} className="ad-table-row">
                   <td>
-                    <span className="ad-cid-badge">{c.customerId || c.id}</span>
+                    <span className="ad-cid-badge">{c.id}</span>
                   </td>
                   <td>
                     <div className="ad-name-cell">

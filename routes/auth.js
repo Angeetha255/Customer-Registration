@@ -6,7 +6,7 @@ import crypto from 'crypto'
 import dotenv from 'dotenv'
 import Admin from '../models/Admin.js'
 import User from '../models/User.js'
-import Counter from '../models/Counter.js'
+import Settings from '../models/Settings.js'
 
 dotenv.config()
 
@@ -14,85 +14,77 @@ const router = express.Router()
 const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret'
 const JWT_EXPIRES = '7d'
 
-const createUniqueCustomerId = async () => {
-  const suffix = Math.floor(10000 + Math.random() * 90000)
-  let customerId = `CUST${suffix}`
-  while (await User.findOne({ where: { customerId } })) {
-    const suffix2 = Math.floor(10000 + Math.random() * 90000)
-    customerId = `CUST${suffix2}`
-  }
-  return customerId
+// Helper: get current referral prefix from settings (default: "REF")
+const getReferralPrefix = async () => {
+  const setting = await Settings.findOne({ where: { key: 'referralPrefix' } })
+  return setting ? setting.value : 'REF'
 }
 
-const getNextIntroducerId = async () => {
-  let doc = await Counter.findOne({ where: { name: 'introducerId' } })
-  if (!doc) {
-    doc = await Counter.create({ name: 'introducerId', seq: 10001 })
-    return `INT${String(doc.seq).padStart(5, '0')}`
-  }
-  doc.seq = (doc.seq || 10000) + 1
-  await doc.save()
-  const seq = doc.seq
-  return `INT${String(seq).padStart(5, '0')}`
-}
-
+// POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
     const { name, email, phone, password, confirmPassword } = req.body
-    // support referral via query param (?ref=INT12345) or body.referredBy
-    const referredBy = req.query.ref || req.body.referredBy
+    // Referral ref is the referrer's numeric primary key id
+    const refParam = req.query.ref || req.body.referredBy
+
     if (!name || !email || !phone || !password || !confirmPassword) {
       return res.status(400).json({ message: 'Please fill all required fields.' })
     }
-    // validate phone number: must be exactly 10 digits
     if (!/^[0-9]{10}$/.test(String(phone))) {
       return res.status(400).json({ message: 'Phone number must be 10 digits.' })
     }
     if (password !== confirmPassword) {
       return res.status(400).json({ message: 'Passwords do not match.' })
     }
-    const existingCustomer = await User.findOne({ where: { email } })
-    if (existingCustomer) {
+
+    const existingUser = await User.findOne({ where: { email } })
+    if (existingUser) {
       return res.status(409).json({ message: 'Email is already registered.' })
     }
 
-    const customerId = await createUniqueCustomerId()
-    const introducerId = await getNextIntroducerId()
+    // Resolve referredBy: must be a valid numeric user id
+    let referredById = null
+    if (refParam) {
+      const refId = parseInt(refParam, 10)
+      if (!isNaN(refId)) {
+        const referrer = await User.findByPk(refId)
+        if (referrer) {
+          // Prevent self-referral
+          if (referrer.email === email) {
+            return res.status(400).json({ message: 'You cannot refer yourself.' })
+          }
+          referredById = refId
+        }
+      }
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10)
-    // Use Model.create to ensure sequelize handles the instance correctly
     const user = await User.create({
       name,
       email,
       phone,
       password: hashedPassword,
-      customerId,
-      introducerId,
-      referredBy: referredBy || null,
+      referredBy: referredById,
       registeredAt: new Date(),
     })
-    // Debug: ensure password was saved as a bcrypt hash (length ~60)
 
-    // If user was referred, validate and increment referral count on introducer
-    if (referredBy) {
-      const introducer = await User.findOne({ where: { introducerId: referredBy } })
-      if (introducer) {
-        // prevent self-referral by email match
-        if (introducer.email === email) {
-          // rollback created user
-          await user.destroy()
-          return res.status(400).json({ message: 'You cannot refer yourself.' })
-        }
-        introducer.referralCount = (introducer.referralCount || 0) + 1
-        await introducer.save()
+    // Increment referral count on referrer
+    if (referredById) {
+      const referrer = await User.findByPk(referredById)
+      if (referrer) {
+        referrer.referralCount = (referrer.referralCount || 0) + 1
+        await referrer.save()
       }
     }
 
-    const saved = await User.findByPk(user.id, { attributes: { exclude: ['password', 'resetPasswordToken', 'resetPasswordExpires'] } })
+    const prefix = await getReferralPrefix()
+    const saved = await User.findByPk(user.id, {
+      attributes: { exclude: ['password', 'resetPasswordToken', 'resetPasswordExpires'] },
+    })
+
     res.status(201).json({
       message: 'Customer registered successfully.',
-      customerId,
-      introducerId: user.introducerId,
-      referredBy: user.referredBy,
+      referralId: `${prefix}${user.id}`,
       user: saved,
     })
   } catch (error) {
@@ -101,30 +93,25 @@ router.post('/register', async (req, res) => {
   }
 })
 
+// POST /api/auth/login
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required.' })
     }
-    
-    const isAdminLogin = req.query.admin === '1' || req.body?.admin === true
 
+    const isAdminLogin = req.query.admin === '1' || req.body?.admin === true
     let user = null
     let role = 'customer'
 
     if (isAdminLogin) {
-      // Admin login must use Admin table
       user = await Admin.findOne({ where: { email } })
       role = 'admin'
       if (!user) return res.status(401).json({ message: 'Invalid credentials.' })
     } else {
-      // Customer login must use User table only
       user = await User.findOne({ where: { email } })
-      if (!user) {
-        return res.status(401).json({ message: 'Invalid credentials.' })
-      }
-      // If the user record is an admin, require admin login
+      if (!user) return res.status(401).json({ message: 'Invalid credentials.' })
       if (user.role === 'admin') {
         return res.status(401).json({ message: 'Admin accounts must sign in via the admin login page.' })
       }
@@ -132,12 +119,9 @@ router.post('/login', async (req, res) => {
 
     const validPassword = await bcrypt.compare(password, user.password)
     if (!validPassword) return res.status(401).json({ message: 'Invalid credentials.' })
-    
-    const token = jwt.sign({ id: user.id, role }, JWT_SECRET, {
-      expiresIn: JWT_EXPIRES,
-    })
-    
-    // Prepare user data based on role
+
+    const token = jwt.sign({ id: user.id, role }, JWT_SECRET, { expiresIn: JWT_EXPIRES })
+
     const userData = {
       id: user.id,
       name: user.name,
@@ -146,72 +130,65 @@ router.post('/login', async (req, res) => {
       role,
       registeredAt: user.registeredAt,
     }
-    
-    // Add customer-specific fields if customer
+
     if (role === 'customer') {
-      userData.customerId = user.customerId
-      userData.introducerId = user.introducerId
+      const prefix = await getReferralPrefix()
+      userData.referredBy = user.referredBy
+      userData.referralCount = user.referralCount
+      userData.referralId = `${prefix}${user.id}`
     }
-    
-    res.json({
-      token,
-      user: userData,
-    })
+
+    res.json({ token, user: userData })
   } catch (error) {
     console.error(error)
     res.status(500).json({ message: 'Login failed.' })
   }
 })
 
-router.get('/introducer/:id', async (req, res) => {
+// GET /api/auth/referrer/:id  — look up a referrer by their primary key
+router.get('/referrer/:id', async (req, res) => {
   try {
-    const introducer = await User.findOne({ 
-      where: { introducerId: req.params.id }, 
-      attributes: ['name', 'email', 'phone', 'introducerId'] 
+    const refId = parseInt(req.params.id, 10)
+    if (isNaN(refId)) return res.status(400).json({ message: 'Invalid referrer ID.' })
+
+    const referrer = await User.findByPk(refId, {
+      attributes: ['id', 'name', 'email', 'phone'],
     })
-    if (!introducer) return res.status(404).json({ message: 'Introducer not found.' })
-    res.json(introducer)
+    if (!referrer) return res.status(404).json({ message: 'Referrer not found.' })
+
+    const prefix = await getReferralPrefix()
+    res.json({ ...referrer.toJSON(), referralId: `${prefix}${referrer.id}` })
   } catch (err) {
     console.error(err)
-    res.status(500).json({ message: 'Unable to fetch introducer.' })
+    res.status(500).json({ message: 'Unable to fetch referrer.' })
   }
 })
 
+// POST /api/auth/forgot-password
 router.post('/forgot-password', async (req, res) => {
   try {
     const { email } = req.body
-    if (!email) {
-      return res.status(400).json({ message: 'Email is required.' })
-    }
-    
-    // Check both tables
-    let user = await User.findOne({ where: { email } })
-    let userModel = User
+    if (!email) return res.status(400).json({ message: 'Email is required.' })
 
-    if (!user) {
-      user = await Admin.findOne({ where: { email } })
-      userModel = Admin
-    }
-    
+    let user = await User.findOne({ where: { email } })
+    if (!user) user = await Admin.findOne({ where: { email } })
     if (!user) {
       return res.status(200).json({ message: 'If the email exists, password reset instructions have been sent.' })
     }
-    
+
     const token = crypto.randomBytes(20).toString('hex')
     user.resetPasswordToken = token
     user.resetPasswordExpires = new Date(Date.now() + 1000 * 60 * 60)
     await user.save()
-    
-    res.json({
-      message: 'Password reset token generated.',
-      resetToken: token,
-    })
+
+    res.json({ message: 'Password reset token generated.', resetToken: token })
   } catch (error) {
     console.error(error)
     res.status(500).json({ message: 'Unable to process password reset.' })
   }
 })
 
+// POST /api/auth/reset-password
 router.post('/reset-password', async (req, res) => {
   try {
     const { token, password, confirmPassword } = req.body
@@ -221,38 +198,23 @@ router.post('/reset-password', async (req, res) => {
     if (password !== confirmPassword) {
       return res.status(400).json({ message: 'Passwords do not match.' })
     }
-    
-    const { Op } = await import('sequelize')
-    
-    // Check both tables
-    let user = await User.findOne({ 
-      where: { 
-        resetPasswordToken: token, 
-        resetPasswordExpires: { [Op.gt]: new Date() } 
-      } 
-    })
 
+    const { Op } = await import('sequelize')
+    let user = await User.findOne({
+      where: { resetPasswordToken: token, resetPasswordExpires: { [Op.gt]: new Date() } },
+    })
     if (!user) {
-      user = await Admin.findOne({ 
-        where: { 
-          resetPasswordToken: token, 
-          resetPasswordExpires: { [Op.gt]: new Date() } 
-        } 
+      user = await Admin.findOne({
+        where: { resetPasswordToken: token, resetPasswordExpires: { [Op.gt]: new Date() } },
       })
     }
-    
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired reset token.' })
-    }
-    
-    const newHashed = await bcrypt.hash(password, 10)
-    // hashed password created on reset
-    user.password = newHashed
+    if (!user) return res.status(400).json({ message: 'Invalid or expired reset token.' })
+
+    user.password = await bcrypt.hash(password, 10)
     user.resetPasswordToken = null
     user.resetPasswordExpires = null
     await user.save()
-    // stored password after reset saved
-    
+
     res.json({ message: 'Password has been reset successfully.' })
   } catch (error) {
     console.error(error)

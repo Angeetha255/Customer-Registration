@@ -5,6 +5,8 @@ import dotenv from 'dotenv'
 import authRoutes from './routes/auth.js'
 import userRoutes from './routes/users.js'
 import Admin from './models/Admin.js'
+import User from './models/User.js'
+import Settings from './models/Settings.js'
 import bcrypt from 'bcrypt'
 import { sequelize } from './models/index.js'
 
@@ -40,14 +42,23 @@ async function createDefaultAdmin() {
   console.log(`Default admin created: ${adminEmail}`)
 }
 
+async function seedDefaultSettings() {
+  const existing = await Settings.findOne({ where: { key: 'referralPrefix' } })
+  if (!existing) {
+    await Settings.create({ key: 'referralPrefix', value: 'REF' })
+    console.log('Default referral prefix set to: REF')
+  }
+}
+
 const start = async () => {
   try {
     await sequelize.authenticate()
-    // Sync models without forcing ALTER operations to avoid repeated index/schema changes
-    // If you need schema changes, run migrations or enable alter temporarily.
+    // Sync all models — use alter:true to safely apply schema changes (add/remove columns)
     await sequelize.sync()
     console.log('Connected to MySQL via Sequelize')
     await createDefaultAdmin()
+    await seedDefaultSettings()
+
     const server = app.listen(PORT, () => {
       console.log(`Server listening on http://localhost:${PORT}`)
     })

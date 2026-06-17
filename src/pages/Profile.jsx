@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useLocation } from 'react-router-dom'
-import { updateProfile, fetchIntroducer, fetchReferredCustomers } from '../services/api.js'
+import { updateProfile, fetchReferredCustomers, fetchMe } from '../services/api.js'
 import Alert from '../components/Alert.jsx'
-import BackButton from '../components/BackButton.jsx'
 import Toast from '../components/Toast.jsx'
 
 /* Generic avatar SVG — business person illustration */
@@ -27,32 +26,27 @@ export default function Profile() {
   const { user, setUser } = useAuth()
   const location = useLocation()
   const fromUserIcon = location.state?.fromUserIcon === true
+
   const [form, setForm] = useState({ name: user?.name || '', phone: user?.phone || '', email: user?.email || '' })
-  const [introducerInfo, setIntroducerInfo] = useState(null)
   const [referred, setReferred] = useState([])
   const [copied, setCopied] = useState(false)
   const [toast, setToast] = useState({ message: '', type: 'success' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
+  // profileData holds the fully enriched user (with referrerName, referrerDisplayId, referralId)
+  const [profileData, setProfileData] = useState(null)
 
   useEffect(() => {
     setForm({ name: user?.name || '', phone: user?.phone || '', email: user?.email || '' })
   }, [user])
 
+  // Fetch the enriched /me on mount to get referrerName, referrerDisplayId, referralId
   useEffect(() => {
-    const loadIntroducer = async () => {
-      if (user?.introducerId) {
-        try {
-          const data = await fetchIntroducer(user.introducerId)
-          setIntroducerInfo(data)
-        } catch {
-          setIntroducerInfo(null)
-        }
-      }
-    }
-    loadIntroducer()
-  }, [user])
+    fetchMe()
+      .then((data) => setProfileData(data))
+      .catch(() => setProfileData(null))
+  }, [])
 
   useEffect(() => {
     fetchReferredCustomers()
@@ -60,8 +54,10 @@ export default function Profile() {
       .catch(() => setReferred([]))
   }, [])
 
+  // Merge: profileData overrides user for display fields
+  const profile = profileData || user
+
   const openEdit = () => {
-    // reset form to current user values each time modal opens
     setForm({ name: user?.name || '', phone: user?.phone || '', email: user?.email || '' })
     setError('')
     setEditOpen(true)
@@ -101,9 +97,8 @@ export default function Profile() {
     return `${dd}/${mm}/${yyyy}`
   }
 
-  const referralUrl = user?.introducerId
-    ? `${window.location.origin}/register?ref=${user.introducerId}`
-    : null
+  // Referral link uses the user's own numeric id
+  const referralUrl = user?.id ? `${window.location.origin}/register?ref=${user.id}` : null
 
   const handleCopy = () => {
     if (!referralUrl) return
@@ -114,8 +109,6 @@ export default function Profile() {
 
   return (
     <main className="page-shell layout-with-sidebar">
-      
-
       <Toast
         message={toast.message}
         type={toast.type}
@@ -123,27 +116,30 @@ export default function Profile() {
       />
 
       <div className="profile-layout">
-        
 
         {/* ── Left: profile card ── */}
         <section className="profile-card">
           <div className="profile-hero">
             <div className="profile-avatar"><AvatarIcon /></div>
             <h2 className="profile-name">
-              {user?.name || '—'}
-              {user?.customerId && <span className="profile-cid"> ({user.customerId})</span>}
+              {profile?.name || '—'}
+              {profile?.id && (
+                <span className="profile-uid">#{profile.id}</span>
+              )}
             </h2>
-            {user?.registeredAt && (
-              <span className="profile-since">Member since {formatDate(user.registeredAt)}</span>
+            {profile?.registeredAt && (
+              <span className="profile-since">Member since {formatDate(profile.registeredAt)}</span>
             )}
           </div>
 
           <div className="profile-info-list">
-            <ProfileRow label="Introducer Name" value={introducerInfo?.name || '—'} />
-            <ProfileRow label="Introducer ID"   value={user?.introducerId || '—'} />
-            <ProfileRow label="Phone"           value={user?.phone || '—'} />
-            <ProfileRow label="Email"           value={user?.email || '—'} />
-            <ProfileRow label="Date Joined"     value={formatDate(user?.registeredAt)} />
+            {/* Referred By: referrer's name | Referrer ID: prefix+referrer's primary key */}
+            <ProfileRow label="Referred By"      value={profile?.referrerName     || '—'} />
+            <ProfileRow label="Referrer ID"      value={profile?.referrerDisplayId || '—'} />
+            <ProfileRow label="Your Referral ID" value={profile?.referralId        || (profile?.id ? `REF${profile.id}` : '—')} />
+            <ProfileRow label="Phone"            value={profile?.phone            || '—'} />
+            <ProfileRow label="Email"            value={profile?.email            || '—'} />
+            <ProfileRow label="Date Joined"      value={formatDate(profile?.registeredAt)} />
             {fromUserIcon && (
               <div className="profile-edit-trigger">
                 <button className="button button-secondary" onClick={openEdit}>Edit Profile</button>
@@ -178,7 +174,7 @@ export default function Profile() {
                 </div>
               </>
             ) : (
-              <p className="pref-empty">No introducer ID assigned yet.</p>
+              <p className="pref-empty">No referral ID assigned yet.</p>
             )}
           </div>
 
@@ -193,7 +189,7 @@ export default function Profile() {
             </div>
             <div className="pref-stats">
               <div className="pref-stat">
-                <span className="pref-stat-value">{user?.referralCount ?? 0}</span>
+                <span className="pref-stat-value">{profile?.referralCount ?? 0}</span>
                 <span className="pref-stat-label">Total Referrals</span>
               </div>
               <div className="pref-stat">
@@ -218,7 +214,7 @@ export default function Profile() {
             ) : (
               <ul className="pref-referral-list">
                 {referred.slice(0, 5).map((r) => (
-                  <li key={r.id || r._id} className="pref-referral-item">
+                  <li key={r.id} className="pref-referral-item">
                     <div className="pref-referral-avatar">
                       {r.name?.[0]?.toUpperCase() || '?'}
                     </div>
@@ -269,7 +265,6 @@ export default function Profile() {
           </div>
         </div>
       )}
-
     </main>
   )
 }

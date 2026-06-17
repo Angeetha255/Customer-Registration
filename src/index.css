@@ -717,6 +717,24 @@ tbody tr:hover {
   color: var(--text);
   margin: 0 0 8px;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.profile-uid {
+  display: inline-flex;
+  align-items: center;
+  background: var(--primary, #6366f1);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
 }
 
 .profile-cid {

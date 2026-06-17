@@ -22,8 +22,9 @@ export const registerCustomer = (data) =>
     body: JSON.stringify(data),
   })
 
-export const fetchIntroducer = (introducerId) =>
-  send(`/auth/introducer/${encodeURIComponent(introducerId)}`)
+// Fetch referrer by their numeric primary key id
+export const fetchReferrer = (userId) =>
+  send(`/auth/referrer/${encodeURIComponent(userId)}`)
 
 export const login = (credentials) =>
   send('/auth/login', {
@@ -86,5 +87,16 @@ export const exportCustomers = (format = 'csv') =>
 
 export const fetchReferredCustomers = () =>
   send('/users/referred/list', { headers: authHeaders() })
+
+// Admin settings
+export const fetchSettings = () =>
+  send('/users/settings', { headers: authHeaders() })
+
+export const updateSetting = (key, value) =>
+  send('/users/settings', {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify({ key, value }),
+  })
 
 export const loginWithApi = login

@@ -20,7 +20,7 @@ const features = [
       </svg>
     ),
     title: 'Referral System',
-    desc: 'Auto-generated Introducer IDs. Track referrals and grow your network.',
+    desc: 'Unique referral links per user. Track referrals and grow your network.',
   },
   {
     icon: (
