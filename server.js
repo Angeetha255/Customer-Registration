@@ -6,6 +6,7 @@ import authRoutes from './routes/auth.js'
 import userRoutes from './routes/users.js'
 import Admin from './models/Admin.js'
 import User from './models/User.js'   // must be imported so sequelize.sync() creates the users table
+import Team from './models/Team.js'   // must be imported so sequelize.sync() creates the team table
 import Settings from './models/Settings.js'
 import bcrypt from 'bcrypt'
 import { sequelize } from './models/index.js'

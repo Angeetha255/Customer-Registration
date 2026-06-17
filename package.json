@@ -13,6 +13,7 @@
     "rename-table": "node scripts/rename-customers-to-users.js",
     "migrate": "node scripts/run-migration.js",
     "backfill": "node scripts/backfill-placement.js",
+    "backfill-stats": "node scripts/backfill-stats.js",
     "lint": "eslint ."
   },
   "dependencies": {

@@ -58,7 +58,7 @@ export default function Landing() {
           </div>
           <div className="landing-nav-actions">
             <button className="button landing-nav-btn-ghost" onClick={() => navigate('/login')}>
-              Customer Login
+              User Login
             </button>
             <button className="button landing-nav-btn-solid" onClick={() => navigate('/admin-login')}>
               Admin Login

@@ -122,7 +122,84 @@ async function run() {
       console.log('  – position already exists, skipping')
     }
 
-    // ── 6. Create settings table ──────────────────────────────────────────
+    // ── 6. Add registeredAt column ────────────────────────────────────────
+    if (!(await columnExists('users', 'registeredAt'))) {
+      console.log('Adding registeredAt...')
+      await sequelize.query(
+        'ALTER TABLE `users` ADD COLUMN `registeredAt` DATETIME NULL DEFAULT NULL'
+      )
+      console.log('  ✓ registeredAt added')
+    } else {
+      console.log('  – registeredAt already exists, skipping')
+    }
+    // Ensure any NULL registeredAt is backfilled from dateOfJoining (safe no-op if both exist)
+    await sequelize.query(
+      'UPDATE `users` SET `registeredAt` = `dateOfJoining` WHERE `registeredAt` IS NULL AND `dateOfJoining` IS NOT NULL'
+    )
+
+    // ── 7. Add dateOfJoining column ───────────────────────────────────────
+    if (!(await columnExists('users', 'dateOfJoining'))) {
+      console.log('Adding dateOfJoining...')
+      await sequelize.query(
+        'ALTER TABLE `users` ADD COLUMN `dateOfJoining` DATETIME NULL DEFAULT NULL'
+      )
+      // Backfill from registeredAt
+      await sequelize.query(
+        'UPDATE `users` SET `dateOfJoining` = `registeredAt` WHERE `dateOfJoining` IS NULL'
+      )
+      console.log('  ✓ dateOfJoining added and backfilled from registeredAt')
+    } else {
+      console.log('  – dateOfJoining already exists, skipping')
+    }
+
+    // ── 7. Add dateOfActivation column ────────────────────────────────────
+    if (!(await columnExists('users', 'dateOfActivation'))) {
+      console.log('Adding dateOfActivation...')
+      await sequelize.query(
+        'ALTER TABLE `users` ADD COLUMN `dateOfActivation` DATETIME NULL DEFAULT NULL'
+      )
+      // Backfill: active users get registeredAt as their activation date
+      await sequelize.query(
+        'UPDATE `users` SET `dateOfActivation` = `registeredAt` WHERE `active` = 1'
+      )
+      console.log('  ✓ dateOfActivation added and backfilled for active users')
+    } else {
+      console.log('  – dateOfActivation already exists, skipping')
+    }
+
+    // ── 8. Add referralActiveCount column ─────────────────────────────────
+    if (!(await columnExists('users', 'referralActiveCount'))) {
+      console.log('Adding referralActiveCount...')
+      await sequelize.query(
+        'ALTER TABLE `users` ADD COLUMN `referralActiveCount` INT NOT NULL DEFAULT 0'
+      )
+      console.log('  ✓ referralActiveCount added')
+    } else {
+      console.log('  – referralActiveCount already exists, skipping')
+    }
+
+    // ── 9. Rebuild team table as single-row global stats ─────────────────
+    console.log('Rebuilding team table as single-row global stats...')
+    // Drop and recreate to remove the old per-user userId column
+    await sequelize.query('DROP TABLE IF EXISTS `team`')
+    await sequelize.query(`
+      CREATE TABLE \`team\` (
+        \`id\` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        \`teamCount\` INT NOT NULL DEFAULT 0,
+        \`teamActiveCount\` INT NOT NULL DEFAULT 0,
+        PRIMARY KEY (\`id\`)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `)
+    // Seed the single global row with current live counts
+    await sequelize.query(`
+      INSERT INTO \`team\` (\`id\`, \`teamCount\`, \`teamActiveCount\`)
+      SELECT 1,
+        (SELECT COUNT(*) FROM \`users\`),
+        (SELECT COUNT(*) FROM \`users\` WHERE \`active\` = 1)
+    `)
+    console.log('  ✓ team table rebuilt with single global row')
+
+    // ── 10. Create settings table ─────────────────────────────────────────
     console.log('Creating settings table if not exists...')
     await sequelize.query(`
       CREATE TABLE IF NOT EXISTS \`settings\` (
@@ -135,7 +212,7 @@ async function run() {
     `)
     console.log('  ✓ settings table ready')
 
-    // ── 7. Seed default referral prefix ──────────────────────────────────
+    // ── 11. Seed default referral prefix ──────────────────────────────────
     await sequelize.query(
       "INSERT IGNORE INTO `settings` (`key`, `value`) VALUES ('referralPrefix', 'REF')"
     )

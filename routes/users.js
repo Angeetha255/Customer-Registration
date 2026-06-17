@@ -3,6 +3,7 @@ import pdfkit from 'pdfkit'
 import { authMiddleware, requireRole } from '../middleware/auth.js'
 import User, { HIDDEN_FIELDS } from '../models/User.js'
 import Settings from '../models/Settings.js'
+import { propagateTeamStats } from '../services/teamStats.js'
 
 const router = express.Router()
 
@@ -339,8 +340,29 @@ router.put('/:id', authMiddleware, requireRole('admin'), async (req, res) => {
     }
     customer.name = name || customer.name
     customer.phone = phone || customer.phone
-    if (typeof active !== 'undefined') customer.active = !!active
+
+    let activeChanged = false
+    if (typeof active !== 'undefined') {
+      const newActive = !!active
+      if (newActive !== customer.active) {
+        activeChanged = true
+        customer.active = newActive
+        // Set dateOfActivation when toggling to active; clear it when deactivating
+        if (newActive && !customer.dateOfActivation) {
+          customer.dateOfActivation = new Date()
+        } else if (!newActive) {
+          customer.dateOfActivation = null
+        }
+      }
+    }
+
     await customer.save()
+
+    // Refresh global team stats and referralActiveCount if active status changed
+    if (activeChanged) {
+      await propagateTeamStats(customer.referredBy || null)
+    }
+
     const safe = await User.findByPk(customer.id, { attributes: { exclude: HIDDEN_FIELDS } })
     res.json({ message: 'Customer updated.', customer: safe })
   } catch (error) {

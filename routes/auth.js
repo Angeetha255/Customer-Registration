@@ -8,6 +8,7 @@ import Admin from '../models/Admin.js'
 import User, { HIDDEN_FIELDS } from '../models/User.js'
 import Settings from '../models/Settings.js'
 import { findPlacement, determinePlacement } from '../services/binaryTree.js'
+import { propagateTeamStats } from '../services/teamStats.js'
 
 dotenv.config()
 
@@ -69,6 +70,7 @@ router.post('/register', async (req, res) => {
       position = slot.position
     }
 
+    const now = new Date()
     const hashedPassword = await bcrypt.hash(password, 10)
     const user = await User.create({
       name,
@@ -78,7 +80,10 @@ router.post('/register', async (req, res) => {
       referredBy: referredById,
       placementId,
       position,
-      registeredAt: new Date(),
+      registeredAt: now,
+      dateOfJoining: now,
+      // New users default active=true, so set dateOfActivation immediately
+      dateOfActivation: now,
     })
 
     // Increment referral count on referrer
@@ -89,6 +94,9 @@ router.post('/register', async (req, res) => {
         await referrer.save()
       }
     }
+
+    // Update team stats and referralActiveCount for the direct referrer
+    await propagateTeamStats(referredById)
 
     const prefix = await getReferralPrefix()
     const saved = await User.findByPk(user.id, {
