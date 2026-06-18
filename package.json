@@ -1,0 +1,40 @@
+{
+  "name": "task",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"vite\" \"nodemon server.js\"",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "node server.js",
+    "server": "nodemon server.js",
+    "client": "vite",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.4",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^7.6.1",
+    "pdfkit": "^0.13.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "react-router-dom": "^6.16.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^8.2.0",
+    "eslint": "^10.3.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.6.0",
+    "nodemon": "^3.0.1",
+    "vite": "^8.0.12"
+  }
+}
