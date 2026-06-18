@@ -24,6 +24,8 @@ export default function AdminCustomers() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [prefix, setPrefix] = useState('REF')
   const [prefixInput, setPrefixInput] = useState('REF')
+  const [userIdPrefix, setUserIdPrefix] = useState('MEM')
+  const [userIdPrefixInput, setUserIdPrefixInput] = useState('MEM')
   const [savingPrefix, setSavingPrefix] = useState(false)
 
   const [toast, setToast] = useState({ message: '', type: 'success' })
@@ -52,8 +54,11 @@ export default function AdminCustomers() {
         const p = s.referralPrefix || 'REF'
         setPrefix(p)
         setPrefixInput(p)
+        const u = s.userIdPrefix || 'MEM'
+        setUserIdPrefix(u)
+        setUserIdPrefixInput(u)
       })
-      .catch(() => {})
+      .catch(() => { })
   }, [])
 
   const handleSearch = (event) => {
@@ -63,17 +68,24 @@ export default function AdminCustomers() {
 
   const openSettings = () => {
     setPrefixInput(prefix)
+    setUserIdPrefixInput(userIdPrefix)
     setSettingsOpen(true)
   }
 
   const savePrefix = async () => {
-    if (!prefixInput.trim()) return
+    if (!prefixInput.trim() && !userIdPrefixInput.trim()) return
     setSavingPrefix(true)
     try {
-      await updateSetting('referralPrefix', prefixInput.trim().toUpperCase())
-      setPrefix(prefixInput.trim().toUpperCase())
+      if (prefixInput.trim()) {
+        await updateSetting('referralPrefix', prefixInput.trim().toUpperCase())
+        setPrefix(prefixInput.trim().toUpperCase())
+      }
+      if (userIdPrefixInput.trim()) {
+        await updateSetting('userIdPrefix', userIdPrefixInput.trim().toUpperCase())
+        setUserIdPrefix(userIdPrefixInput.trim().toUpperCase())
+      }
       setSettingsOpen(false)
-      showToast('Referral prefix updated. All referral IDs will now use the new prefix.')
+      showToast('Settings saved successfully.')
       await load(query)
     } catch (err) {
       showToast(err.message, 'danger')
@@ -102,7 +114,12 @@ export default function AdminCustomers() {
 
   const handleEditChange = (e) => {
     const { name, value, type, checked } = e.target
-    setEditForm((f) => ({ ...f, [name]: type === 'checkbox' ? checked : value }))
+    if (name === 'phone') {
+      const digits = value.replace(/\D/g, '').slice(0, 10)
+      setEditForm((f) => ({ ...f, phone: digits }))
+    } else {
+      setEditForm((f) => ({ ...f, [name]: type === 'checkbox' ? checked : value }))
+    }
   }
 
   const saveEdit = async () => {
@@ -110,6 +127,10 @@ export default function AdminCustomers() {
     try {
       if (!editForm.name || !editForm.email || !editForm.phone) {
         setError('Name, email and phone are required.')
+        return
+      }
+      if (!/^[0-9]{10}$/.test(editForm.phone)) {
+        setError('Phone number must be 10 digits.')
         return
       }
       await updateCustomer(editingCustomer.id, {
@@ -176,7 +197,7 @@ export default function AdminCustomers() {
       <section className="page-panel card no-border-panel">
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1>Customer Management</h1>
+            <h1>User Management</h1>
             <br></br>
             {/* <p className="subtitle">Search, sort, edit and export customer records.</p> */}
           </div>
@@ -189,10 +210,10 @@ export default function AdminCustomers() {
             style={{ display: 'flex', alignItems: 'center', gap: 6 }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
             </svg>
-            Referral Prefix: <strong>{prefix}</strong>
+            Referral Prefix: <strong>{prefix}</strong> · User ID: <strong>{userIdPrefix}</strong>
           </button>
         </div>
 
@@ -214,9 +235,11 @@ export default function AdminCustomers() {
             <thead>
               <tr>
                 <th>ID</th>
+                <th>User ID</th>
                 <th>Name</th>
                 <th>Email</th>
                 <th>Phone</th>
+               
                 <th>Referred By</th>
                 <th>Referrer ID</th>
                 <th>Registered</th>
@@ -225,33 +248,35 @@ export default function AdminCustomers() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="8">Loading customers…</td></tr>
+                <tr><td colSpan="10">Loading customers…</td></tr>
               ) : customers.length === 0 ? (
-                <tr><td colSpan="8">No matching customers found.</td></tr>
+                <tr><td colSpan="10">No matching customers found.</td></tr>
               ) : customers.map((customer) => (
                 <tr key={customer.id}>
                   <td><span className="ad-cid-badge">{customer.id}</span></td>
+                  <td><span className="ad-cid-badge">{customer.userId || '—'}</span></td>
                   <td>{customer.name}</td>
                   <td>{customer.email}</td>
                   <td>{customer.phone}</td>
+                  
                   <td>{customer.referrerName || '—'}</td>
                   <td>{customer.referrerDisplayId || '—'}</td>
                   <td>
-                    {(function(d) {
+                    {(function (d) {
                       if (!d) return '—'
                       const dt = new Date(d)
-                      return `${String(dt.getDate()).padStart(2,'0')}-${String(dt.getMonth()+1).padStart(2,'0')}-${dt.getFullYear()}`
-                    })(customer.registeredAt)}
+                      return `${String(dt.getDate()).padStart(2, '0')}-${String(dt.getMonth() + 1).padStart(2, '0')}-${dt.getFullYear()}`
+                    })(customer.regat)}
                   </td>
                   <td>
                     <button title="Edit" type="button" className="icon-button" onClick={() => openEdit(customer)} style={{ marginRight: 8 }}>
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M4 21h4l11-11a2 2 0 0 0-4-4L4 17v4z" fill="#111827"/>
+                        <path d="M4 21h4l11-11a2 2 0 0 0-4-4L4 17v4z" fill="#111827" />
                       </svg>
                     </button>
                     <button title="Delete" type="button" className="icon-button" onClick={() => openDelete(customer)}>
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M9 3h6l1 2h5v2H3V5h5l1-2zM6 9h12v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9z" fill="#ef4444"/>
+                        <path d="M9 3h6l1 2h5v2H3V5h5l1-2zM6 9h12v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9z" fill="#ef4444" />
                       </svg>
                     </button>
                   </td>
@@ -266,21 +291,13 @@ export default function AdminCustomers() {
           <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setSettingsOpen(false) }}>
             <div className="modal-card">
               <div className="modal-header">
-                <h3>Referral Prefix Settings</h3>
+                <h3>Admin Settings</h3>
                 <button className="modal-close" onClick={() => setSettingsOpen(false)}>✕</button>
               </div>
               <div className="modal-body">
-                <p style={{ marginBottom: 12, color: 'var(--muted)', fontSize: '0.9rem' }}>
-                  The prefix is prepended to each user's primary key to form their Referral ID.
-                  Changing it here updates all future displays without touching stored database values.
-                </p>
-                <p style={{ marginBottom: 16, fontSize: '0.9rem' }}>
-                  Example: prefix <strong>{prefixInput.trim().toUpperCase() || 'REF'}</strong> + id <strong>1</strong> →{' '}
-                  <strong>{prefixInput.trim().toUpperCase() || 'REF'}1</strong>
-                </p>
                 <div className="form-grid">
                   <label>
-                    Referral Prefix
+                    Referral ID Prefix
                     <input
                       value={prefixInput}
                       onChange={(e) => setPrefixInput(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
@@ -288,13 +305,29 @@ export default function AdminCustomers() {
                       placeholder="e.g. REF"
                       style={{ textTransform: 'uppercase' }}
                     />
+                    <small style={{ color: 'var(--muted)', fontSize: '0.78rem' }}>
+                      Shown as referral display ID. Example: {prefixInput.trim().toUpperCase() || 'REF'}1
+                    </small>
+                  </label>
+                  <label>
+                    User ID Prefix
+                    <input
+                      value={userIdPrefixInput}
+                      onChange={(e) => setUserIdPrefixInput(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
+                      maxLength={10}
+                      placeholder="e.g. MEM"
+                      style={{ textTransform: 'uppercase' }}
+                    />
+                    <small style={{ color: 'var(--muted)', fontSize: '0.78rem' }}>
+                      New users get IDs like {userIdPrefixInput.trim().toUpperCase() || 'MEM'}12345. Does not change existing user IDs.
+                    </small>
                   </label>
                 </div>
               </div>
               <div className="modal-footer">
                 <button className="button button-muted" onClick={() => setSettingsOpen(false)}>Cancel</button>
-                <button className="button button-primary" onClick={savePrefix} disabled={savingPrefix || !prefixInput.trim()}>
-                  {savingPrefix ? 'Saving…' : 'Save Prefix'}
+                <button className="button button-primary" onClick={savePrefix} disabled={savingPrefix}>
+                  {savingPrefix ? 'Saving…' : 'Save Settings'}
                 </button>
               </div>
             </div>
@@ -306,7 +339,7 @@ export default function AdminCustomers() {
           <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) closeEdit() }}>
             <div className="modal-card">
               <div className="modal-header">
-                <h3>Edit Customer</h3>
+                <h3>Edit User</h3>
                 <button className="modal-close" onClick={closeEdit}>✕</button>
               </div>
               <div className="modal-body">
@@ -329,20 +362,30 @@ export default function AdminCustomers() {
                     <input value={editingCustomer?.id || ''} disabled />
                   </label>
                   <label>
+                    User ID
+                    <input value={editingCustomer?.userId || '—'} disabled />
+                  </label>
+                  <label>
                     Status
                     <select
                       name="active"
                       value={editForm.active ? 'active' : 'inactive'}
                       onChange={(e) => setEditForm((f) => ({ ...f, active: e.target.value === 'active' }))}
                     >
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
+                      <option value="active">Yes</option>
+                      <option value="inactive">No</option>
                     </select>
                   </label>
                   <label>
                     Date of Joining
                     <input
-                      value={editingCustomer?.registeredAt ? new Date(editingCustomer.registeredAt).toLocaleDateString() : ''}
+                      value={
+                        editingCustomer?.regat
+                          ? new Date(editingCustomer.regat)
+                            .toLocaleDateString('en-GB')
+                            .replace(/\//g, '-')
+                          : ''
+                      }
                       disabled
                     />
                   </label>

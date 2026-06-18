@@ -34,7 +34,7 @@ export const login = (credentials) =>
   })
 
 export const loginAdmin = (credentials) =>
-  send('/auth/login?admin=1', {
+  send('/auth/admin/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(credentials),

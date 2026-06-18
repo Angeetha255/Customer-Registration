@@ -21,7 +21,7 @@ export default function ResetPassword() {
     const params = new URLSearchParams(location.search)
     const token = params.get('token')
     if (token) setForm((f) => ({ ...f, token }))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [location.search])
 
   const handleSubmit = async (event) => {

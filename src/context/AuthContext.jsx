@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { fetchMe, login as apiLogin } from '../services/api.js'
+import { fetchMe, login as apiLogin, loginAdmin as apiLoginAdmin } from '../services/api.js'
 
 const AuthContext = createContext(null)
 
@@ -10,10 +10,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       const token = window.localStorage.getItem('authToken')
-      if (!token) {
-        setLoading(false)
-        return
-      }
+      if (!token) { setLoading(false); return }
       try {
         const data = await fetchMe()
         setUser(data)
@@ -23,10 +20,10 @@ export const AuthProvider = ({ children }) => {
         setLoading(false)
       }
     }
-
     initializeAuth()
   }, [])
 
+  // Customer sign-in
   const signIn = async (credentials) => {
     const response = await apiLogin(credentials)
     window.localStorage.setItem('authToken', response.token)
@@ -34,20 +31,23 @@ export const AuthProvider = ({ children }) => {
     return response
   }
 
+  // Admin sign-in
+  const signInAdmin = async (credentials) => {
+    const response = await apiLoginAdmin(credentials)
+    window.localStorage.setItem('authToken', response.token)
+    setUser(response.user)
+    return response
+  }
+
   const signOut = () => {
-    const role = user?.role
+    const type = user?.type
     window.localStorage.removeItem('authToken')
     setUser(null)
-    // Redirect to admin or customer login depending on role
-    if (role === 'admin') {
-      window.location.href = '/admin-login'
-    } else {
-      window.location.href = '/login'
-    }
+    window.location.href = type === 'admin' ? '/admin-login' : '/login'
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut, setUser }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signInAdmin, signOut, setUser }}>
       {children}
     </AuthContext.Provider>
   )

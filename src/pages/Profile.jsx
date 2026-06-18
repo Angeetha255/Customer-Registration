@@ -69,7 +69,13 @@ export default function Profile() {
   }
 
   const handleChange = (event) => {
-    setForm({ ...form, [event.target.name]: event.target.value })
+    const { name, value } = event.target
+    if (name === 'phone') {
+      const digits = value.replace(/\D/g, '').slice(0, 10)
+      setForm({ ...form, phone: digits })
+    } else {
+      setForm({ ...form, [name]: value })
+    }
   }
 
   const handleSubmit = async (event) => {
@@ -77,8 +83,17 @@ export default function Profile() {
     setError('')
     setLoading(true)
     try {
+      if (!/^[0-9]{10}$/.test(form.phone)) {
+        setError('Phone number must be 10 digits.')
+        setLoading(false)
+        return
+      }
       const { user: updated } = await updateProfile(form)
-      if (updated) setUser(updated)
+      if (updated) {
+        setUser(updated)
+        // Re-fetch enriched profile so referralId/referrerName etc. stay current
+        fetchMe().then((data) => setProfileData(data)).catch(() => {})
+      }
       closeEdit()
       setToast({ message: 'Profile updated successfully.', type: 'success' })
     } catch (err) {
@@ -123,12 +138,12 @@ export default function Profile() {
             <div className="profile-avatar"><AvatarIcon /></div>
             <h2 className="profile-name">
               {profile?.name || '—'}
-              {profile?.id && (
-                <span className="profile-uid">#{profile.id}</span>
+              {profile?.userId && (
+                <span className="profile-uid">{profile.userId}</span>
               )}
             </h2>
-            {profile?.registeredAt && (
-              <span className="profile-since">Member since {formatDate(profile.registeredAt)}</span>
+            {profile?.regat && (
+              <span className="profile-since">Member since {formatDate(profile.regat)}</span>
             )}
           </div>
 
@@ -139,7 +154,7 @@ export default function Profile() {
             <ProfileRow label="Your Referral ID" value={profile?.referralId        || (profile?.id ? `REF${profile.id}` : '—')} />
             <ProfileRow label="Phone"            value={profile?.phone            || '—'} />
             <ProfileRow label="Email"            value={profile?.email            || '—'} />
-            <ProfileRow label="Date Joined"      value={formatDate(profile?.registeredAt)} />
+            <ProfileRow label="Date Joined"      value={formatDate(profile?.regat)} />
             {fromUserIcon && (
               <div className="profile-edit-trigger">
                 <button className="button button-secondary" onClick={openEdit}>Edit Profile</button>
@@ -189,7 +204,7 @@ export default function Profile() {
             </div>
             <div className="pref-stats">
               <div className="pref-stat">
-                <span className="pref-stat-value">{profile?.referralCount ?? 0}</span>
+                <span className="pref-stat-value">{profile?.refcount ?? 0}</span>
                 <span className="pref-stat-label">Total Referrals</span>
               </div>
               <div className="pref-stat">

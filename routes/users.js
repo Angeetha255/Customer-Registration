@@ -55,6 +55,11 @@ router.put('/settings', authMiddleware, requireRole('admin'), async (req, res) =
 // GET /api/users/me
 router.get('/me', authMiddleware, async (req, res) => {
   try {
+    // /me is a customer endpoint — return admin info directly if admin token
+    if (req.userType === 'admin') {
+      return res.json({ ...req.user, type: 'admin' })
+    }
+
     // Re-fetch from DB to guarantee HIDDEN_FIELDS are excluded
     const userRecord = await User.findByPk(req.user.id, {
       attributes: { exclude: HIDDEN_FIELDS },
@@ -68,8 +73,8 @@ router.get('/me', authMiddleware, async (req, res) => {
     // Resolve referrer name and display id
     let referrerName = null
     let referrerDisplayId = null
-    if (userRecord.referredBy) {
-      const referrer = await User.findByPk(userRecord.referredBy, { attributes: ['id', 'name'] })
+    if (userRecord.refid) {
+      const referrer = await User.findByPk(userRecord.refid, { attributes: ['id', 'name'] })
       if (referrer) {
         referrerName = referrer.name
         referrerDisplayId = toReferralId(prefix, referrer.id)
@@ -77,7 +82,7 @@ router.get('/me', authMiddleware, async (req, res) => {
     }
 
     const referred = await User.findAll({
-      where: { referredBy: userRecord.id },
+      where: { refid: userRecord.id },
       attributes: { exclude: HIDDEN_FIELDS },
     })
 
@@ -87,6 +92,7 @@ router.get('/me', authMiddleware, async (req, res) => {
       referralLink,
       referrerName,
       referrerDisplayId,
+      activeStatus: userRecord.active ? 'Yes' : 'No',
       referredCustomers: referred,
     })
   } catch (err) {
@@ -98,15 +104,27 @@ router.get('/me', authMiddleware, async (req, res) => {
 // PUT /api/users/me
 router.put('/me', authMiddleware, async (req, res) => {
   try {
-    const { name, phone } = req.body
+    const { name, phone, email } = req.body
     if (!name || !phone) {
       return res.status(400).json({ message: 'Name and phone are required.' })
     }
+    if (!/^[0-9]{10}$/.test(String(phone))) {
+      return res.status(400).json({ message: 'Phone number must be 10 digits.' })
+    }
     const userRecord = await User.findByPk(req.user.id)
+    if (!userRecord) return res.status(404).json({ message: 'User not found.' })
+
     userRecord.name = name
     userRecord.phone = phone
+
+    // Update email if provided and different
+    if (email && email !== userRecord.email) {
+      const exists = await User.findOne({ where: { email } })
+      if (exists) return res.status(409).json({ message: 'Email is already in use by another account.' })
+      userRecord.email = email
+    }
+
     await userRecord.save()
-    // Return without hidden fields
     const safe = await User.findByPk(req.user.id, { attributes: { exclude: HIDDEN_FIELDS } })
     res.json({ message: 'Profile updated.', user: safe })
   } catch (error) {
@@ -146,8 +164,8 @@ router.get('/', authMiddleware, requireRole('admin'), async (req, res) => {
 
     const prefix = await getReferralPrefix()
 
-    // Collect all unique referredBy ids to batch-fetch referrer names
-    const referrerIds = [...new Set(users.map((u) => u.referredBy).filter(Boolean))]
+    // Collect all unique refid ids to batch-fetch referrer names
+    const referrerIds = [...new Set(users.map((u) => u.refid).filter(Boolean))]
     const referrers = referrerIds.length
       ? await User.findAll({ where: { id: referrerIds }, attributes: ['id', 'name'] })
       : []
@@ -156,8 +174,9 @@ router.get('/', authMiddleware, requireRole('admin'), async (req, res) => {
     const enriched = users.map((u) => ({
       ...u.toJSON(),
       referralId: toReferralId(prefix, u.id),
-      referrerName: u.referredBy ? (referrerMap[u.referredBy] || null) : null,
-      referrerDisplayId: u.referredBy ? toReferralId(prefix, u.referredBy) : null,
+      referrerName: u.refid ? (referrerMap[u.refid] || null) : null,
+      referrerDisplayId: u.refid ? toReferralId(prefix, u.refid) : null,
+      activeStatus: u.active ? 'Yes' : 'No',
     }))
 
     res.json({ total, page: Number(page), limit: Number(limit), customers: enriched })
@@ -176,19 +195,26 @@ router.get('/stats', authMiddleware, requireRole('admin'), async (req, res) => {
     const startOfDay = new Date()
     startOfDay.setHours(0, 0, 0, 0)
     const { Op } = await import('sequelize')
-    const todayRegistrations = await User.count({ where: { registeredAt: { [Op.gte]: startOfDay } } })
+    const todayRegistrations = await User.count({ where: { regat: { [Op.gte]: startOfDay } } })
 
     const prefix = await getReferralPrefix()
     const recentCustomers = await User.findAll({
-      order: [['registeredAt', 'DESC']],
+      order: [['regat', 'DESC']],
       limit: 5,
-      attributes: ['id', 'name', 'email', 'phone', 'registeredAt', 'referredBy'],
+      attributes: ['id', 'name', 'email', 'phone', 'regat', 'refid'],
     })
 
-    const totalReferrals = (await User.sum('referralCount')) || 0
+    const totalReferrals = (await User.sum('refcount')) || 0
     const topReferrer = await User.findOne({
-      order: [['referralCount', 'DESC']],
-      attributes: ['id', 'name', 'email', 'phone', 'referralCount'],
+      order: [['refcount', 'DESC']],
+      attributes: ['id', 'name', 'email', 'phone', 'refcount'],
+    })
+
+    // Top user = the first registered user (lowest id, no refid) — the tree root
+    const topUser = await User.findOne({
+      where: { refid: null },
+      order: [['id', 'ASC']],
+      attributes: ['id', 'name', 'userId'],
     })
 
     res.json({
@@ -201,6 +227,9 @@ router.get('/stats', authMiddleware, requireRole('admin'), async (req, res) => {
       totalReferrals,
       topReferrer: topReferrer
         ? { ...topReferrer.toJSON(), referralId: toReferralId(prefix, topReferrer.id) }
+        : null,
+      topUser: topUser
+        ? { id: topUser.id, name: topUser.name, userId: topUser.userId }
         : null,
     })
   } catch (error) {
@@ -216,7 +245,7 @@ router.get('/referred/list', authMiddleware, async (req, res) => {
   try {
     const user = req.user
     const referred = await User.findAll({
-      where: { referredBy: user.id },
+      where: { refid: user.id },
       attributes: { exclude: HIDDEN_FIELDS },
     })
     res.json({ referred })
@@ -234,11 +263,11 @@ router.get('/export', authMiddleware, requireRole('admin'), async (req, res) => 
     const { format = 'csv' } = req.query
     const prefix = await getReferralPrefix()
     const customers = await User.findAll({
-      attributes: ['id', 'name', 'email', 'phone', 'referredBy', 'registeredAt'],
+      attributes: ['id', 'name', 'email', 'phone', 'refid', 'regat'],
     })
 
     // Batch fetch referrer names
-    const referrerIds = [...new Set(customers.map((c) => c.referredBy).filter(Boolean))]
+    const referrerIds = [...new Set(customers.map((c) => c.refid).filter(Boolean))]
     const referrers = referrerIds.length
       ? await User.findAll({ where: { id: referrerIds }, attributes: ['id', 'name'] })
       : []
@@ -257,9 +286,9 @@ router.get('/export', authMiddleware, requireRole('admin'), async (req, res) => 
         doc.text(`Email: ${customer.email}`)
         doc.text(`Phone: ${customer.phone}`)
         doc.text(
-          `Referred By: ${customer.referredBy ? (referrerMap[customer.referredBy] || 'Unknown') : 'N/A'} (${customer.referredBy ? toReferralId(prefix, customer.referredBy) : 'N/A'})`
+          `Referred By: ${customer.refid ? (referrerMap[customer.refid] || 'Unknown') : 'N/A'} (${customer.refid ? toReferralId(prefix, customer.refid) : 'N/A'})`
         )
-        doc.text(`Registered At: ${customer.registeredAt.toISOString()}`)
+        doc.text(`Registered At: ${customer.regat.toISOString()}`)
         doc.moveDown()
       })
       doc.end()
@@ -274,9 +303,9 @@ router.get('/export', authMiddleware, requireRole('admin'), async (req, res) => 
           c.name,
           c.email,
           c.phone,
-          c.referredBy ? (referrerMap[c.referredBy] || 'Unknown') : '',
-          c.referredBy ? toReferralId(prefix, c.referredBy) : '',
-          c.registeredAt.toISOString(),
+          c.refid ? (referrerMap[c.refid] || 'Unknown') : '',
+          c.refid ? toReferralId(prefix, c.refid) : '',
+          c.regat.toISOString(),
         ]
           .map((v) => `"${String(v).replace(/"/g, '""')}"`)
           .join(',')
@@ -306,8 +335,8 @@ router.get('/:id', authMiddleware, requireRole('admin'), async (req, res) => {
     const prefix = await getReferralPrefix()
     let referrerName = null
     let referrerDisplayId = null
-    if (customer.referredBy) {
-      const referrer = await User.findByPk(customer.referredBy, { attributes: ['id', 'name'] })
+    if (customer.refid) {
+      const referrer = await User.findByPk(customer.refid, { attributes: ['id', 'name'] })
       if (referrer) {
         referrerName = referrer.name
         referrerDisplayId = toReferralId(prefix, referrer.id)
@@ -333,6 +362,10 @@ router.put('/:id', authMiddleware, requireRole('admin'), async (req, res) => {
     const customer = await User.findOne({ where: { id: req.params.id } })
     if (!customer) return res.status(404).json({ message: 'Customer not found.' })
 
+    if (phone && !/^[0-9]{10}$/.test(String(phone))) {
+      return res.status(400).json({ message: 'Phone number must be 10 digits.' })
+    }
+
     if (email && email !== customer.email) {
       const exists = await User.findOne({ where: { email } })
       if (exists) return res.status(409).json({ message: 'Email already in use.' })
@@ -347,20 +380,20 @@ router.put('/:id', authMiddleware, requireRole('admin'), async (req, res) => {
       if (newActive !== customer.active) {
         activeChanged = true
         customer.active = newActive
-        // Set dateOfActivation when toggling to active; clear it when deactivating
-        if (newActive && !customer.dateOfActivation) {
-          customer.dateOfActivation = new Date()
+        // Set DOA when toggling to active; clear it when deactivating
+        if (newActive && !customer.DOA) {
+          customer.DOA = new Date()
         } else if (!newActive) {
-          customer.dateOfActivation = null
+          customer.DOA = null
         }
       }
     }
 
     await customer.save()
 
-    // Refresh global team stats and referralActiveCount if active status changed
+    // Refresh global team stats and refactcount if active status changed
     if (activeChanged) {
-      await propagateTeamStats(customer.referredBy || null)
+      await propagateTeamStats(customer.id, customer.refid || null)
     }
 
     const safe = await User.findByPk(customer.id, { attributes: { exclude: HIDDEN_FIELDS } })

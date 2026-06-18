@@ -132,8 +132,8 @@ export default function CustomerDashboard() {
         <StatCard icon={Icons.mail}     label="Email"             value={profile.email}                    colorIdx={1} />
         <StatCard icon={Icons.phone}    label="Phone"             value={profile.phone}                    colorIdx={2} />
         <StatCard icon={Icons.id}       label="Your Referral ID"  value={displayReferralId}                colorIdx={3} />
-        <StatCard icon={Icons.users}    label="Total Referrals"   value={profile.referralCount ?? 0}       colorIdx={4} />
-        <StatCard icon={Icons.calendar} label="Registration Date" value={formatDate(profile.registeredAt)} colorIdx={5} />
+        <StatCard icon={Icons.users}    label="Total Referrals"   value={profile.refcount ?? 0}       colorIdx={4} />
+        <StatCard icon={Icons.calendar} label="Registration Date" value={formatDate(profile.regat)} colorIdx={5} />
       </div>
 
       {/* ── Referral link card ── */}
@@ -189,7 +189,7 @@ export default function CustomerDashboard() {
                     if (!d) return '—'
                     const dt = new Date(d)
                     return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`
-                  })(r.registeredAt || r.createdAt)}
+                  })(r.regat || r.createdAt)}
                 </div>
               </div>
             ))}

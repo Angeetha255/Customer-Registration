@@ -21,12 +21,9 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      const response = await signIn(credentials)
-      if (response.user.role === 'admin') {
-        navigate('/admin')
-      } else {
-        navigate('/dashboard')
-      }
+      await signIn(credentials)
+      // Customer login always goes to dashboard — no role check needed
+      navigate('/dashboard')
     } catch (error) {
       setError(error.message)
     } finally {

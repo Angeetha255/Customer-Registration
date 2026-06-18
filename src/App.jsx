@@ -73,7 +73,7 @@ function AppLayout({ children }) {
                 </button>
                 {userMenuOpen && (
                   <div className="user-dropdown">
-                    {user?.role !== 'admin' && (
+                    {user?.type !== 'admin' && (
                       <button
                         className="button button-link"
                         onClick={() => { 

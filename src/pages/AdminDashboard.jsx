@@ -48,6 +48,16 @@ const STAT_CONFIG = [
     ),
   },
   {
+    key: 'topUser',
+    label: 'Top ID',
+    bg: 'linear-gradient(135deg,#11998e 0%,#38ef7d 100%)',
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+      </svg>
+    ),
+  },
+  {
     key: 'recentCustomer',
     label: 'Latest Customer',
     bg: 'linear-gradient(135deg,#4facfe 0%,#00f2fe 100%)',
@@ -98,6 +108,7 @@ export default function AdminDashboard() {
     todayRegistrations: stats.todayRegistrations ?? 0,
     totalReferrals:     stats.totalReferrals ?? 0,
     topReferrer:        stats.topReferrer?.name || '—',
+    topUser:            stats.topUser ? `${stats.topUser.userId || '#' + stats.topUser.id} · ${stats.topUser.name}` : '—',
     recentCustomer:     stats.recentCustomers?.[0]?.name || '—',
   }
 
@@ -184,7 +195,7 @@ export default function AdminDashboard() {
                   </td>
                   <td>{c.email}</td>
                   <td>{c.phone}</td>
-                  <td>{fmtDate(c.registeredAt || c.createdAt)}</td>
+                  <td>{fmtDate(c.regat || c.createdAt)}</td>
                 </tr>
               ))}
             </tbody>

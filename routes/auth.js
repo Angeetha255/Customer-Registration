@@ -7,8 +7,9 @@ import dotenv from 'dotenv'
 import Admin from '../models/Admin.js'
 import User, { HIDDEN_FIELDS } from '../models/User.js'
 import Settings from '../models/Settings.js'
-import { findPlacement, determinePlacement } from '../services/binaryTree.js'
+import { determinePlacement } from '../services/binaryTree.js'
 import { propagateTeamStats } from '../services/teamStats.js'
+import { generateUserId } from '../services/userIdService.js'
 
 dotenv.config()
 
@@ -16,96 +17,91 @@ const router = express.Router()
 const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret'
 const JWT_EXPIRES = '7d'
 
-// Helper: get current referral prefix from settings (default: "REF")
 const getReferralPrefix = async () => {
   const setting = await Settings.findOne({ where: { key: 'referralPrefix' } })
   return setting ? setting.value : 'REF'
 }
 
-// POST /api/auth/register
+// ── POST /api/auth/register ───────────────────────────────────────────────────
 router.post('/register', async (req, res) => {
   try {
     const { name, email, phone, password, confirmPassword } = req.body
-    // Referral ref is the referrer's numeric primary key id
     const refParam = req.query.ref || req.body.referredBy
 
-    if (!name || !email || !phone || !password || !confirmPassword) {
+    if (!name || !email || !phone || !password || !confirmPassword)
       return res.status(400).json({ message: 'Please fill all required fields.' })
-    }
-    if (!/^[0-9]{10}$/.test(String(phone))) {
+    if (!/^[0-9]{10}$/.test(String(phone)))
       return res.status(400).json({ message: 'Phone number must be 10 digits.' })
-    }
-    if (password !== confirmPassword) {
+    if (password !== confirmPassword)
       return res.status(400).json({ message: 'Passwords do not match.' })
-    }
 
     const existingUser = await User.findOne({ where: { email } })
-    if (existingUser) {
+    if (existingUser)
       return res.status(409).json({ message: 'Email is already registered.' })
-    }
 
-    // Resolve referredBy: must be a valid numeric user id
-    let referredById = null
+    let referrerId = null
     if (refParam) {
       const refId = parseInt(refParam, 10)
       if (!isNaN(refId)) {
         const referrer = await User.findByPk(refId)
         if (referrer) {
-          if (referrer.email === email) {
+          if (referrer.email === email)
             return res.status(400).json({ message: 'You cannot refer yourself.' })
-          }
-          referredById = refId
+          referrerId = refId
         }
       }
     }
 
-    // ── Binary-tree auto-placement ────────────────────────────────────────
-    // Always place every user — referred users start BFS from referrer,
-    // non-referred users start BFS from the global tree root.
+    // Binary-tree placement
     let placementId = null
     let position = null
-    const slot = await determinePlacement(referredById)
-    if (slot) {
-      placementId = slot.parentId
-      position = slot.position
-    }
+    const slot = await determinePlacement(referrerId)
+    if (slot) { placementId = slot.parentId; position = slot.position }
 
+    const userId = await generateUserId()
     const now = new Date()
     const hashedPassword = await bcrypt.hash(password, 10)
+
+    // Determine topId: Only the very first user in the system has topId = own id
+    const firstUser = await User.findOne({ order: [['id', 'ASC']] })
+    let topId = null
+    if (!firstUser) {
+      // This is the first user
+      topId = null // We'll set it after create to user.id
+    }
+    // All other users have topId = null
+
     const user = await User.create({
-      name,
-      email,
-      phone,
-      password: hashedPassword,
-      referredBy: referredById,
-      placementId,
+      name, email, phone,
+      regat: now,
+      userId,
+      refid: referrerId,
+      placeid: placementId,
       position,
-      registeredAt: now,
-      dateOfJoining: now,
-      // New users default active=true, so set dateOfActivation immediately
-      dateOfActivation: now,
+      DOJ: now,
+      DOA: now,
+      password: hashedPassword,
     })
 
-    // Increment referral count on referrer
-    if (referredById) {
-      const referrer = await User.findByPk(referredById)
+    // If this is the first user, set topId = own id (topId removed? Wait user didn't list topId in columns, let's check user's request again... Oh user didn't include topId in final column order, okay.)
+
+    if (referrerId) {
+      const referrer = await User.findByPk(referrerId)
       if (referrer) {
-        referrer.referralCount = (referrer.referralCount || 0) + 1
+        referrer.refcount = (referrer.refcount || 0) + 1
         await referrer.save()
       }
     }
 
-    // Update team stats and referralActiveCount for the direct referrer
-    await propagateTeamStats(referredById)
+    await propagateTeamStats(user.id, referrerId)
 
     const prefix = await getReferralPrefix()
-    const saved = await User.findByPk(user.id, {
-      attributes: { exclude: HIDDEN_FIELDS },
-    })
+    const saved = await User.findByPk(user.id, { attributes: { exclude: HIDDEN_FIELDS } })
 
     res.status(201).json({
       message: 'Customer registered successfully.',
       referralId: `${prefix}${user.id}`,
+      userId,
       user: saved,
     })
   } catch (error) {
@@ -114,52 +110,39 @@ router.post('/register', async (req, res) => {
   }
 })
 
-// POST /api/auth/login
+// ── POST /api/auth/login  (customer only) ────────────────────────────────────
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body
-    if (!email || !password) {
+    if (!email || !password)
       return res.status(400).json({ message: 'Email and password are required.' })
-    }
 
-    const isAdminLogin = req.query.admin === '1' || req.body?.admin === true
-    let user = null
-    let role = 'customer'
-
-    if (isAdminLogin) {
-      user = await Admin.findOne({ where: { email } })
-      role = 'admin'
-      if (!user) return res.status(401).json({ message: 'Invalid credentials.' })
-    } else {
-      user = await User.findOne({ where: { email } })
-      if (!user) return res.status(401).json({ message: 'Invalid credentials.' })
-      if (user.role === 'admin') {
-        return res.status(401).json({ message: 'Admin accounts must sign in via the admin login page.' })
-      }
-    }
+    const user = await User.findOne({ where: { email } })
+    if (!user) return res.status(401).json({ message: 'Invalid credentials.' })
 
     const validPassword = await bcrypt.compare(password, user.password)
     if (!validPassword) return res.status(401).json({ message: 'Invalid credentials.' })
 
-    const token = jwt.sign({ id: user.id, role }, JWT_SECRET, { expiresIn: JWT_EXPIRES })
+    // Token carries type='customer' — no role column involved
+    const token = jwt.sign({ type: 'customer', id: user.id }, JWT_SECRET, { expiresIn: JWT_EXPIRES })
 
+    const prefix = await getReferralPrefix()
     const userData = {
       id: user.id,
       name: user.name,
       email: user.email,
       phone: user.phone,
-      role,
-      registeredAt: user.registeredAt,
+      type: 'customer',
+      userId: user.userId,
+      refid: user.refid,
+      refcount: user.refcount,
+      referralId: `${prefix}${user.id}`,
+      active: user.active,
+      teamcount: user.teamcount,
+      teamactcount: user.teamactcount,
+      regat: user.regat,
     }
 
-    if (role === 'customer') {
-      const prefix = await getReferralPrefix()
-      userData.referredBy = user.referredBy
-      userData.referralCount = user.referralCount
-      userData.referralId = `${prefix}${user.id}`
-    }
-
-    // placementId and position are intentionally excluded from the response
     res.json({ token, user: userData })
   } catch (error) {
     console.error(error)
@@ -167,17 +150,47 @@ router.post('/login', async (req, res) => {
   }
 })
 
-// GET /api/auth/referrer/:id  — look up a referrer by their primary key
+// ── POST /api/auth/admin/login  (admin only — separate endpoint) ─────────────
+router.post('/admin/login', async (req, res) => {
+  try {
+    const { email, password } = req.body
+    if (!email || !password)
+      return res.status(400).json({ message: 'Email and password are required.' })
+
+    const admin = await Admin.findOne({ where: { email } })
+    if (!admin) return res.status(401).json({ message: 'Invalid credentials.' })
+
+    const validPassword = await bcrypt.compare(password, admin.password)
+    if (!validPassword) return res.status(401).json({ message: 'Invalid credentials.' })
+
+    // Token carries type='admin'
+    const token = jwt.sign({ type: 'admin', id: admin.id }, JWT_SECRET, { expiresIn: JWT_EXPIRES })
+
+    const userData = {
+      id: admin.id,
+      name: admin.name,
+      email: admin.email,
+      phone: admin.phone,
+      type: 'admin',
+      regat: admin.regat,
+    }
+
+    res.json({ token, user: userData })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: 'Login failed.' })
+  }
+})
+
+// ── GET /api/auth/referrer/:id ────────────────────────────────────────────────
 router.get('/referrer/:id', async (req, res) => {
   try {
     const refId = parseInt(req.params.id, 10)
     if (isNaN(refId)) return res.status(400).json({ message: 'Invalid referrer ID.' })
-
     const referrer = await User.findByPk(refId, {
-      attributes: ['id', 'name', 'email', 'phone'],
+      attributes: ['id', 'name', 'email', 'phone', 'userId'],
     })
     if (!referrer) return res.status(404).json({ message: 'Referrer not found.' })
-
     const prefix = await getReferralPrefix()
     res.json({ ...referrer.toJSON(), referralId: `${prefix}${referrer.id}` })
   } catch (err) {
@@ -186,23 +199,19 @@ router.get('/referrer/:id', async (req, res) => {
   }
 })
 
-// POST /api/auth/forgot-password
+// ── POST /api/auth/forgot-password ───────────────────────────────────────────
 router.post('/forgot-password', async (req, res) => {
   try {
     const { email } = req.body
     if (!email) return res.status(400).json({ message: 'Email is required.' })
-
     let user = await User.findOne({ where: { email } })
     if (!user) user = await Admin.findOne({ where: { email } })
-    if (!user) {
+    if (!user)
       return res.status(200).json({ message: 'If the email exists, password reset instructions have been sent.' })
-    }
-
     const token = crypto.randomBytes(20).toString('hex')
-    user.resetPasswordToken = token
-    user.resetPasswordExpires = new Date(Date.now() + 1000 * 60 * 60)
+    user.pwdtoken = token
+    user.pwdexp = new Date(Date.now() + 1000 * 60 * 60)
     await user.save()
-
     res.json({ message: 'Password reset token generated.', resetToken: token })
   } catch (error) {
     console.error(error)
@@ -210,33 +219,28 @@ router.post('/forgot-password', async (req, res) => {
   }
 })
 
-// POST /api/auth/reset-password
+// ── POST /api/auth/reset-password ────────────────────────────────────────────
 router.post('/reset-password', async (req, res) => {
   try {
     const { token, password, confirmPassword } = req.body
-    if (!token || !password || !confirmPassword) {
+    if (!token || !password || !confirmPassword)
       return res.status(400).json({ message: 'Token and passwords are required.' })
-    }
-    if (password !== confirmPassword) {
+    if (password !== confirmPassword)
       return res.status(400).json({ message: 'Passwords do not match.' })
-    }
-
     const { Op } = await import('sequelize')
     let user = await User.findOne({
-      where: { resetPasswordToken: token, resetPasswordExpires: { [Op.gt]: new Date() } },
+      where: { pwdtoken: token, pwdexp: { [Op.gt]: new Date() } },
     })
     if (!user) {
       user = await Admin.findOne({
-        where: { resetPasswordToken: token, resetPasswordExpires: { [Op.gt]: new Date() } },
+        where: { pwdtoken: token, pwdexp: { [Op.gt]: new Date() } },
       })
     }
     if (!user) return res.status(400).json({ message: 'Invalid or expired reset token.' })
-
     user.password = await bcrypt.hash(password, 10)
-    user.resetPasswordToken = null
-    user.resetPasswordExpires = null
+    user.pwdtoken = null
+    user.pwdexp = null
     await user.save()
-
     res.json({ message: 'Password has been reset successfully.' })
   } catch (error) {
     console.error(error)

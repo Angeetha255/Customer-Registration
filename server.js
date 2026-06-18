@@ -6,7 +6,6 @@ import authRoutes from './routes/auth.js'
 import userRoutes from './routes/users.js'
 import Admin from './models/Admin.js'
 import User from './models/User.js'   // must be imported so sequelize.sync() creates the users table
-import Team from './models/Team.js'   // must be imported so sequelize.sync() creates the team table
 import Settings from './models/Settings.js'
 import bcrypt from 'bcrypt'
 import { sequelize } from './models/index.js'
@@ -14,7 +13,7 @@ import { sequelize } from './models/index.js'
 dotenv.config()
 
 const app = express()
-const PORT = process.env.PORT || 5000
+const PORT = process.env.PORT || 5001
 
 app.use(cors())
 app.use(express.json())
@@ -38,7 +37,7 @@ async function createDefaultAdmin() {
     email: adminEmail,
     phone: process.env.ADMIN_PHONE || '0000000000',
     password: hashedPassword,
-    registeredAt: new Date(),
+    regat: new Date(),
   })
   console.log(`Default admin created: ${adminEmail}`)
 }
@@ -48,6 +47,11 @@ async function seedDefaultSettings() {
   if (!existing) {
     await Settings.create({ key: 'referralPrefix', value: 'REF' })
     console.log('Default referral prefix set to: REF')
+  }
+  const existingUserId = await Settings.findOne({ where: { key: 'userIdPrefix' } })
+  if (!existingUserId) {
+    await Settings.create({ key: 'userIdPrefix', value: 'MEM' })
+    console.log('Default userIdPrefix set to: MEM')
   }
 }
 

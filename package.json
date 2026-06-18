@@ -14,6 +14,10 @@
     "migrate": "node scripts/run-migration.js",
     "backfill": "node scripts/backfill-placement.js",
     "backfill-stats": "node scripts/backfill-stats.js",
+    "migrate-v2": "node scripts/run-migration-v2.js",
+    "backfill-v2": "node scripts/backfill-v2.js",
+    "drop-role": "node scripts/migrate-drop-role.js",
+    "add-topid": "node scripts/migrate-add-topid.js",
     "lint": "eslint ."
   },
   "dependencies": {

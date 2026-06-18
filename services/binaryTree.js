@@ -23,7 +23,7 @@ import User from '../models/User.js'
  */
 export const getChildren = async (parentId) => {
   const children = await User.findAll({
-    where: { placementId: parentId },
+    where: { placeid: parentId },
     attributes: ['id', 'position'],
   })
   let left = null
@@ -82,8 +82,7 @@ export const findPlacement = async (startId, excludeId = null) => {
 
 /**
  * Determine placement for a NEW user:
- *  - If referredById is set → BFS from referrer node.
- *  - Otherwise             → BFS from global root.
+ *  - Always BFS from global root (ignores referrer for placement purposes)
  *
  * Returns { parentId, position } or null (tree full — extremely unlikely).
  *
@@ -92,15 +91,7 @@ export const findPlacement = async (startId, excludeId = null) => {
  *                                    (relevant only during backfill).
  */
 export const determinePlacement = async (referredById, newUserId = null) => {
-  if (referredById) {
-    // Verify the referrer exists
-    const referrer = await User.findByPk(referredById, { attributes: ['id'] })
-    if (referrer) {
-      return findPlacement(referredById, newUserId)
-    }
-  }
-
-  // No valid referrer — use global root
+  // Always use global root for placement, ignore referrer
   const rootId = await getGlobalRoot()
   if (!rootId) return null // no users exist yet (this user IS the first)
 

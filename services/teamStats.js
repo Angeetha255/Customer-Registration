@@ -1,75 +1,99 @@
 /**
  * teamStats.js
  *
- * Maintains three DB values whenever users register or change active status:
+ * Maintains per-user team stats stored directly on the users table:
  *
- *   users.referralActiveCount  (per referrer)
- *     = count of direct referrals of that user who are currently active
+ *   users.refactcount  = active direct referrals of this user
+ *   users.teamcount    = total users registered from this user onwards (including self)
+ *   users.teamactcount = active users registered from this user onwards (including self if active)
  *
- *   team.teamCount             (global single row)
- *     = total number of users in the system
- *
- *   team.teamActiveCount       (global single row)
- *     = total number of active users in the system
- *
- * The `team` table always contains exactly one row (id = 1).
+ * teamcount/teamactcount are based on registration order (id order).
  */
 
 import User from '../models/User.js'
-import Team from '../models/Team.js'
 
-// ─── referralActiveCount ──────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
- * Recalculate and save referralActiveCount for a single referrer.
- * referralActiveCount = COUNT of users where referredBy = referrerId AND active = true
+ * Walk up the refid chain from userId to root.
+ * Returns array of ancestor ids (not including userId itself).
+ */
+const getAncestors = async (userId) => {
+  const ancestors = []
+  const seen = new Set()
+  let current = await User.findByPk(userId, { attributes: ['id', 'refid'] })
+
+  while (current && current.refid && !seen.has(current.refid)) {
+    seen.add(current.refid)
+    ancestors.push(current.refid)
+    current = await User.findByPk(current.refid, { attributes: ['id', 'refid'] })
+  }
+  return ancestors
+}
+
+// ─── Per-user stat rebuilders ─────────────────────────────────────────────────
+
+/**
+ * Recalculate refactcount for one user.
  */
 export const updateReferralActiveCount = async (referrerId) => {
   if (!referrerId) return
-  const activeCount = await User.count({
-    where: { referredBy: referrerId, active: true },
-  })
-  await User.update(
-    { referralActiveCount: activeCount },
-    { where: { id: referrerId } }
-  )
+  const count = await User.count({ where: { refid: referrerId, active: true } })
+  await User.update({ refactcount: count }, { where: { id: referrerId } })
 }
 
-// ─── Global team stats ────────────────────────────────────────────────────────
-
 /**
- * Recompute and upsert the single global team row.
- * teamCount       = total users
- * teamActiveCount = total active users
+ * Rebuild teamcount and teamactcount for ALL users (since it depends on registration order of all users).
  */
-export const refreshGlobalTeamStats = async () => {
-  const teamCount       = await User.count()
-  const teamActiveCount = await User.count({ where: { active: true } })
-
-  // Always upsert id=1 — the one and only global row
-  const existing = await Team.findByPk(1)
-  if (existing) {
-    existing.teamCount       = teamCount
-    existing.teamActiveCount = teamActiveCount
-    await existing.save()
-  } else {
-    await Team.create({ id: 1, teamCount, teamActiveCount })
+export const rebuildAllUserTeamStats = async () => {
+  // Get all users in order of id
+  const [users] = await User.sequelize.query('SELECT id, active FROM users ORDER BY id ASC')
+  const totalUsers = users.length
+  for (let i = 0; i < users.length; i++) {
+    const userId = users[i].id
+    const teamcount = totalUsers - i
+    // Count active users from this user onwards
+    let teamactcount = 0
+    for (let j = i; j < users.length; j++) {
+      if (users[j].active) {
+        teamactcount++
+      }
+    }
+    // Update the user
+    await User.sequelize.query('UPDATE users SET teamcount = ?, teamactcount = ? WHERE id = ?', {
+      replacements: [teamcount, teamactcount, userId]
+    })
   }
 }
 
-// ─── Combined trigger ─────────────────────────────────────────────────────────
+/**
+ * Rebuild teamcount and teamactcount for all users (since changing one affects all previous users).
+ */
+export const rebuildUserTeamStats = async () => {
+  await rebuildAllUserTeamStats()
+}
+
+// ─── Propagation ──────────────────────────────────────────────────────────────
 
 /**
- * Call this after every registration or active-status change.
+ * Call after any registration or active-status change.
+ * Rebuilds team stats for ALL users (since team stats depend on registration order of all users).
  *
- * @param {number|null} referrerId — direct referrer of the changed user (if any)
+ * @param {number}      changedUserId
+ * @param {number|null} referrerId     direct referrer of the changed user
  */
-export const propagateTeamStats = async (referrerId = null) => {
-  // 1. Update the direct referrer's referralActiveCount
+export const propagateTeamStats = async (changedUserId, referrerId = null) => {
+  // 1. Rebuild team stats for ALL users
+  await rebuildAllUserTeamStats()
+
+  // 2. Update direct referrer's refactcount
   if (referrerId) {
     await updateReferralActiveCount(referrerId)
   }
 
-  // 2. Refresh the single global team row
-  await refreshGlobalTeamStats()
+  // 3. Walk up and update every ancestor's refactcount
+  const ancestors = await getAncestors(changedUserId)
+  for (const ancestorId of ancestors) {
+    await updateReferralActiveCount(ancestorId)
+  }
 }

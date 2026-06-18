@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 
 export default function Sidebar({ open, onToggle }) {
   const { user } = useAuth()
-  const navItems = user?.role === 'admin' ? [
+  const navItems = user?.type === 'admin' ? [
     { label: 'Dashboard',  path: '/admin' },
     { label: 'Users',  path: '/admin/customers' },
   ] : [

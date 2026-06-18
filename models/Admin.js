@@ -13,9 +13,9 @@ const Admin = sequelize.define(
     phone: { type: DataTypes.STRING, allowNull: false },
     password: { type: DataTypes.STRING, allowNull: false },
     active: { type: DataTypes.BOOLEAN, defaultValue: true },
-    registeredAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
-    resetPasswordToken: { type: DataTypes.STRING, allowNull: true },
-    resetPasswordExpires: { type: DataTypes.DATE, allowNull: true },
+    regat: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    pwdtoken: { type: DataTypes.STRING, allowNull: true },
+    pwdexp: { type: DataTypes.DATE, allowNull: true },
   },
   {
     tableName: 'admins',
