@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 460" fill="none">
+  <!-- background circle -->
+  <circle cx="260" cy="230" r="200" fill="url(#bgGrad)" opacity="0.12"/>
+  <circle cx="260" cy="230" r="140" fill="url(#bgGrad)" opacity="0.08"/>
+
+  <!-- main dashboard card -->
+  <rect x="60" y="60" width="400" height="280" rx="20" fill="white" stroke="#e2e8f0" stroke-width="1.5" filter="url(#shadow)"/>
+
+  <!-- card top bar -->
+  <rect x="60" y="60" width="400" height="48" rx="20" fill="#f8faff"/>
+  <rect x="60" y="88" width="400" height="20" fill="#f8faff"/>
+  <!-- dots -->
+  <circle cx="88"  cy="84" r="6" fill="#f87171"/>
+  <circle cx="106" cy="84" r="6" fill="#fbbf24"/>
+  <circle cx="124" cy="84" r="6" fill="#34d399"/>
+  <!-- title bar -->
+  <rect x="148" y="78" width="120" height="12" rx="6" fill="#e2e8f0"/>
+
+  <!-- avatar section -->
+  <circle cx="120" cy="172" r="36" fill="url(#avatarGrad)"/>
+  <circle cx="120" cy="160" r="14" fill="rgba(255,255,255,0.7)"/>
+  <path d="M96 196 q24-14 48 0" fill="rgba(255,255,255,0.55)"/>
+
+  <!-- info lines -->
+  <rect x="174" y="148" width="90" height="11" rx="5.5" fill="#4f46e5" opacity="0.85"/>
+  <rect x="174" y="167" width="130" height="9" rx="4.5" fill="#e2e8f0"/>
+  <rect x="174" y="182" width="100" height="9" rx="4.5" fill="#e2e8f0"/>
+  <rect x="174" y="197" width="70"  height="9" rx="4.5" fill="#e2e8f0"/>
+
+  <!-- divider -->
+  <line x1="80" y1="228" x2="440" y2="228" stroke="#f1f5f9" stroke-width="1.5"/>
+
+  <!-- stat pills row -->
+  <rect x="80"  y="244" width="96" height="68" rx="12" fill="url(#pill1)"/>
+  <rect x="188" y="244" width="96" height="68" rx="12" fill="url(#pill2)"/>
+  <rect x="296" y="244" width="96" height="68" rx="12" fill="url(#pill3)"/>
+  <rect x="404" y="244" width="36" height="68" rx="12" fill="#f1f5f9"/>
+
+  <!-- stat icons -->
+  <circle cx="128" cy="264" r="10" fill="rgba(255,255,255,0.3)"/>
+  <path d="M124 264 a4 4 0 1 1 8 0 a4 4 0 1 1-8 0M121 270 q7-4 14 0" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <circle cx="236" cy="264" r="10" fill="rgba(255,255,255,0.3)"/>
+  <rect x="231" y="260" width="10" height="8" rx="2" fill="none" stroke="white" stroke-width="1.5"/>
+  <circle cx="344" cy="264" r="10" fill="rgba(255,255,255,0.3)"/>
+  <path d="M340 268 l4-8 4 8" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- stat values -->
+  <rect x="86"  y="280" width="54" height="9"  rx="4.5" fill="rgba(255,255,255,0.6)"/>
+  <rect x="86"  y="294" width="76" height="8"  rx="4"   fill="rgba(255,255,255,0.35)"/>
+  <rect x="194" y="280" width="54" height="9"  rx="4.5" fill="rgba(255,255,255,0.6)"/>
+  <rect x="194" y="294" width="68" height="8"  rx="4"   fill="rgba(255,255,255,0.35)"/>
+  <rect x="302" y="280" width="54" height="9"  rx="4.5" fill="rgba(255,255,255,0.6)"/>
+  <rect x="302" y="294" width="60" height="8"  rx="4"   fill="rgba(255,255,255,0.35)"/>
+
+  <!-- referral link card -->
+  <rect x="60" y="360" width="400" height="60" rx="14" fill="white" stroke="#e2e8f0" stroke-width="1.5" filter="url(#shadow)"/>
+  <circle cx="96" cy="390" r="18" fill="#eef2ff"/>
+  <!-- link icon -->
+  <path d="M90 390 a6 6 0 1 1 12 0M88 393 q8 5 16 0" stroke="#4f46e5" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <rect x="122" y="382" width="100" height="8" rx="4" fill="#4f46e5" opacity="0.7"/>
+  <rect x="122" y="394" width="150" height="7" rx="3.5" fill="#e2e8f0"/>
+  <rect x="370" y="378" width="72" height="24" rx="8" fill="url(#btnGrad)"/>
+  <rect x="382" y="387" width="48" height="6" rx="3" fill="rgba(255,255,255,0.7)"/>
+
+  <!-- decorative dots -->
+  <circle cx="490" cy="100" r="6" fill="#4f46e5" opacity="0.3"/>
+  <circle cx="30"  cy="200" r="8" fill="#7c3aed" opacity="0.25"/>
+  <circle cx="480" cy="380" r="5" fill="#06b6d4" opacity="0.3"/>
+  <circle cx="50"  cy="380" r="5" fill="#f59e0b" opacity="0.3"/>
+  <circle cx="490" cy="250" r="9" fill="#10b981" opacity="0.2"/>
+
+  <!-- defs -->
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </radialGradient>
+    <linearGradient id="avatarGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#667eea"/>
+      <stop offset="100%" stop-color="#764ba2"/>
+    </linearGradient>
+    <linearGradient id="pill1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#667eea"/>
+      <stop offset="100%" stop-color="#764ba2"/>
+    </linearGradient>
+    <linearGradient id="pill2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4facfe"/>
+      <stop offset="100%" stop-color="#00f2fe"/>
+    </linearGradient>
+    <linearGradient id="pill3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#43e97b"/>
+      <stop offset="100%" stop-color="#38f9d7"/>
+    </linearGradient>
+    <linearGradient id="btnGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="rgba(15,23,42,0.10)"/>
+    </filter>
+  </defs>
+</svg>
