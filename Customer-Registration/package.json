@@ -1,0 +1,50 @@
+{
+  "name": "task",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run client\" \"npm run server\"",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "node server.js",
+    "server": "nodemon server.js",
+    "client": "vite",
+    "rename-table": "node scripts/rename-customers-to-users.js",
+    "migrate": "node scripts/run-migration.js",
+    "backfill": "node scripts/backfill-placement.js",
+    "backfill-stats": "node scripts/backfill-stats.js",
+    "migrate-v2": "node scripts/run-migration-v2.js",
+    "backfill-v2": "node scripts/backfill-v2.js",
+    "rebuild-stats": "node scripts/rebuild-team-stats.js",
+    "drop-role": "node scripts/migrate-drop-role.js",
+    "add-topid": "node scripts/migrate-add-topid.js",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.4",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.3.0",
+    "pdfkit": "^0.13.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "react-router-dom": "^6.16.0",
+    "sequelize": "^6.32.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^8.2.0",
+    "eslint": "^10.3.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.6.0",
+    "nodemon": "^3.0.1",
+    "vite": "^8.0.12"
+  }
+}
