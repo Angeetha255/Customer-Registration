@@ -1984,6 +1984,109 @@ tbody tr:hover {
   .ad-stats { grid-template-columns: 1fr; }
 }
 
+/* Admin grid for top id management */
+.ad-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.ad-form-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(15,23,42,0.06);
+}
+
+.ad-form-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+.ad-form-desc {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0 0 16px;
+}
+
+.ad-current-top {
+  margin-bottom: 12px;
+}
+
+.ad-no-top {
+  padding: 20px 0;
+  text-align: center;
+  color: var(--muted);
+}
+
+.ad-no-data {
+  padding: 32px 0;
+  text-align: center;
+  color: var(--muted);
+}
+
+/* Genealogy tree styles */
+.genealogy-container {
+  padding: 20px;
+  overflow-x: auto;
+}
+
+.genealogy-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.genealogy-node-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 20px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.genealogy-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  font-weight: 700;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.genealogy-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.genealogy-id {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.genealogy-children {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 40px;
+}
+
+@media (max-width: 900px) {
+  .ad-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ════════════════════════════════════════
    Profile page — 2-column layout
 ════════════════════════════════════════ */

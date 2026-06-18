@@ -22,11 +22,68 @@ const getReferralPrefix = async () => {
   return setting ? setting.value : 'REF'
 }
 
+// ── GET /api/auth/top-id ───────────────────────────────────────────────────
+// Get the current Top ID info (public endpoint to check registration eligibility)
+router.get('/top-id', async (req, res) => {
+  try {
+    const topUserIdSetting = await Settings.findOne({ where: { key: 'topUserId' } })
+    const topUserId = topUserIdSetting ? parseInt(topUserIdSetting.value, 10) : null
+    const topUser = topUserId ? await User.findByPk(topUserId, { 
+      attributes: ['id', 'name', 'email', 'userId', 'active'] 
+    }) : null
+    res.json({ topUserId, topUser })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: 'Failed to get top ID info.' })
+  }
+})
+
+// ── GET /api/auth/check-referral/:refId ───────────────────────────────────────────
+// Check if a referral ID is valid
+router.get('/check-referral/:refId', async (req, res) => {
+  try {
+    const refId = parseInt(req.params.refId, 10)
+    if (isNaN(refId)) return res.status(400).json({ message: 'Invalid referral ID.' })
+    
+    const referrer = await User.findByPk(refId, { attributes: ['id', 'name', 'email', 'userId', 'active'] })
+    if (!referrer) return res.status(404).json({ message: 'Referrer not found.' })
+    
+    res.json({ valid: true, referrer })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: 'Failed to check referral.' })
+  }
+})
+
 // ── POST /api/auth/register ───────────────────────────────────────────────────
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, phone, password, confirmPassword } = req.body
-    const refParam = req.query.ref || req.body.referredBy
+    const { name, email, phone, password, confirmPassword, referredBy } = req.body
+    const refParam = req.query.ref || referredBy
+
+    // Check if Top ID exists (required for registration)
+    const topUserIdSetting = await Settings.findOne({ where: { key: 'topUserId' } })
+    if (!topUserIdSetting) {
+      return res.status(403).json({ message: 'Registration is not available yet. Contact admin.' })
+    }
+
+    // Require valid referral link
+    if (!refParam) {
+      return res.status(400).json({ message: 'Registration requires a valid referral link.' })
+    }
+
+    const refId = parseInt(refParam, 10)
+    if (isNaN(refId)) {
+      return res.status(400).json({ message: 'Invalid referral link.' })
+    }
+
+    const referrer = await User.findByPk(refId)
+    if (!referrer) {
+      return res.status(400).json({ message: 'Referrer not found. Invalid referral link.' })
+    }
+    if (!referrer.active) {
+      return res.status(400).json({ message: 'Referrer account is inactive. Invalid referral link.' })
+    }
 
     if (!name || !email || !phone || !password || !confirmPassword)
       return res.status(400).json({ message: 'Please fill all required fields.' })
@@ -35,47 +92,28 @@ router.post('/register', async (req, res) => {
     if (password !== confirmPassword)
       return res.status(400).json({ message: 'Passwords do not match.' })
 
+    if (referrer.email === email)
+      return res.status(400).json({ message: 'You cannot refer yourself.' })
+
     const existingUser = await User.findOne({ where: { email } })
     if (existingUser)
       return res.status(409).json({ message: 'Email is already registered.' })
 
-    let referrerId = null
-    if (refParam) {
-      const refId = parseInt(refParam, 10)
-      if (!isNaN(refId)) {
-        const referrer = await User.findByPk(refId)
-        if (referrer) {
-          if (referrer.email === email)
-            return res.status(400).json({ message: 'You cannot refer yourself.' })
-          referrerId = refId
-        }
-      }
-    }
-
     // Binary-tree placement
     let placementId = null
     let position = null
-    const slot = await determinePlacement(referrerId)
+    const slot = await determinePlacement(refId)
     if (slot) { placementId = slot.parentId; position = slot.position }
 
     const userId = await generateUserId()
     const now = new Date()
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Determine topId: Only the very first user in the system has topId = own id
-    const firstUser = await User.findOne({ order: [['id', 'ASC']] })
-    let topId = null
-    if (!firstUser) {
-      // This is the first user
-      topId = null // We'll set it after create to user.id
-    }
-    // All other users have topId = null
-
     const user = await User.create({
       name, email, phone,
       regat: now,
       userId,
-      refid: referrerId,
+      refid: refId,
       placeid: placementId,
       position,
       DOJ: now,
@@ -83,17 +121,11 @@ router.post('/register', async (req, res) => {
       password: hashedPassword,
     })
 
-    // If this is the first user, set topId = own id (topId removed? Wait user didn't list topId in columns, let's check user's request again... Oh user didn't include topId in final column order, okay.)
+    // Update referrer's referral count
+    referrer.refcount = (referrer.refcount || 0) + 1
+    await referrer.save()
 
-    if (referrerId) {
-      const referrer = await User.findByPk(referrerId)
-      if (referrer) {
-        referrer.refcount = (referrer.refcount || 0) + 1
-        await referrer.save()
-      }
-    }
-
-    await propagateTeamStats(user.id, referrerId)
+    await propagateTeamStats(user.id, refId)
 
     const prefix = await getReferralPrefix()
     const saved = await User.findByPk(user.id, { attributes: { exclude: HIDDEN_FIELDS } })

@@ -45,11 +45,8 @@ export const HIDDEN_FIELDS = [
   'password',
   'pwdtoken',
   'pwdexp',
-  'placeid',
-  'position',
   'DOJ',
   'DOA',
-  'refactcount',
 ]
 
 export default User

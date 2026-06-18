@@ -9,16 +9,6 @@ const Icons = {
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
     </svg>
   ),
-  mail: (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
-    </svg>
-  ),
-  phone: (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
-    </svg>
-  ),
   id: (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
@@ -34,9 +24,19 @@ const Icons = {
       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
     </svg>
   ),
-  calendar: (
+  team: (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><circle cx="17" cy="7" r="4"/>
+    </svg>
+  ),
+  active: (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+    </svg>
+  ),
+  position: (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2v4M12 18v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
     </svg>
   ),
 }
@@ -81,22 +81,20 @@ export default function CustomerDashboard() {
 
   const profile = user
   // Referral link always uses the user's primary key id
-  const referralUrl = profile.id ? `${window.location.origin}/register?ref=${profile.id}` : null
+  const referralLink = profile.id ? `${window.location.origin}/register?ref=${profile.id}` : null
   // referralId comes from the /me endpoint (prefix + id)
   const displayReferralId = profile.referralId || `REF${profile.id}`
 
-  const formatDate = (d) => {
-    if (!d) return '—'
-    const dt = new Date(d)
-    return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`
-  }
-
   const handleCopy = () => {
-    if (!referralUrl) return
-    navigator.clipboard.writeText(referralUrl)
+    if (!referralLink) return
+    navigator.clipboard.writeText(referralLink)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
+
+  const placementDisplay = profile.placementParentName 
+    ? `${profile.placementParentName} (${profile.placementParentDisplayId || '—'})`
+    : profile.placeid || '—'
 
   return (
     <main className="page-shell layout-with-sidebar">
@@ -129,28 +127,30 @@ export default function CustomerDashboard() {
       {/* ── Stat cards ── */}
       <div className="cd-cards">
         <StatCard icon={Icons.user}     label="Full Name"         value={profile.name}                     colorIdx={0} />
-        <StatCard icon={Icons.mail}     label="Email"             value={profile.email}                    colorIdx={1} />
-        <StatCard icon={Icons.phone}    label="Phone"             value={profile.phone}                    colorIdx={2} />
-        <StatCard icon={Icons.id}       label="Your Referral ID"  value={displayReferralId}                colorIdx={3} />
-        <StatCard icon={Icons.users}    label="Total Referrals"   value={profile.refcount ?? 0}       colorIdx={4} />
-        <StatCard icon={Icons.calendar} label="Registration Date" value={formatDate(profile.regat)} colorIdx={5} />
+        <StatCard icon={Icons.id}       label="User ID"           value={profile.userId || `#${profile.id}`} colorIdx={1} />
+        <StatCard icon={Icons.users}    label="Total Referrals"   value={profile.refcount ?? 0}            colorIdx={2} />
+        <StatCard icon={Icons.active}   label="Active Referrals"  value={profile.refactcount ?? 0}         colorIdx={3} />
+        <StatCard icon={Icons.team}     label="Team Count"        value={profile.teamcount ?? 0}           colorIdx={4} />
+        <StatCard icon={Icons.active}   label="Team Active Count" value={profile.teamactcount ?? 0}        colorIdx={5} />
+        <StatCard icon={Icons.position} label="Placement Parent"  value={placementDisplay}                  colorIdx={6} />
+        <StatCard icon={Icons.position} label="Position"          value={profile.position || '—'}           colorIdx={0} />
       </div>
 
       {/* ── Referral link card ── */}
-      {referralUrl && (
+      {referralLink && (
         <div className="cd-referral-card">
           <div className="cd-referral-left">
             <div className="cd-referral-icon">{Icons.link}</div>
             <div>
               <div className="cd-referral-title">Your Referral Link</div>
-              <div className="cd-referral-url">{referralUrl}</div>
+              <div className="cd-referral-url">{referralLink}</div>
             </div>
           </div>
           <div className="cd-referral-actions">
             <button type="button" className="button button-primary" onClick={handleCopy}>
               {copied ? '✓ Copied!' : 'Copy Link'}
             </button>
-            <button type="button" className="button button-secondary" onClick={() => window.open(referralUrl, '_blank')}>
+            <button type="button" className="button button-secondary" onClick={() => window.open(referralLink, '_blank')}>
               Open
             </button>
           </div>
@@ -185,11 +185,11 @@ export default function CustomerDashboard() {
                   <div className="cd-referred-meta">{r.phone}</div>
                 </div>
                 <div className="cd-referred-date">
-                  {(function(d) {
-                    if (!d) return '—'
-                    const dt = new Date(d)
+                  {(() => {
+                    if (!r.regat) return '—'
+                    const dt = new Date(r.regat)
                     return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`
-                  })(r.regat || r.createdAt)}
+                  })()}
                 </div>
               </div>
             ))}

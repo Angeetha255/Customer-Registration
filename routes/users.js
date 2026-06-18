@@ -1,9 +1,11 @@
 import express from 'express'
 import pdfkit from 'pdfkit'
+import bcrypt from 'bcrypt'
 import { authMiddleware, requireRole } from '../middleware/auth.js'
 import User, { HIDDEN_FIELDS } from '../models/User.js'
 import Settings from '../models/Settings.js'
 import { propagateTeamStats } from '../services/teamStats.js'
+import { generateUserId } from '../services/userIdService.js'
 
 const router = express.Router()
 
@@ -50,6 +52,176 @@ router.put('/settings', authMiddleware, requireRole('admin'), async (req, res) =
   }
 })
 
+// ─── Admin: Database reset & Top ID management ───────────────────────────────────
+
+// POST /api/users/reset-db  — reset all user data and set up Top ID
+router.post('/reset-db', authMiddleware, requireRole('admin'), async (req, res) => {
+  try {
+    const { topUserName, topUserEmail, topUserPhone, topUserPassword } = req.body
+    if (!topUserName || !topUserEmail || !topUserPhone || !topUserPassword) {
+      return res.status(400).json({ message: 'All Top ID details are required.' })
+    }
+    if (!/^[0-9]{10}$/.test(String(topUserPhone))) {
+      return res.status(400).json({ message: 'Phone number must be 10 digits.' })
+    }
+
+    // Delete all users
+    await User.destroy({ where: {}, truncate: true })
+
+    // Create Top User
+    const now = new Date()
+    const hashedPassword = await bcrypt.hash(topUserPassword, 10)
+    const topUser = await User.create({
+      name: topUserName,
+      email: topUserEmail,
+      phone: topUserPhone,
+      regat: now,
+      userId: await generateUserId(),
+      refid: null,
+      placeid: null,
+      position: null,
+      DOJ: now,
+      DOA: now,
+      password: hashedPassword,
+      refcount: 0,
+      refactcount: 0,
+      teamcount: 1,
+      teamactcount: 1,
+      active: true
+    })
+
+    // Save Top User ID in settings
+    await Settings.findOrCreate({
+      where: { key: 'topUserId' },
+      defaults: { value: topUser.id.toString() }
+    }).then(async ([setting, created]) => {
+      if (!created) {
+        setting.value = topUser.id.toString()
+        await setting.save()
+      }
+    })
+
+    await propagateTeamStats(topUser.id, null)
+
+    const prefix = await getReferralPrefix()
+    const savedTopUser = await User.findByPk(topUser.id, { attributes: { exclude: HIDDEN_FIELDS } })
+
+    res.status(201).json({
+      message: 'Database reset successfully. Top ID created.',
+      topUser: savedTopUser,
+      referralId: toReferralId(prefix, topUser.id),
+    })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: 'Failed to reset database.', error: error.message })
+  }
+})
+
+// PUT /api/users/top-id  — update Top ID details
+router.put('/top-id', authMiddleware, requireRole('admin'), async (req, res) => {
+  try {
+    const { name, email, phone, password } = req.body
+
+    const topUserIdSetting = await Settings.findOne({ where: { key: 'topUserId' } })
+    if (!topUserIdSetting) {
+      return res.status(404).json({ message: 'Top ID not found. Please reset database first.' })
+    }
+
+    const topUserId = parseInt(topUserIdSetting.value, 10)
+    const topUser = await User.findByPk(topUserId)
+    if (!topUser) {
+      return res.status(404).json({ message: 'Top user not found.' })
+    }
+
+    if (name) topUser.name = name
+    if (email) {
+      if (email !== topUser.email) {
+        const existingUser = await User.findOne({ where: { email, id: { [require('sequelize').Op.ne]: topUserId } } })
+        if (existingUser) {
+          return res.status(409).json({ message: 'Email is already in use by another account.' })
+        }
+        topUser.email = email
+      }
+    }
+    if (phone) {
+      if (!/^[0-9]{10}$/.test(String(phone))) {
+        return res.status(400).json({ message: 'Phone number must be 10 digits.' })
+      }
+      topUser.phone = phone
+    }
+    if (password) {
+      topUser.password = await bcrypt.hash(password, 10)
+    }
+
+    await topUser.save()
+    const savedTopUser = await User.findByPk(topUserId, { attributes: { exclude: HIDDEN_FIELDS } })
+    res.json({ message: 'Top ID updated.', topUser: savedTopUser })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: 'Failed to update Top ID.', error: error.message })
+  }
+})
+
+// GET /api/users/genealogy  — get genealogy tree data (admin)
+router.get('/genealogy', authMiddleware, requireRole('admin'), async (req, res) => {
+  try {
+    const allUsers = await User.findAll({ order: [['id', 'ASC']] })
+    
+    const buildTree = async (parentId) => {
+      const children = allUsers.filter(u => u.placeid === parentId)
+      const treeNodes = []
+      for (const child of children) {
+        const childData = {
+          ...child.toJSON(),
+          position: child.position,
+          left: null,
+          right: null
+        }
+        const [leftChild, rightChild] = await Promise.all([
+          buildTree(child.id),
+          Promise.resolve()
+        ])
+        if (child.position === 'LEFT' && leftChild.length > 0) {
+          childData.left = leftChild[0]
+        } else if (child.position === 'RIGHT' && leftChild.length > 0) {
+          childData.right = leftChild[0]
+        }
+        const kids = await buildTree(child.id)
+        for (const kid of kids) {
+          if (kid.position === 'LEFT') childData.left = kid
+          if (kid.position === 'RIGHT') childData.right = kid
+        }
+        treeNodes.push(childData)
+      }
+      return treeNodes
+    }
+
+    const topUserIdSetting = await Settings.findOne({ where: { key: 'topUserId' } })
+    let tree = null
+    if (topUserIdSetting) {
+      const topUserId = parseInt(topUserIdSetting.value, 10)
+      const topUser = allUsers.find(u => u.id === topUserId)
+      if (topUser) {
+        tree = {
+          ...topUser.toJSON(),
+          left: null,
+          right: null
+        }
+        const children = await buildTree(topUserId)
+        for (const child of children) {
+          if (child.position === 'LEFT') tree.left = child
+          if (child.position === 'RIGHT') tree.right = child
+        }
+      }
+    }
+
+    res.json({ tree })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: 'Failed to load genealogy tree.' })
+  }
+})
+
 // ─── User profile ─────────────────────────────────────────────────────────────
 
 // GET /api/users/me
@@ -81,6 +253,17 @@ router.get('/me', authMiddleware, async (req, res) => {
       }
     }
 
+    // Resolve placement parent name and display id
+    let placementParentName = null
+    let placementParentDisplayId = null
+    if (userRecord.placeid) {
+      const placementParent = await User.findByPk(userRecord.placeid, { attributes: ['id', 'name'] })
+      if (placementParent) {
+        placementParentName = placementParent.name
+        placementParentDisplayId = toReferralId(prefix, placementParent.id)
+      }
+    }
+
     const referred = await User.findAll({
       where: { refid: userRecord.id },
       attributes: { exclude: HIDDEN_FIELDS },
@@ -92,6 +275,8 @@ router.get('/me', authMiddleware, async (req, res) => {
       referralLink,
       referrerName,
       referrerDisplayId,
+      placementParentName,
+      placementParentDisplayId,
       activeStatus: userRecord.active ? 'Yes' : 'No',
       referredCustomers: referred,
     })

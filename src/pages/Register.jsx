@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { registerCustomer, fetchReferrer } from '../services/api.js'
+import { registerCustomer, fetchReferrer, fetchTopId, checkReferral } from '../services/api.js'
 import Modal from '../components/Modal.jsx'
 import Alert from '../components/Alert.jsx'
 import FloatingInput from '../components/FloatingInput.jsx'
@@ -14,18 +14,44 @@ export default function Register() {
   const [modalOpen, setModalOpen] = useState(false)
   const [createdUser, setCreatedUser] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [topIdExists, setTopIdExists] = useState(false)
+  const [validReferral, setValidReferral] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
 
-  // ?ref=<numeric id>  e.g. /register?ref=1
+  // Check Top ID and referral
   useEffect(() => {
-    const params = new URLSearchParams(location.search)
-    const ref = params.get('ref')
-    if (ref && /^\d+$/.test(ref)) {
-      fetchReferrer(ref)
-        .then((data) => setReferrer(data))
-        .catch(() => setReferrer(null))
+    const init = async () => {
+      try {
+        const topData = await fetchTopId()
+        setTopIdExists(!!topData?.topUserId)
+        
+        const params = new URLSearchParams(location.search)
+        const ref = params.get('ref')
+        if (ref && /^\d+$/.test(ref)) {
+          try {
+            const referralData = await checkReferral(ref)
+            if (referralData?.valid) {
+              setReferrer(referralData.referrer)
+              setValidReferral(true)
+            } else {
+              setValidReferral(false)
+              setReferrer(null)
+            }
+          } catch (e) {
+            setValidReferral(false)
+            setReferrer(null)
+          }
+        } else {
+          setValidReferral(false)
+          setReferrer(null)
+        }
+      } catch (e) {
+        console.error('Init failed:', e)
+        setTopIdExists(false)
+      }
     }
+    init()
   }, [location.search])
 
   const handleChange = (event) => {
@@ -44,6 +70,14 @@ export default function Register() {
     setSuccess('')
     setLoading(true)
     try {
+      if (!topIdExists) {
+        setError('Registration is currently unavailable. Please contact support.')
+        return
+      }
+      if (!validReferral || !referrer?.id) {
+        setError('Registration requires a valid referral link.')
+        return
+      }
       if (!/^[0-9]{10}$/.test(form.phone)) {
         setError('Phone number must be 10 digits.')
         setLoading(false)
@@ -51,7 +85,7 @@ export default function Register() {
       }
       const payload = { ...form }
       // Pass the referrer's numeric id so the backend can store it as referredBy
-      if (referrer?.id) payload.referredBy = referrer.id
+      payload.referredBy = referrer.id
       const response = await registerCustomer(payload)
       setSuccess(`Registration completed! Your Referral ID is ${response.referralId}`)
       setCreatedUser(response.user || { name: form.name, email: form.email, phone: form.phone })
@@ -91,26 +125,38 @@ export default function Register() {
 
             <Alert type={error ? 'danger' : 'success'} message={error || success} />
 
-            <form onSubmit={handleSubmit} className="form-grid register-form">
-              {referrer && (
-                <div className="introducer-badge">
-                  <span className="feature-icon">✦</span>
-                  <div>
-                    <strong>Referred by {referrer.name}</strong>
-                    <span>ID: {referrer.referralId}</span>
+            {!topIdExists ? (
+              <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+                <h3>Registration Unavailable</h3>
+                <p>Please contact support to get started.</p>
+              </div>
+            ) : !validReferral ? (
+              <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+                <h3>Valid Referral Required</h3>
+                <p>You must have a valid referral link to register. Please ask a current member to invite you.</p>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="form-grid register-form">
+                {referrer && (
+                  <div className="introducer-badge">
+                    <span className="feature-icon">✦</span>
+                    <div>
+                      <strong>Referred by {referrer.name}</strong>
+                      <span>ID: {referrer.referralId || `REF${referrer.id}`}</span>
+                    </div>
                   </div>
-                </div>
-              )}
-              <FloatingInput label="Full Name"        name="name"            value={form.name}            onChange={handleChange} required />
-              <FloatingInput label="Email Address"    name="email"           type="email" value={form.email}    onChange={handleChange} required />
-              <FloatingInput label="Phone Number"     name="phone"           type="tel"   value={form.phone}    onChange={handleChange} required inputProps={{ inputMode: 'numeric', maxLength: 10 }} />
-              <FloatingInput label="Password"         name="password"        type="password" value={form.password}    onChange={handleChange} required minLength={6} showToggle />
-              <FloatingInput label="Confirm Password" name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} required minLength={6} showToggle />
+                )}
+                <FloatingInput label="Full Name"        name="name"            value={form.name}            onChange={handleChange} required />
+                <FloatingInput label="Email Address"    name="email"           type="email" value={form.email}    onChange={handleChange} required />
+                <FloatingInput label="Phone Number"     name="phone"           type="tel"   value={form.phone}    onChange={handleChange} required inputProps={{ inputMode: 'numeric', maxLength: 10 }} />
+                <FloatingInput label="Password"         name="password"        type="password" value={form.password}    onChange={handleChange} required minLength={6} showToggle />
+                <FloatingInput label="Confirm Password" name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} required minLength={6} showToggle />
 
-              <button type="submit" className="button button-primary register-submit" disabled={loading}>
-                {loading ? 'Creating account…' : 'Create Account'}
-              </button>
-            </form>
+                <button type="submit" className="button button-primary register-submit" disabled={loading}>
+                  {loading ? 'Creating account…' : 'Create Account'}
+                </button>
+              </form>
+            )}
 
             <p className="form-footer">
               Already have an account?{' '}

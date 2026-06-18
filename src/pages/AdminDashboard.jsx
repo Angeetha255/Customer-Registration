@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchAdminStats } from '../services/api.js'
+import { fetchAdminStats, resetDatabase, updateTopId, fetchTopId, fetchGenealogy } from '../services/api.js'
 import { useNavigate } from 'react-router-dom'
 
 const STAT_CONFIG = [
@@ -79,14 +79,76 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [topUser, setTopUser] = useState(null)
+  const [genealogy, setGenealogy] = useState(null)
+  const [resetForm, setResetForm] = useState({
+    topUserName: '',
+    topUserEmail: '',
+    topUserPhone: '',
+    topUserPassword: '',
+  })
+  const [topIdForm, setTopIdForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+  })
   const navigate = useNavigate()
 
   useEffect(() => {
-    fetchAdminStats()
-      .then(setStats)
+    Promise.all([fetchAdminStats(), fetchTopId(), fetchGenealogy()])
+      .then(([statsData, topIdData, genealogyData]) => {
+        setStats(statsData)
+        setTopUser(topIdData.topUser)
+        setGenealogy(genealogyData.tree)
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
   }, [])
+
+  const handleResetDB = async (e) => {
+    e.preventDefault()
+    try {
+      const response = await resetDatabase(resetForm)
+      setStats(prev => ({ ...prev, totalCustomers: 1, todayRegistrations: 1, recentCustomers: [response.topUser] }))
+      setTopUser(response.topUser)
+      setResetForm({ topUserName: '', topUserEmail: '', topUserPhone: '', topUserPassword: '' })
+      setError('')
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  const handleUpdateTopId = async (e) => {
+    e.preventDefault()
+    try {
+      const response = await updateTopId(topIdForm)
+      setTopUser(response.topUser)
+      setTopIdForm({ name: '', email: '', phone: '', password: '' })
+      setError('')
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  const renderGenealogy = (node) => {
+    if (!node) return null
+    return (
+      <div key={node.id} className="genealogy-node">
+        <div className="genealogy-node-content">
+          <div className="genealogy-avatar">{node.name?.[0]?.toUpperCase()}</div>
+          <div className="genealogy-name">{node.name}</div>
+          <div className="genealogy-id">#{node.id}</div>
+        </div>
+        {(node.left || node.right) && (
+          <div className="genealogy-children">
+            {renderGenealogy(node.left)}
+            {renderGenealogy(node.right)}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   if (loading) return (
     <main className="page-shell layout-with-sidebar">
@@ -155,6 +217,107 @@ export default function AdminDashboard() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* ── Top ID & Reset DB Section ── */}
+      <div className="ad-grid">
+        <div className="ad-form-card">
+          <h2 className="ad-form-title">Reset Database & Create Top ID</h2>
+          <p className="ad-form-desc">WARNING: This will delete all existing user data!</p>
+          <form onSubmit={handleResetDB} className="form-grid">
+            <input
+              type="text"
+              placeholder="Top User Name"
+              value={resetForm.topUserName}
+              onChange={(e) => setResetForm({ ...resetForm, topUserName: e.target.value })}
+              required
+            />
+            <input
+              type="email"
+              placeholder="Top User Email"
+              value={resetForm.topUserEmail}
+              onChange={(e) => setResetForm({ ...resetForm, topUserEmail: e.target.value })}
+              required
+            />
+            <input
+              type="tel"
+              placeholder="Top User Phone"
+              value={resetForm.topUserPhone}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/\D/g, '').slice(0, 10)
+                setResetForm({ ...resetForm, topUserPhone: digits })
+              }}
+              required
+              maxLength={10}
+            />
+            <input
+              type="password"
+              placeholder="Top User Password"
+              value={resetForm.topUserPassword}
+              onChange={(e) => setResetForm({ ...resetForm, topUserPassword: e.target.value })}
+              required
+              minLength={6}
+            />
+            <button type="submit" className="button button-danger">Reset Database & Create Top ID</button>
+          </form>
+        </div>
+
+        <div className="ad-form-card">
+          <h2 className="ad-form-title">Update Top ID Details</h2>
+          {topUser ? (
+            <form onSubmit={handleUpdateTopId} className="form-grid">
+              <p className="ad-current-top">
+                Current Top ID: <strong>{topUser.name}</strong> ({topUser.email})
+              </p>
+              <input
+                type="text"
+                placeholder="New Name"
+                value={topIdForm.name}
+                onChange={(e) => setTopIdForm({ ...topIdForm, name: e.target.value })}
+              />
+              <input
+                type="email"
+                placeholder="New Email"
+                value={topIdForm.email}
+                onChange={(e) => setTopIdForm({ ...topIdForm, email: e.target.value })}
+              />
+              <input
+                type="tel"
+                placeholder="New Phone"
+                value={topIdForm.phone}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, '').slice(0, 10)
+                  setTopIdForm({ ...topIdForm, phone: digits })
+                }}
+                maxLength={10}
+              />
+              <input
+                type="password"
+                placeholder="New Password"
+                value={topIdForm.password}
+                onChange={(e) => setTopIdForm({ ...topIdForm, password: e.target.value })}
+                minLength={6}
+              />
+              <button type="submit" className="button button-primary">Update Top ID</button>
+            </form>
+          ) : (
+            <div className="ad-no-top">
+              <p>No Top ID found! Use the reset form to create one.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Genealogy Tree Section ── */}
+      <div className="ad-table-card">
+        <h2 className="ad-table-title">Genealogy Tree</h2>
+        {genealogy ? (
+          <div className="genealogy-container">
+            {renderGenealogy(genealogy)}
+          </div>
+        ) : (
+          <p className="ad-no-data">No genealogy data available.</p>
+        )}
       </div>
 
       {/* ── Recent customers table ── */}

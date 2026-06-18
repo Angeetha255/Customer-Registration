@@ -15,6 +15,13 @@ const send = async (path, options = {}) => {
   return body
 }
 
+// New: Get Top ID info
+export const fetchTopId = () => send('/auth/top-id')
+
+// New: Check referral validity
+export const checkReferral = (refId) =>
+  send(`/auth/check-referral/${encodeURIComponent(refId)}`)
+
 export const registerCustomer = (data) =>
   send('/auth/register', {
     method: 'POST',
@@ -98,5 +105,25 @@ export const updateSetting = (key, value) =>
     headers: authHeaders(),
     body: JSON.stringify({ key, value }),
   })
+
+// New: Reset database and set Top ID
+export const resetDatabase = (data) =>
+  send('/users/reset-db', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(data),
+  })
+
+// New: Update Top ID details
+export const updateTopId = (data) =>
+  send('/users/top-id', {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify(data),
+  })
+
+// New: Get genealogy tree
+export const fetchGenealogy = () =>
+  send('/users/genealogy', { headers: authHeaders() })
 
 export const loginWithApi = login
