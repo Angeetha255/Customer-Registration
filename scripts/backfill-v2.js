@@ -6,7 +6,7 @@
  */
 import { sequelize } from '../models/index.js'
 import User from '../models/User.js'
-import { rebuildUserTeamStats, updateReferralActiveCount } from '../services/teamStats.js'
+import { rebuildAllStats } from '../services/teamStats.js'
 import { generateUserId } from '../services/userIdService.js'
 
 async function run() {
@@ -30,10 +30,7 @@ async function run() {
 
     // Step 2: Rebuild team stats
     console.log('\nRebuilding team stats...')
-    await rebuildUserTeamStats()
-    for (const user of users) {
-      await updateReferralActiveCount(user.id)
-    }
+    await rebuildAllStats()
     console.log('  ✓ team stats rebuilt')
 
     console.log('\n✅ Backfill v2 complete.')

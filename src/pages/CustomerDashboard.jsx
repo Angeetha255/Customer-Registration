@@ -1,8 +1,7 @@
 import { useAuth } from '../context/AuthContext.jsx'
 import { useEffect, useState } from 'react'
-import { fetchReferredCustomers } from '../services/api.js'
+import { fetchMe, fetchReferredCustomers } from '../services/api.js'
 
-/* ── Inline SVG icons ── */
 const Icons = {
   user: (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -19,24 +18,14 @@ const Icons = {
       <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
     </svg>
   ),
-  users: (
+  refStatus: (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
     </svg>
   ),
-  team: (
+  teamStatus: (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><circle cx="17" cy="7" r="4"/>
-    </svg>
-  ),
-  active: (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
-    </svg>
-  ),
-  position: (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2v4M12 18v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
     </svg>
   ),
 }
@@ -44,11 +33,8 @@ const Icons = {
 const CARD_COLORS = [
   { bg: 'linear-gradient(135deg,#667eea 0%,#764ba2 100%)', icon: '#e0d7ff' },
   { bg: 'linear-gradient(135deg,#f093fb 0%,#f5576c 100%)', icon: '#fde8ea' },
-  { bg: 'linear-gradient(135deg,#4facfe 0%,#00f2fe 100%)', icon: '#d0f4ff' },
   { bg: 'linear-gradient(135deg,#43e97b 0%,#38f9d7 100%)', icon: '#d0faf0' },
-  { bg: 'linear-gradient(135deg,#fa709a 0%,#fee140 100%)', icon: '#fff0cc' },
-  { bg: 'linear-gradient(135deg,#a18cd1 0%,#fbc2eb 100%)', icon: '#f3e8ff' },
-  { bg: 'linear-gradient(135deg,#ffecd2 0%,#fcb69f 100%)', icon: '#fff5ee' },
+  { bg: 'linear-gradient(135deg,#4facfe 0%,#00f2fe 100%)', icon: '#d0f4ff' },
 ]
 
 function StatCard({ icon, label, value, colorIdx = 0 }) {
@@ -68,8 +54,15 @@ function StatCard({ icon, label, value, colorIdx = 0 }) {
 
 export default function CustomerDashboard() {
   const { user } = useAuth()
+  const [profile, setProfile] = useState(null)
   const [referred, setReferred] = useState([])
   const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    fetchMe()
+      .then((data) => setProfile(data))
+      .catch(() => setProfile(user))
+  }, [user])
 
   useEffect(() => {
     fetchReferredCustomers()
@@ -79,11 +72,8 @@ export default function CustomerDashboard() {
 
   if (!user) return <div className="page-panel">Loading dashboard...</div>
 
-  const profile = user
-  // Referral link always uses the user's primary key id
-  const referralLink = profile.id ? `${window.location.origin}/register?ref=${profile.id}` : null
-  // referralId comes from the /me endpoint (prefix + id)
-  const displayReferralId = profile.referralId || `REF${profile.id}`
+  const display = profile || user
+  const referralLink = display.id ? `${window.location.origin}/register?ref=${display.id}` : null
 
   const handleCopy = () => {
     if (!referralLink) return
@@ -92,21 +82,16 @@ export default function CustomerDashboard() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const placementDisplay = profile.placementParentName 
-    ? `${profile.placementParentName} (${profile.placementParentDisplayId || '—'})`
-    : profile.placeid || '—'
-
   return (
     <main className="page-shell layout-with-sidebar">
 
-      {/* ── Hero banner ── */}
       <div className="cd-hero">
         <div className="cd-hero-blob cd-hero-blob1" />
         <div className="cd-hero-blob cd-hero-blob2" />
         <div className="cd-hero-content">
-          <div className="cd-hero-avatar">{profile.name?.[0]?.toUpperCase() || 'U'}</div>
+          <div className="cd-hero-avatar">{display.name?.[0]?.toUpperCase() || 'U'}</div>
           <div>
-            <h1 className="cd-hero-title">Welcome back, {profile.name?.split(' ')[0]}! 👋</h1>
+            <h1 className="cd-hero-title">Welcome back, {display.name?.split(' ')[0]}! 👋</h1>
             <p className="cd-hero-sub">Here's an overview of your account and referral activity.</p>
           </div>
         </div>
@@ -116,27 +101,17 @@ export default function CustomerDashboard() {
             <circle cx="100" cy="80" r="46" fill="rgba(255,255,255,0.07)"/>
             <circle cx="100" cy="62" r="18" fill="rgba(255,255,255,0.25)"/>
             <path d="M68 110 q32-22 64 0" fill="rgba(255,255,255,0.2)"/>
-            <circle cx="48" cy="48" r="12" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
-            <circle cx="155" cy="55" r="10" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
-            <line x1="60" y1="48" x2="88" y2="65" stroke="rgba(255,255,255,0.2)" strokeDasharray="3 3"/>
-            <line x1="145" y1="58" x2="117" y2="65" stroke="rgba(255,255,255,0.2)" strokeDasharray="3 3"/>
           </svg>
         </div>
       </div>
 
-      {/* ── Stat cards ── */}
       <div className="cd-cards">
-        <StatCard icon={Icons.user}     label="Full Name"         value={profile.name}                     colorIdx={0} />
-        <StatCard icon={Icons.id}       label="User ID"           value={profile.userId || `#${profile.id}`} colorIdx={1} />
-        <StatCard icon={Icons.users}    label="Total Referrals"   value={profile.refcount ?? 0}            colorIdx={2} />
-        <StatCard icon={Icons.active}   label="Active Referrals"  value={profile.refactcount ?? 0}         colorIdx={3} />
-        <StatCard icon={Icons.team}     label="Team Count"        value={profile.teamcount ?? 0}           colorIdx={4} />
-        <StatCard icon={Icons.active}   label="Team Active Count" value={profile.teamactcount ?? 0}        colorIdx={5} />
-        <StatCard icon={Icons.position} label="Placement Parent"  value={placementDisplay}                  colorIdx={6} />
-        <StatCard icon={Icons.position} label="Position"          value={profile.position || '—'}           colorIdx={0} />
+        <StatCard icon={Icons.user}       label="Full Name"   value={display.name}                          colorIdx={0} />
+        <StatCard icon={Icons.id}         label="User ID"     value={display.userId || `#${display.id}`}    colorIdx={1} />
+        <StatCard icon={Icons.refStatus}  label="Ref Status"  value={display.refStatus || '0 / 0'}          colorIdx={2} />
+        <StatCard icon={Icons.teamStatus} label="Team Status" value={display.teamStatus || '0 / 0'}         colorIdx={3} />
       </div>
 
-      {/* ── Referral link card ── */}
       {referralLink && (
         <div className="cd-referral-card">
           <div className="cd-referral-left">
@@ -157,7 +132,6 @@ export default function CustomerDashboard() {
         </div>
       )}
 
-      {/* ── Referred customers ── */}
       <div className="cd-referred-section">
         <div className="cd-referred-header">
           <h2>Referred Customers</h2>
@@ -166,12 +140,6 @@ export default function CustomerDashboard() {
 
         {referred.length === 0 ? (
           <div className="cd-referred-empty">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
             <p>No referrals yet. Share your link to get started!</p>
           </div>
         ) : (
@@ -182,14 +150,6 @@ export default function CustomerDashboard() {
                 <div className="cd-referred-info">
                   <div className="cd-referred-name">{r.name}</div>
                   <div className="cd-referred-meta">{r.email}</div>
-                  <div className="cd-referred-meta">{r.phone}</div>
-                </div>
-                <div className="cd-referred-date">
-                  {(() => {
-                    if (!r.regat) return '—'
-                    const dt = new Date(r.regat)
-                    return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`
-                  })()}
                 </div>
               </div>
             ))}

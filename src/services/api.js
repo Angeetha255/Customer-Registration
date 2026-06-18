@@ -122,8 +122,20 @@ export const updateTopId = (data) =>
     body: JSON.stringify(data),
   })
 
-// New: Get genealogy tree
-export const fetchGenealogy = () =>
-  send('/users/genealogy', { headers: authHeaders() })
+// Genealogy pages
+export const fetchMyDirect = () =>
+  send('/users/my-direct', { headers: authHeaders() })
+
+export const fetchMyTeam = () =>
+  send('/users/my-team', { headers: authHeaders() })
+
+export const fetchTeamView = () =>
+  send('/users/team-view', { headers: authHeaders() })
+
+export const fetchTeamViewChildren = (parentId) =>
+  send(`/users/team-view/children/${parentId}`, { headers: authHeaders() })
+
+export const searchTeamView = (q) =>
+  send(`/users/team-view/search?q=${encodeURIComponent(q)}`, { headers: authHeaders() })
 
 export const loginWithApi = login

@@ -16,6 +16,7 @@
     "backfill-stats": "node scripts/backfill-stats.js",
     "migrate-v2": "node scripts/run-migration-v2.js",
     "backfill-v2": "node scripts/backfill-v2.js",
+    "rebuild-stats": "node scripts/rebuild-team-stats.js",
     "drop-role": "node scripts/migrate-drop-role.js",
     "add-topid": "node scripts/migrate-add-topid.js",
     "lint": "eslint ."

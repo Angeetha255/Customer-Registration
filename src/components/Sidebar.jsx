@@ -1,17 +1,29 @@
+import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 
 export default function Sidebar({ open, onToggle }) {
   const { user } = useAuth()
-  const navItems = user?.type === 'admin' ? [
-    { label: 'Dashboard',  path: '/admin' },
-    { label: 'Users',  path: '/admin/customers' },
-  ] : [
-    { label: 'Dashboard', path: '/dashboard' },
-    { label: 'Profile',   path: '/profile' },
+  const [genealogyOpen, setGenealogyOpen] = useState(true)
+
+  const adminItems = [
+    { label: 'Dashboard', path: '/admin' },
+    { label: 'Users', path: '/admin/customers' },
   ]
 
-  // Close sidebar on mobile when a nav link is clicked
+  const customerItems = [
+    { label: 'Dashboard', path: '/dashboard' },
+    { label: 'Profile', path: '/profile' },
+  ]
+
+  const genealogyItems = [
+    { label: 'My Direct', path: '/genealogy/my-direct' },
+    { label: 'My Team', path: '/genealogy/my-team' },
+    { label: 'Team View', path: '/genealogy/team-view' },
+  ]
+
+  const navItems = user?.type === 'admin' ? adminItems : customerItems
+
   const handleNavClick = () => {
     if (window.innerWidth <= 900) {
       onToggle && onToggle()
@@ -22,19 +34,16 @@ export default function Sidebar({ open, onToggle }) {
     <aside className={`sidebar ${open ? 'sidebar-open' : ''}`}>
       <div className="sidebar-header">
         <span className="sidebar-logo">CM</span>
-      <button
-        className="sidebar-toggle"
-        onClick={onToggle}
-        aria-label="Close sidebar"
-        aria-expanded={open}
-      >
-        <span className="bar" />
-        <span className="bar" />
-        <span className="bar" />
-      </button>
-
-     
-       
+        <button
+          className="sidebar-toggle"
+          onClick={onToggle}
+          aria-label="Close sidebar"
+          aria-expanded={open}
+        >
+          <span className="bar" />
+          <span className="bar" />
+          <span className="bar" />
+        </button>
       </div>
 
       <nav>
@@ -49,6 +58,34 @@ export default function Sidebar({ open, onToggle }) {
             {item.label}
           </NavLink>
         ))}
+
+        {user?.type !== 'admin' && (
+          <div className="nav-section">
+            <button
+              type="button"
+              className="nav-section-toggle"
+              onClick={() => setGenealogyOpen((v) => !v)}
+              aria-expanded={genealogyOpen}
+            >
+              <span>Genealogy</span>
+              <span className={`nav-chevron ${genealogyOpen ? 'open' : ''}`}>▾</span>
+            </button>
+            {genealogyOpen && (
+              <div className="nav-sub">
+                {genealogyItems.map((item) => (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    onClick={handleNavClick}
+                    className={({ isActive }) => isActive ? 'nav-link nav-sublink active' : 'nav-link nav-sublink'}
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </nav>
 
       <div className="sidebar-bottom-space" />

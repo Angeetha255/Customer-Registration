@@ -2676,3 +2676,183 @@ tbody tr:hover {
 .admin-login-link:hover {
   color: var(--accent);
 }
+
+/* ── Sidebar genealogy section ── */
+.nav-section {
+  margin-top: 0.25rem;
+}
+
+.nav-section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 14px;
+  border: none;
+  background: transparent;
+  color: #cbd5e1;
+  font-size: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 12px;
+  margin-bottom: 0.25rem;
+}
+
+.nav-section-toggle:hover {
+  background: rgba(99, 102, 241, 0.1);
+  color: white;
+}
+
+.nav-chevron {
+  display: inline-block;
+  transition: transform 0.2s ease;
+  font-size: 0.85rem;
+}
+
+.nav-chevron.open {
+  transform: rotate(180deg);
+}
+
+.nav-sub {
+  padding-left: 8px;
+}
+
+.nav-sublink {
+  padding: 10px 14px 10px 22px;
+  font-size: 0.92rem;
+}
+
+/* ── Page header ── */
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.page-header h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.6rem;
+}
+
+.page-header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+/* ── Status badges ── */
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-inactive {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* ── Team View ── */
+.tv-search-card {
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 1.25rem;
+}
+
+.tv-search-form {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tv-search-form input {
+  flex: 1;
+  min-width: 200px;
+}
+
+.tv-tree-container {
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  overflow-x: auto;
+}
+
+.tv-node {
+  margin-bottom: 8px;
+}
+
+.tv-node-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.tv-node-card.tv-inactive {
+  opacity: 0.75;
+}
+
+.tv-node-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.tv-expand-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-strong);
+  cursor: pointer;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.tv-expand-spacer {
+  width: 28px;
+  flex-shrink: 0;
+}
+
+.tv-node-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.tv-user-id {
+  font-weight: 700;
+}
+
+.tv-position {
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #ede9fe;
+  color: #5b21b6;
+  font-weight: 600;
+}
+
+.tv-node-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.tv-children {
+  margin-top: 8px;
+  border-left: 2px solid var(--border);
+  padding-left: 8px;
+}

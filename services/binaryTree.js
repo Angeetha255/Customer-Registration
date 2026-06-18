@@ -82,21 +82,19 @@ export const findPlacement = async (startId, excludeId = null) => {
 
 /**
  * Determine placement for a NEW user:
- *  - Always BFS from global root (ignores referrer for placement purposes)
+ *  - Referred user → BFS starts from the sponsor/referrer's node.
+ *  - Non-referred (Top ID) → no placement parent.
  *
- * Returns { parentId, position } or null (tree full — extremely unlikely).
+ * Returns { parentId, position } or null.
  *
- * @param {number|null} referredById
- * @param {number|null} [newUserId]  - Pass the new user's id to exclude from BFS
- *                                    (relevant only during backfill).
+ * @param {number|null} referredById  - Sponsor/referrer primary key
+ * @param {number|null} [newUserId]   - Pass the new user's id to exclude from BFS
  */
 export const determinePlacement = async (referredById, newUserId = null) => {
-  // Always use global root for placement, ignore referrer
-  const rootId = await getGlobalRoot()
-  if (!rootId) return null // no users exist yet (this user IS the first)
+  if (!referredById) return null
 
-  // If the root IS the new user itself, tree is empty → no parent
-  if (rootId === newUserId) return null
+  const sponsor = await User.findByPk(referredById, { attributes: ['id'] })
+  if (!sponsor) return null
 
-  return findPlacement(rootId, newUserId)
+  return findPlacement(referredById, newUserId)
 }

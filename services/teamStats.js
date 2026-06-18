@@ -1,13 +1,12 @@
 /**
  * teamStats.js
  *
- * Maintains per-user team stats stored directly on the users table:
+ * Maintains per-user stats on the users table:
  *
- *   users.refactcount  = active direct referrals of this user
- *   users.teamcount    = total users registered from this user onwards (including self)
- *   users.teamactcount = active users registered from this user onwards (including self if active)
- *
- * teamcount/teamactcount are based on registration order (id order).
+ *   refcount     = total direct referrals (refid = this user)
+ *   refactcount  = active direct referrals
+ *   teamcount    = total users in entire referral downline (excludes self)
+ *   teamactcount = active users in entire referral downline
  */
 
 import User from '../models/User.js'
@@ -31,6 +30,38 @@ const getAncestors = async (userId) => {
   return ancestors
 }
 
+/**
+ * Build a map of refid → [child ids] from all users.
+ */
+const buildChildrenMap = (users) => {
+  const childrenMap = {}
+  for (const u of users) {
+    if (u.refid) {
+      if (!childrenMap[u.refid]) childrenMap[u.refid] = []
+      childrenMap[u.refid].push(u.id)
+    }
+  }
+  return childrenMap
+}
+
+/**
+ * Count all descendants in the referral tree (excluding self).
+ */
+const countDownline = (userId, childrenMap, userMap) => {
+  const children = childrenMap[userId] || []
+  let total = 0
+  let active = 0
+  for (const childId of children) {
+    total += 1
+    const child = userMap.get(childId)
+    if (child?.active) active += 1
+    const sub = countDownline(childId, childrenMap, userMap)
+    total += sub.total
+    active += sub.active
+  }
+  return { total, active }
+}
+
 // ─── Per-user stat rebuilders ─────────────────────────────────────────────────
 
 /**
@@ -43,57 +74,78 @@ export const updateReferralActiveCount = async (referrerId) => {
 }
 
 /**
- * Rebuild teamcount and teamactcount for ALL users (since it depends on registration order of all users).
+ * Recalculate refcount for one user.
  */
-export const rebuildAllUserTeamStats = async () => {
-  // Get all users in order of id
-  const [users] = await User.sequelize.query('SELECT id, active FROM users ORDER BY id ASC')
-  const totalUsers = users.length
-  for (let i = 0; i < users.length; i++) {
-    const userId = users[i].id
-    const teamcount = totalUsers - i
-    // Count active users from this user onwards
-    let teamactcount = 0
-    for (let j = i; j < users.length; j++) {
-      if (users[j].active) {
-        teamactcount++
-      }
-    }
-    // Update the user
-    await User.sequelize.query('UPDATE users SET teamcount = ?, teamactcount = ? WHERE id = ?', {
-      replacements: [teamcount, teamactcount, userId]
-    })
-  }
+export const updateReferralCount = async (referrerId) => {
+  if (!referrerId) return
+  const count = await User.count({ where: { refid: referrerId } })
+  await User.update({ refcount: count }, { where: { id: referrerId } })
 }
 
 /**
- * Rebuild teamcount and teamactcount for all users (since changing one affects all previous users).
+ * Rebuild teamcount and teamactcount for ALL users based on referral downline.
  */
+export const rebuildAllUserTeamStats = async () => {
+  const users = await User.findAll({
+    attributes: ['id', 'refid', 'active'],
+    order: [['id', 'ASC']],
+  })
+
+  const childrenMap = buildChildrenMap(users)
+  const userMap = new Map(users.map((u) => [u.id, u]))
+
+  for (const u of users) {
+    const { total, active } = countDownline(u.id, childrenMap, userMap)
+    await User.update(
+      { teamcount: total, teamactcount: active },
+      { where: { id: u.id } }
+    )
+  }
+}
+
 export const rebuildUserTeamStats = async () => {
   await rebuildAllUserTeamStats()
+}
+
+/**
+ * Rebuild all referral counts (refcount + refactcount) for every user.
+ */
+export const rebuildAllReferralCounts = async () => {
+  const users = await User.findAll({ attributes: ['id'], order: [['id', 'ASC']] })
+  for (const u of users) {
+    await updateReferralCount(u.id)
+    await updateReferralActiveCount(u.id)
+  }
 }
 
 // ─── Propagation ──────────────────────────────────────────────────────────────
 
 /**
- * Call after any registration or active-status change.
- * Rebuilds team stats for ALL users (since team stats depend on registration order of all users).
+ * Call after registration, activation change, or deletion.
+ * Rebuilds team stats and referral counts for affected users.
  *
  * @param {number}      changedUserId
  * @param {number|null} referrerId     direct referrer of the changed user
  */
 export const propagateTeamStats = async (changedUserId, referrerId = null) => {
-  // 1. Rebuild team stats for ALL users
   await rebuildAllUserTeamStats()
 
-  // 2. Update direct referrer's refactcount
   if (referrerId) {
+    await updateReferralCount(referrerId)
     await updateReferralActiveCount(referrerId)
   }
 
-  // 3. Walk up and update every ancestor's refactcount
   const ancestors = await getAncestors(changedUserId)
   for (const ancestorId of ancestors) {
+    await updateReferralCount(ancestorId)
     await updateReferralActiveCount(ancestorId)
   }
+}
+
+/**
+ * Full rebuild of all stats — use after bulk migrations.
+ */
+export const rebuildAllStats = async () => {
+  await rebuildAllUserTeamStats()
+  await rebuildAllReferralCounts()
 }

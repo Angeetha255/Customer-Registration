@@ -6,6 +6,15 @@ import User, { HIDDEN_FIELDS } from '../models/User.js'
 import Settings from '../models/Settings.js'
 import { propagateTeamStats } from '../services/teamStats.js'
 import { generateUserId } from '../services/userIdService.js'
+import { enrichUserStats } from '../services/userEnrichment.js'
+import {
+  buildUserLookup,
+  enrichGenealogyMember,
+  getDownlineIds,
+  getTeamViewRoot,
+  getPlacementChildren,
+  hasPlacementChildren,
+} from '../services/genealogyService.js'
 
 const router = express.Router()
 
@@ -85,8 +94,8 @@ router.post('/reset-db', authMiddleware, requireRole('admin'), async (req, res) 
       password: hashedPassword,
       refcount: 0,
       refactcount: 0,
-      teamcount: 1,
-      teamactcount: 1,
+      teamcount: 0,
+      teamactcount: 0,
       active: true
     })
 
@@ -270,14 +279,13 @@ router.get('/me', authMiddleware, async (req, res) => {
     })
 
     res.json({
-      ...userRecord.toJSON(),
+      ...enrichUserStats(userRecord.toJSON()),
       referralId,
       referralLink,
       referrerName,
       referrerDisplayId,
       placementParentName,
       placementParentDisplayId,
-      activeStatus: userRecord.active ? 'Yes' : 'No',
       referredCustomers: referred,
     })
   } catch (err) {
@@ -357,11 +365,10 @@ router.get('/', authMiddleware, requireRole('admin'), async (req, res) => {
     const referrerMap = Object.fromEntries(referrers.map((r) => [r.id, r.name]))
 
     const enriched = users.map((u) => ({
-      ...u.toJSON(),
+      ...enrichUserStats(u.toJSON()),
       referralId: toReferralId(prefix, u.id),
       referrerName: u.refid ? (referrerMap[u.refid] || null) : null,
       referrerDisplayId: u.refid ? toReferralId(prefix, u.refid) : null,
-      activeStatus: u.active ? 'Yes' : 'No',
     }))
 
     res.json({ total, page: Number(page), limit: Number(limit), customers: enriched })
@@ -420,6 +427,149 @@ router.get('/stats', authMiddleware, requireRole('admin'), async (req, res) => {
   } catch (error) {
     console.error(error)
     res.status(500).json({ message: 'Unable to load stats.' })
+  }
+})
+
+// ─── Customer: genealogy pages ────────────────────────────────────────────────
+
+const GENEALOGY_ATTRS = [
+  'id', 'name', 'userId', 'refid', 'placeid', 'position',
+  'active', 'regat', 'DOJ', 'DOA',
+  'refcount', 'refactcount', 'teamcount', 'teamactcount',
+]
+
+// GET /api/users/my-direct — direct referrals only
+router.get('/my-direct', authMiddleware, async (req, res) => {
+  try {
+    if (req.userType === 'admin') {
+      return res.status(403).json({ message: 'Customer access only.' })
+    }
+
+    const prefix = await getReferralPrefix()
+    const direct = await User.findAll({
+      where: { refid: req.user.id },
+      attributes: GENEALOGY_ATTRS,
+      order: [['id', 'ASC']],
+    })
+
+    const lookup = await buildUserLookup(direct.map((u) => u.refid))
+    const members = direct.map((u) => enrichGenealogyMember(u, lookup, prefix))
+
+    res.json({ members })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: 'Unable to fetch direct referrals.' })
+  }
+})
+
+// GET /api/users/my-team — full referral downline
+router.get('/my-team', authMiddleware, async (req, res) => {
+  try {
+    if (req.userType === 'admin') {
+      return res.status(403).json({ message: 'Customer access only.' })
+    }
+
+    const prefix = await getReferralPrefix()
+    const downlineIds = await getDownlineIds(req.user.id)
+
+    if (!downlineIds.length) {
+      return res.json({ members: [] })
+    }
+
+    const members = await User.findAll({
+      where: { id: downlineIds },
+      attributes: GENEALOGY_ATTRS,
+      order: [['id', 'ASC']],
+    })
+
+    const lookupIds = members.flatMap((u) => [u.refid, u.placeid].filter(Boolean))
+    const lookup = await buildUserLookup(lookupIds)
+    const enriched = members.map((u) => enrichGenealogyMember(u, lookup, prefix))
+
+    res.json({ members: enriched })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: 'Unable to fetch team members.' })
+  }
+})
+
+// GET /api/users/team-view — placement tree rooted at current user
+router.get('/team-view', authMiddleware, async (req, res) => {
+  try {
+    if (req.userType === 'admin') {
+      return res.status(403).json({ message: 'Customer access only.' })
+    }
+
+    const prefix = await getReferralPrefix()
+    const tree = await getTeamViewRoot(req.user.id, prefix)
+    res.json({ tree })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: 'Unable to load team view.' })
+  }
+})
+
+// GET /api/users/team-view/children/:parentId — lazy-load placement children
+router.get('/team-view/children/:parentId', authMiddleware, async (req, res) => {
+  try {
+    if (req.userType === 'admin') {
+      return res.status(403).json({ message: 'Customer access only.' })
+    }
+
+    const parentId = parseInt(req.params.parentId, 10)
+    if (isNaN(parentId)) return res.status(400).json({ message: 'Invalid parent ID.' })
+
+    const prefix = await getReferralPrefix()
+    const children = await getPlacementChildren(parentId, prefix)
+
+    for (const child of children) {
+      child.hasChildren = await hasPlacementChildren(child.id)
+    }
+
+    res.json({ children })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: 'Unable to load children.' })
+  }
+})
+
+// GET /api/users/team-view/search — search by userId in downline placement tree
+router.get('/team-view/search', authMiddleware, async (req, res) => {
+  try {
+    if (req.userType === 'admin') {
+      return res.status(403).json({ message: 'Customer access only.' })
+    }
+
+    const { q } = req.query
+    if (!q || !String(q).trim()) {
+      return res.status(400).json({ message: 'Search query is required.' })
+    }
+
+    const prefix = await getReferralPrefix()
+    const downlineIds = await getDownlineIds(req.user.id)
+    const searchIds = [req.user.id, ...downlineIds]
+
+    const { Op } = await import('sequelize')
+    const matches = await User.findAll({
+      where: {
+        id: searchIds,
+        [Op.or]: [
+          { userId: { [Op.like]: `%${q}%` } },
+          { id: isNaN(parseInt(q, 10)) ? -1 : parseInt(q, 10) },
+        ],
+      },
+      attributes: GENEALOGY_ATTRS,
+      limit: 20,
+    })
+
+    const lookupIds = matches.flatMap((u) => [u.refid, u.placeid].filter(Boolean))
+    const lookup = await buildUserLookup(lookupIds)
+    const results = matches.map((u) => enrichGenealogyMember(u, lookup, prefix))
+
+    res.json({ results })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: 'Search failed.' })
   }
 })
 
@@ -594,7 +744,12 @@ router.delete('/:id', authMiddleware, requireRole('admin'), async (req, res) => 
   try {
     const customer = await User.findOne({ where: { id: req.params.id } })
     if (!customer) return res.status(404).json({ message: 'Customer not found.' })
+
+    const refId = customer.refid
     await customer.destroy()
+
+    await propagateTeamStats(customer.id, refId || null)
+
     res.json({ message: 'Customer deleted.' })
   } catch (error) {
     console.error(error)

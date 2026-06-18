@@ -10,6 +10,7 @@ import Settings from '../models/Settings.js'
 import { determinePlacement } from '../services/binaryTree.js'
 import { propagateTeamStats } from '../services/teamStats.js'
 import { generateUserId } from '../services/userIdService.js'
+import { enrichUserStats } from '../services/userEnrichment.js'
 
 dotenv.config()
 
@@ -121,10 +122,7 @@ router.post('/register', async (req, res) => {
       password: hashedPassword,
     })
 
-    // Update referrer's referral count
-    referrer.refcount = (referrer.refcount || 0) + 1
-    await referrer.save()
-
+    // Update referrer's referral count via propagateTeamStats
     await propagateTeamStats(user.id, refId)
 
     const prefix = await getReferralPrefix()
@@ -134,7 +132,7 @@ router.post('/register', async (req, res) => {
       message: 'Customer registered successfully.',
       referralId: `${prefix}${user.id}`,
       userId,
-      user: saved,
+      user: enrichUserStats(saved.toJSON()),
     })
   } catch (error) {
     console.error(error)
@@ -159,7 +157,7 @@ router.post('/login', async (req, res) => {
     const token = jwt.sign({ type: 'customer', id: user.id }, JWT_SECRET, { expiresIn: JWT_EXPIRES })
 
     const prefix = await getReferralPrefix()
-    const userData = {
+    const userData = enrichUserStats({
       id: user.id,
       name: user.name,
       email: user.email,
@@ -167,13 +165,14 @@ router.post('/login', async (req, res) => {
       type: 'customer',
       userId: user.userId,
       refid: user.refid,
-      refcount: user.refcount,
       referralId: `${prefix}${user.id}`,
       active: user.active,
       teamcount: user.teamcount,
       teamactcount: user.teamactcount,
+      refcount: user.refcount,
+      refactcount: user.refactcount,
       regat: user.regat,
-    }
+    })
 
     res.json({ token, user: userData })
   } catch (error) {

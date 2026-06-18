@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchAdminStats, resetDatabase, updateTopId, fetchTopId, fetchGenealogy } from '../services/api.js'
+import { fetchAdminStats, resetDatabase, updateTopId, fetchTopId } from '../services/api.js'
 import { useNavigate } from 'react-router-dom'
 
 const STAT_CONFIG = [
@@ -80,7 +80,6 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [topUser, setTopUser] = useState(null)
-  const [genealogy, setGenealogy] = useState(null)
   const [resetForm, setResetForm] = useState({
     topUserName: '',
     topUserEmail: '',
@@ -96,11 +95,10 @@ export default function AdminDashboard() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    Promise.all([fetchAdminStats(), fetchTopId(), fetchGenealogy()])
-      .then(([statsData, topIdData, genealogyData]) => {
+    Promise.all([fetchAdminStats(), fetchTopId()])
+      .then(([statsData, topIdData]) => {
         setStats(statsData)
         setTopUser(topIdData.topUser)
-        setGenealogy(genealogyData.tree)
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
@@ -129,25 +127,6 @@ export default function AdminDashboard() {
     } catch (err) {
       setError(err.message)
     }
-  }
-
-  const renderGenealogy = (node) => {
-    if (!node) return null
-    return (
-      <div key={node.id} className="genealogy-node">
-        <div className="genealogy-node-content">
-          <div className="genealogy-avatar">{node.name?.[0]?.toUpperCase()}</div>
-          <div className="genealogy-name">{node.name}</div>
-          <div className="genealogy-id">#{node.id}</div>
-        </div>
-        {(node.left || node.right) && (
-          <div className="genealogy-children">
-            {renderGenealogy(node.left)}
-            {renderGenealogy(node.right)}
-          </div>
-        )}
-      </div>
-    )
   }
 
   if (loading) return (
@@ -306,18 +285,6 @@ export default function AdminDashboard() {
             </div>
           )}
         </div>
-      </div>
-
-      {/* ── Genealogy Tree Section ── */}
-      <div className="ad-table-card">
-        <h2 className="ad-table-title">Genealogy Tree</h2>
-        {genealogy ? (
-          <div className="genealogy-container">
-            {renderGenealogy(genealogy)}
-          </div>
-        ) : (
-          <p className="ad-no-data">No genealogy data available.</p>
-        )}
       </div>
 
       {/* ── Recent customers table ── */}
