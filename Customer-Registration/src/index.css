@@ -355,6 +355,11 @@ input:focus {
   min-width: 0;
 }
 
+.tv-search-form input {
+  width: 100%;
+  max-width: 300px;
+}
+
 .table-scroll {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -365,13 +370,26 @@ table {
   border-collapse: collapse;
   font-size: 0.9rem;
 }
-
+table thead th {
+  text-align: center;
+  vertical-align: middle;
+}
 th,
 td {
   text-align: left;
   padding: 10px 12px;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table th,
+table td {
+  border: 1px solid #ddd;
+  padding: 10px;
 }
 
 th {
@@ -387,6 +405,35 @@ tbody tr:hover {
   background: #fbfbff;
 }
 
+
+@media (max-width: 768px) {
+  table {
+    font-size: 11px;
+    min-width: 550px; /* 700px iruntha reduce pannunga */
+  }
+
+  th,
+  td {
+    padding: 4px 6px;
+  }
+
+  .ad-cid-badge {
+    font-size: 10px;
+    padding: 2px 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  table {
+    font-size: 10px;
+    min-width: 500px;
+  }
+
+  th,
+  td {
+    padding: 2px 2px;
+  }
+}
 
 .grid-card {
   display: grid;

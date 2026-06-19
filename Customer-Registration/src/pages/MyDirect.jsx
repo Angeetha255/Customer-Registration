@@ -41,13 +41,17 @@ export default function MyDirect() {
           <table>
             <thead>
               <tr>
-                <th>User ID</th>
-                <th>Name</th>
-                <th>Ref ID</th>
-                <th>Team Status</th>
-                <th>Ref Status</th>
-                <th>DOJ</th>
-                <th>DOA</th>
+                <th rowSpan={2}>User ID</th>
+                <th rowSpan={2}>Name</th>
+                {/* <th>Ref ID</th> */}
+                <th colSpan={2}>Status</th>
+                
+                <th rowSpan={2}>DOJ</th>
+                <th rowSpan={2}>DOA</th>
+              </tr>
+              <tr>
+                <th>Team</th>
+                <th>Referral</th>
               </tr>
             </thead>
             <tbody>
@@ -61,7 +65,7 @@ export default function MyDirect() {
                 <tr key={m.id}>
                   <td><span className="ad-cid-badge">{m.userIdDisplay}</span></td>
                   <td>{m.name || '-'}</td>
-                  <td>{m.refIdDisplay}</td>
+                  {/* <td>{m.refIdDisplay}</td> */}
                   <td>{m.teamStatus}</td>
                   <td>{m.refStatus}</td>
                   <td>{m.DOJDisplay}</td>

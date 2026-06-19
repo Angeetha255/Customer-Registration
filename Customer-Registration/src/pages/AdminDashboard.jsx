@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 const STAT_CONFIG = [
   {
     key: 'totalCustomers',
-    label: 'Total Customers',
+    label: 'Total Users',
     bg: 'linear-gradient(135deg,#667eea 0%,#764ba2 100%)',
     icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -59,7 +59,7 @@ const STAT_CONFIG = [
   },
   {
     key: 'recentCustomer',
-    label: 'Latest Customer',
+    label: 'Latest User',
     bg: 'linear-gradient(135deg,#4facfe 0%,#00f2fe 100%)',
     icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

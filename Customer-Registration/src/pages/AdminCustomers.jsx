@@ -216,6 +216,7 @@ export default function AdminCustomers() {
             Referral Prefix: <strong>{prefix}</strong> · User ID: <strong>{userIdPrefix}</strong>
           </button>
         </div>
+        <br></br> 
 
         <Alert type="danger" message={error} />
 

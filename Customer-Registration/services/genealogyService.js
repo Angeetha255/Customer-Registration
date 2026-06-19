@@ -143,6 +143,8 @@ const toReferralHierarchyMember = (user, level, prefix, childrenMap, userMap) =>
     level,
     active: !!user.active,
     activeStatus: user.active ? 'Active' : 'Inactive',
+    DOJDisplay: fmtDate(user.DOJ),
+    DOADisplay: fmtDate(user.DOA),
     ...stats,
   }
 }
@@ -157,6 +159,7 @@ export const buildReferralHierarchyForUser = async (currentUserId, prefix) => {
     attributes: [
       'id', 'name', 'userId', 'refid', 'active',
       'refcount', 'refactcount', 'teamcount', 'teamactcount',
+      'DOJ', 'DOA',
     ],
     order: [['id', 'ASC']],
   })

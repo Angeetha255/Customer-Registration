@@ -15,6 +15,15 @@ export default function MyTeam() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [selectedLevel, setSelectedLevel] = useState(levelParam ? parseInt(levelParam, 10) : null)
+
+  // Update selectedLevel when URL parameter changes
+  useEffect(() => {
+    setSelectedLevel(levelParam ? parseInt(levelParam, 10) : null)
+    setPage(1)
+    setSearch('')
+    setSearchInput('')
+  }, [levelParam])
+
   const [pagination, setPagination] = useState({
     total: 0,
     page: 1,
@@ -83,8 +92,8 @@ export default function MyTeam() {
   return (
     <main className="page-shell layout-with-sidebar">
       <div className="page-header">
-        <h1>{selectedLevel ? `Level Details - Level ${selectedLevel}` : 'My Team'}</h1>
-        <p>Referral hierarchy from Top ID through your upline, plus your full referral downline.</p>
+        <h1>{selectedLevel ? `Level ${selectedLevel} Members` : 'My Team'}</h1>
+        <p>{selectedLevel ? `Users belonging to placement level ${selectedLevel}` : 'Referral hierarchy from Top ID through your upline, plus your full referral downline.'}</p>
       </div>
 
       {error && <div className="alert alert-danger"><p>{error}</p></div>}
@@ -113,14 +122,18 @@ export default function MyTeam() {
           <table>
             <thead>
               <tr>
-                <th>User ID</th>
-                <th>Ref ID</th>
-                <th>Level</th>
+                <th rowSpan="2">User ID</th>
+                <th rowSpan="2">Ref ID</th>
+                <th rowSpan="2">Level</th>
+                <th colSpan="2">Status</th>
+                {/* <th>Team Status</th> */}
+                {/* <th>Active Status</th> */}
+                <th rowSpan="2">DOJ</th>
+                <th rowSpan="2">DOA</th>
+              </tr>
+              <tr>
                 <th>Ref Status</th>
                 <th>Team Status</th>
-                <th>Active Status</th>
-                <th>DOJ</th>
-                <th>DOA</th>
               </tr>
             </thead>
             <tbody>
@@ -139,11 +152,11 @@ export default function MyTeam() {
                   <td>{member.level}</td>
                   <td>{member.refStatus || '-'}</td>
                   <td>{member.teamStatus || '-'}</td>
-                  <td>
+                  {/* <td>
                     <span className={`status-badge ${member.active ? 'status-active' : 'status-inactive'}`}>
                       {member.activeStatus}
                     </span>
-                  </td>
+                  </td> */}
                   <td>{member.DOJDisplay || '-'}</td>
                   <td>{member.DOADisplay || '-'}</td>
                 </tr>
