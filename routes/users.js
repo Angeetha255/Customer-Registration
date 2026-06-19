@@ -9,11 +9,16 @@ import { generateUserId } from '../services/userIdService.js'
 import { enrichUserStats } from '../services/userEnrichment.js'
 import {
   buildUserLookup,
+  buildReferralHierarchyForUser,
   enrichGenealogyMember,
   getDownlineIds,
   getTeamViewRoot,
+  getPlacementLevelSummary,
   getPlacementChildren,
   hasPlacementChildren,
+  getPlacementLevelUsers,
+  getUserLevel,
+  buildPlacementTree,
 } from '../services/genealogyService.js'
 
 const router = express.Router()
@@ -174,56 +179,13 @@ router.put('/top-id', authMiddleware, requireRole('admin'), async (req, res) => 
 // GET /api/users/genealogy  — get genealogy tree data (admin)
 router.get('/genealogy', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
-    const allUsers = await User.findAll({ order: [['id', 'ASC']] })
-    
-    const buildTree = async (parentId) => {
-      const children = allUsers.filter(u => u.placeid === parentId)
-      const treeNodes = []
-      for (const child of children) {
-        const childData = {
-          ...child.toJSON(),
-          position: child.position,
-          left: null,
-          right: null
-        }
-        const [leftChild, rightChild] = await Promise.all([
-          buildTree(child.id),
-          Promise.resolve()
-        ])
-        if (child.position === 'LEFT' && leftChild.length > 0) {
-          childData.left = leftChild[0]
-        } else if (child.position === 'RIGHT' && leftChild.length > 0) {
-          childData.right = leftChild[0]
-        }
-        const kids = await buildTree(child.id)
-        for (const kid of kids) {
-          if (kid.position === 'LEFT') childData.left = kid
-          if (kid.position === 'RIGHT') childData.right = kid
-        }
-        treeNodes.push(childData)
-      }
-      return treeNodes
-    }
-
+    const prefix = await getReferralPrefix()
     const topUserIdSetting = await Settings.findOne({ where: { key: 'topUserId' } })
     let tree = null
     if (topUserIdSetting) {
       const topUserId = parseInt(topUserIdSetting.value, 10)
-      const topUser = allUsers.find(u => u.id === topUserId)
-      if (topUser) {
-        tree = {
-          ...topUser.toJSON(),
-          left: null,
-          right: null
-        }
-        const children = await buildTree(topUserId)
-        for (const child of children) {
-          if (child.position === 'LEFT') tree.left = child
-          if (child.position === 'RIGHT') tree.right = child
-        }
-      }
+      tree = await buildPlacementTree(topUserId, prefix)
     }
-
     res.json({ tree })
   } catch (error) {
     console.error(error)
@@ -278,6 +240,8 @@ router.get('/me', authMiddleware, async (req, res) => {
       attributes: { exclude: HIDDEN_FIELDS },
     })
 
+    const level = await getUserLevel(userRecord.id)
+
     res.json({
       ...enrichUserStats(userRecord.toJSON()),
       referralId,
@@ -286,6 +250,7 @@ router.get('/me', authMiddleware, async (req, res) => {
       referrerDisplayId,
       placementParentName,
       placementParentDisplayId,
+      level,
       referredCustomers: referred,
     })
   } catch (err) {
@@ -462,7 +427,7 @@ router.get('/my-direct', authMiddleware, async (req, res) => {
   }
 })
 
-// GET /api/users/my-team — full referral downline
+// GET /api/users/my-team - referral-only upline + downline hierarchy
 router.get('/my-team', authMiddleware, async (req, res) => {
   try {
     if (req.userType === 'admin') {
@@ -470,23 +435,71 @@ router.get('/my-team', authMiddleware, async (req, res) => {
     }
 
     const prefix = await getReferralPrefix()
-    const downlineIds = await getDownlineIds(req.user.id)
+    const { search = '', page = 1, limit = 10, level } = req.query
 
-    if (!downlineIds.length) {
-      return res.json({ members: [] })
+    // If level parameter is provided, return placement-level users instead
+    if (level) {
+      const levelNum = parseInt(level, 10)
+      if (isNaN(levelNum) || levelNum < 1) {
+        return res.status(400).json({ message: 'Invalid level parameter.' })
+      }
+
+      const members = await getPlacementLevelUsers(req.user.id, levelNum, prefix)
+      const normalizedSearch = String(search).trim().toLowerCase()
+      const filtered = normalizedSearch
+        ? members.filter((m) =>
+            String(m.userIdDisplay || '').toLowerCase().includes(normalizedSearch)
+          )
+        : members
+
+      const currentPage = Math.max(parseInt(page, 10) || 1, 1)
+      const pageSize = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 100)
+      const start = (currentPage - 1) * pageSize
+
+      return res.json({
+        members: filtered.slice(start, start + pageSize).map((m) => ({
+          ...m,
+          level: levelNum,
+        })),
+        level: levelNum,
+        total: filtered.length,
+        page: currentPage,
+        limit: pageSize,
+        totalPages: Math.max(Math.ceil(filtered.length / pageSize), 1),
+      })
     }
 
-    const members = await User.findAll({
-      where: { id: downlineIds },
-      attributes: GENEALOGY_ATTRS,
-      order: [['id', 'ASC']],
+    const currentPage = Math.max(parseInt(page, 10) || 1, 1)
+    const pageSize = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 100)
+    const normalizedSearch = String(search).trim().toLowerCase()
+
+    const { members, tree } = await buildReferralHierarchyForUser(req.user.id, prefix)
+    
+    // Calculate placement-based level for each member to match Team View
+    const membersWithPlacementLevel = await Promise.all(
+      members.map(async (member) => ({
+        ...member,
+        level: await getUserLevel(member.id),
+      }))
+    )
+    
+    const filteredMembers = normalizedSearch
+      ? membersWithPlacementLevel.filter((member) =>
+          String(member.userIdDisplay || '').toLowerCase().includes(normalizedSearch)
+        )
+      : membersWithPlacementLevel
+
+    const total = filteredMembers.length
+    const start = (currentPage - 1) * pageSize
+
+    res.json({
+      members: filteredMembers.slice(start, start + pageSize),
+      tree,
+      total,
+      page: currentPage,
+      limit: pageSize,
+      totalPages: Math.max(Math.ceil(total / pageSize), 1),
     })
-
-    const lookupIds = members.flatMap((u) => [u.refid, u.placeid].filter(Boolean))
-    const lookup = await buildUserLookup(lookupIds)
-    const enriched = members.map((u) => enrichGenealogyMember(u, lookup, prefix))
-
-    res.json({ members: enriched })
   } catch (err) {
     console.error(err)
     res.status(500).json({ message: 'Unable to fetch team members.' })
@@ -502,7 +515,30 @@ router.get('/team-view', authMiddleware, async (req, res) => {
 
     const prefix = await getReferralPrefix()
     const tree = await getTeamViewRoot(req.user.id, prefix)
-    res.json({ tree })
+    const levelSummary = await getPlacementLevelSummary(req.user.id, prefix)
+    res.json({ tree, levelSummary })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: 'Unable to load team view.' })
+  }
+})
+
+// GET /api/users/team-view/:userId — placement tree for a specific user
+router.get('/team-view/:userId', authMiddleware, async (req, res) => {
+  try {
+    if (req.userType === 'admin') {
+      return res.status(403).json({ message: 'Customer access only.' })
+    }
+
+    const targetUserId = parseInt(req.params.userId, 10)
+    if (isNaN(targetUserId)) {
+      return res.status(400).json({ message: 'Invalid user ID.' })
+    }
+
+    const prefix = await getReferralPrefix()
+    const tree = await getTeamViewRoot(targetUserId, prefix)
+    const levelSummary = await getPlacementLevelSummary(targetUserId, prefix)
+    res.json({ tree, levelSummary })
   } catch (err) {
     console.error(err)
     res.status(500).json({ message: 'Unable to load team view.' })
@@ -678,11 +714,14 @@ router.get('/:id', authMiddleware, requireRole('admin'), async (req, res) => {
       }
     }
 
+    const level = await getUserLevel(customer.id)
+
     res.json({
       ...customer.toJSON(),
       referralId: toReferralId(prefix, customer.id),
       referrerName,
       referrerDisplayId,
+      level,
     })
   } catch (error) {
     console.error(error)

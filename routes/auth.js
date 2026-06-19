@@ -49,7 +49,10 @@ router.get('/check-referral/:refId', async (req, res) => {
     const referrer = await User.findByPk(refId, { attributes: ['id', 'name', 'email', 'userId', 'active'] })
     if (!referrer) return res.status(404).json({ message: 'Referrer not found.' })
     
-    res.json({ valid: true, referrer })
+    const prefix = await getReferralPrefix()
+    const referralId = `${prefix}${referrer.id}`
+    
+    res.json({ valid: true, referrer: { ...referrer.toJSON(), referralId } })
   } catch (error) {
     console.error(error)
     res.status(500).json({ message: 'Failed to check referral.' })

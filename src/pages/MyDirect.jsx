@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
 import { fetchMyDirect } from '../services/api.js'
 
+const GENEALOGY_ATTRS = [
+  'id', 'name', 'userId', 'refid', 'placeid', 'position',
+  'active', 'regat', 'DOJ', 'DOA',
+  'refcount', 'refactcount', 'teamcount', 'teamactcount',
+]
+
 export default function MyDirect() {
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -12,6 +18,8 @@ export default function MyDirect() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
   }, [])
+
+  // Placeholder: level is now returned by the API via enrichGenealogyMember / getUserLevel
 
   if (loading) {
     return (
@@ -41,25 +49,33 @@ export default function MyDirect() {
           <table>
             <thead>
               <tr>
-                <th>User ID</th>
-                <th>Ref ID</th>
-                <th>Team Status</th>
-                <th>Ref Status</th>
-                <th>DOJ</th>
-                <th>DOA</th>
+                <th rowSpan={2}>User ID</th>
+                <th rowSpan={2}>Name</th>
+                {/* <th>Ref ID</th> */}
+                
+                <th colSpan={2}>Status</th>
+                
+                <th rowSpan={2}>DOJ</th>
+                <th rowSpan={2}>DOA</th>
+              </tr>
+              <tr>
+                <th>Team</th>
+                <th>Referral</th>
               </tr>
             </thead>
             <tbody>
               {members.length === 0 ? (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: 'center', color: 'var(--muted)', padding: '24px' }}>
+                  <td colSpan="7" style={{ textAlign: 'center', color: 'var(--muted)', padding: '24px' }}>
                     No direct referrals yet.
                   </td>
                 </tr>
               ) : members.map((m) => (
                 <tr key={m.id}>
                   <td><span className="ad-cid-badge">{m.userIdDisplay}</span></td>
-                  <td>{m.refIdDisplay}</td>
+                  <td>{m.name || '-'}</td>
+                  {/* <td>{m.refIdDisplay}</td> */}
+                 
                   <td>{m.teamStatus}</td>
                   <td>{m.refStatus}</td>
                   <td>{m.DOJDisplay}</td>

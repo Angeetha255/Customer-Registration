@@ -355,6 +355,11 @@ input:focus {
   min-width: 0;
 }
 
+.tv-search-form input {
+  width: 100%;
+  max-width: 300px;
+}
+
 .table-scroll {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -365,13 +370,26 @@ table {
   border-collapse: collapse;
   font-size: 0.9rem;
 }
-
+table thead th {
+  text-align: center;
+  vertical-align: middle;
+}
 th,
 td {
   text-align: left;
   padding: 10px 12px;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table th,
+table td {
+  border: 1px solid #ddd;
+  padding: 10px;
 }
 
 th {
@@ -388,6 +406,181 @@ tbody tr:hover {
 }
 
 
+@media (max-width: 768px) {
+  table {
+    font-size: 11px;
+    min-width: 550px; /* 700px iruntha reduce pannunga */
+  }
+
+  th,
+  td {
+    padding: 4px 6px;
+  }
+
+  .ad-cid-badge {
+    font-size: 10px;
+    padding: 2px 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  table {
+    font-size: 10px;
+    min-width: 500px;
+  }
+
+  th,
+  td {
+    padding: 2px 2px;
+  }
+}
+
+.tv-profile-card {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(0,0,0,.08);
+}
+
+.tv-profile-card span {
+  display: block;
+  font-size: 13px;
+  color: #777;
+  margin-bottom: 6px;
+}
+
+.tv-profile-card strong {
+  font-size: 16px;
+  color: #222;
+}
+
+.tv-filters {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.tv-filters input,
+.tv-filters select {
+  height: 44px;
+  padding: 0 15px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  outline: none;
+  background: #fff;
+}
+
+.tv-filters input {
+  flex: 1;
+  min-width: 220px;
+}
+
+
+.table-header {
+  margin-bottom: 16px;
+}
+
+.table-header h3 {
+  margin: 10px ;
+  font-size: 20px;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead {
+  background: #f5f6fa;
+}
+
+thead th {
+  padding: 14px;
+  text-align: left;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+tbody td {
+  padding: 14px;
+  border-top: 1px solid #eee;
+  white-space: nowrap;
+}
+
+tbody tr:hover {
+  background: #fafafa;
+}
+
+.tv-member-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.tv-member-btn:hover {
+  text-decoration: underline;
+}
+
+.status-active {
+  color: #00722a;
+  font-weight: 600;
+}
+
+.status-inactive {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .tv-filters {
+    flex-direction: column;
+  }
+
+  .tv-filters input,
+  .tv-filters select {
+    width: 100%;
+  }
+}
+
+.tv-breadcrumb-row{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:20px;
+flex-wrap:wrap;
+gap:15px;
+}
+
+.tv-breadcrumb{
+font-size:14px;
+font-weight:600;
+color:#666;
+}
+
+.tv-back-btn{
+border:none;
+background:#2563eb;
+color:white;
+padding:10px 18px;
+border-radius:8px;
+cursor:pointer;
+font-weight:600;
+}
+
+.tv-back-btn:hover{
+opacity:.9;
+}
 .grid-card {
   display: grid;
   grid-template-columns: repeat(4, minmax(10px , 160px));
@@ -537,6 +730,18 @@ tbody tr:hover {
   align-items: center;
   gap: 1rem;
   margin-top: 1rem;
+  padding: 12px 16px 16px;
+}
+
+.pagination-row .button {
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  border-radius: 8px;
+}
+
+.pagination-row span {
+  font-size: 0.82rem;
+  color: var(--muted);
 }
 
 .form-footer,
@@ -2757,25 +2962,104 @@ tbody tr:hover {
   color: #991b1b;
 }
 
-/* ── Team View ── */
+/* ── Search card (My Team) ── */
 .tv-search-card {
-  background: var(--surface-strong);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 16px;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
 }
 
 .tv-search-form {
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
 }
 
 .tv-search-form input {
   flex: 1;
-  min-width: 200px;
+  min-width: 0;
+  height: 36px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
 }
+
+.tv-search-form .button {
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  border-radius: 8px;
+}
+
+@media (max-width: 500px) {
+  .tv-search-form {
+    flex-wrap: wrap;
+  }
+  .tv-search-form input {
+    min-width: 100%;
+  }
+}
+
+/* ── Team View ── */
+.tv-profile-card {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 1rem;
+}
+
+.tv-profile-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+
+.tv-profile-card strong {
+  display: block;
+  color: var(--text);
+  font-size: 1rem;
+  word-break: break-word;
+}
+
+.tv-level-card {
+  margin-bottom: 1.25rem;
+}
+
+.tv-arrow-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--accent);
+  padding: 4px 6px;
+  line-height: 1;
+}
+
+.tv-arrow-btn:hover {
+  color: var(--accent-strong);
+}
+
+/* Selected member row in Team View */
+.selected-member-row {
+  background: #eef2ff !important;
+  border-top: 2px solid var(--accent);
+}
+
+.selected-member-row td {
+  padding: 10px 12px;
+}
+
+.row-selected {
+  background: #f5f7ff !important;
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+/* (expand styles removed - Team View now navigates to My Team) */
 
 .tv-tree-container {
   background: var(--surface-strong);
@@ -2852,6 +3136,89 @@ tbody tr:hover {
 }
 
 .tv-children {
+  margin-top: 8px;
+  border-left: 2px solid var(--border);
+  padding-left: 8px;
+}
+
+@media (max-width: 600px) {
+  .tv-profile-card {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* My Team referral hierarchy */
+.mt-tree-container {
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 1.25rem;
+  overflow-x: auto;
+}
+
+.mt-node {
+  margin-bottom: 8px;
+}
+
+.mt-node-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.mt-node-card.mt-inactive {
+  opacity: 0.72;
+}
+
+.mt-expand-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-strong);
+  font-weight: 800;
+  line-height: 1;
+  flex: 0 0 28px;
+}
+
+.mt-expand-btn:disabled {
+  background: transparent;
+  border-color: transparent;
+}
+
+.mt-node-main {
+  min-width: 0;
+}
+
+.mt-node-title,
+.mt-node-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mt-node-title {
+  margin-bottom: 4px;
+}
+
+.mt-level {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.mt-node-meta {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.mt-children {
   margin-top: 8px;
   border-left: 2px solid var(--border);
   padding-left: 8px;

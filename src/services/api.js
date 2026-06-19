@@ -126,11 +126,13 @@ export const updateTopId = (data) =>
 export const fetchMyDirect = () =>
   send('/users/my-direct', { headers: authHeaders() })
 
-export const fetchMyTeam = () =>
-  send('/users/my-team', { headers: authHeaders() })
+export const fetchMyTeam = (params = {}) => {
+  const query = new URLSearchParams(params).toString()
+  return send(`/users/my-team${query ? `?${query}` : ''}`, { headers: authHeaders() })
+}
 
-export const fetchTeamView = () =>
-  send('/users/team-view', { headers: authHeaders() })
+export const fetchTeamView = (userId) =>
+  send(userId ? `/users/team-view/${userId}` : '/users/team-view', { headers: authHeaders() })
 
 export const fetchTeamViewChildren = (parentId) =>
   send(`/users/team-view/children/${parentId}`, { headers: authHeaders() })

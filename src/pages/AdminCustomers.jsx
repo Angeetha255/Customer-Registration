@@ -216,6 +216,7 @@ export default function AdminCustomers() {
             Referral Prefix: <strong>{prefix}</strong> · User ID: <strong>{userIdPrefix}</strong>
           </button>
         </div>
+        <br></br> 
 
         <Alert type="danger" message={error} />
 
@@ -239,7 +240,7 @@ export default function AdminCustomers() {
                 <th>Name</th>
                 <th>Email</th>
                 <th>Phone</th>
-               
+                
                 <th>Referred By</th>
                 <th>Referrer ID</th>
                 <th>Registered</th>
@@ -258,7 +259,7 @@ export default function AdminCustomers() {
                   <td>{customer.name}</td>
                   <td>{customer.email}</td>
                   <td>{customer.phone}</td>
-                  
+                 
                   <td>{customer.referrerName || '—'}</td>
                   <td>{customer.referrerDisplayId || '—'}</td>
                   <td>

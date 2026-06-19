@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 const STAT_CONFIG = [
   {
     key: 'totalCustomers',
-    label: 'Total Customers',
+    label: 'Total Users',
     bg: 'linear-gradient(135deg,#667eea 0%,#764ba2 100%)',
     icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -59,7 +59,7 @@ const STAT_CONFIG = [
   },
   {
     key: 'recentCustomer',
-    label: 'Latest Customer',
+    label: 'Latest User',
     bg: 'linear-gradient(135deg,#4facfe 0%,#00f2fe 100%)',
     icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -200,7 +200,7 @@ export default function AdminDashboard() {
 
       {/* ── Top ID & Reset DB Section ── */}
       <div className="ad-grid">
-        <div className="ad-form-card">
+        {/* <div className="ad-form-card">
           <h2 className="ad-form-title">Reset Database & Create Top ID</h2>
           <p className="ad-form-desc">WARNING: This will delete all existing user data!</p>
           <form onSubmit={handleResetDB} className="form-grid">
@@ -239,7 +239,7 @@ export default function AdminDashboard() {
             />
             <button type="submit" className="button button-danger">Reset Database & Create Top ID</button>
           </form>
-        </div>
+        </div> */}
 
         <div className="ad-form-card">
           <h2 className="ad-form-title">Update Top ID Details</h2>

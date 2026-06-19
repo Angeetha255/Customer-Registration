@@ -92,9 +92,9 @@ export default function Landing() {
                   <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
                 </svg>
               </button>
-              <button className="button landing-cta-secondary" onClick={() => navigate('/login')}>
+              {/* <button className="button landing-cta-secondary" onClick={() => navigate('/login')}>
              User Login
-              </button>
+              </button> */}
             </div>
             <p className="landing-hero-admin-link">
               Are you an admin?{' '}
@@ -151,9 +151,9 @@ export default function Landing() {
                 <button className="button landing-portal-btn-primary" onClick={() => navigate('/login')}>
                   User Login
                 </button>
-                <button className="button landing-portal-btn-ghost" onClick={() => navigate('/register')}>
+                {/* <button className="button landing-portal-btn-ghost" onClick={() => navigate('/register')}>
                   Register
-                </button>
+                </button> */}
               </div>
             </div>
 

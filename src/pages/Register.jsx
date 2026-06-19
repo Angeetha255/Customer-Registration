@@ -187,7 +187,7 @@ export default function Register() {
             <>
               <h4>Referred By</h4>
               <div><strong>Name:</strong> {referrer.name}</div>
-              <div><strong>Referral ID:</strong> {referrer.referralId}</div>
+              <div><strong>Referral ID:</strong> {referrer.referralId || `REF${referrer.id}`}</div>
             </>
           )}
         </div>

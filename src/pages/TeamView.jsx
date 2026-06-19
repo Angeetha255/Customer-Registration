@@ -1,195 +1,248 @@
-import { useCallback, useEffect, useState } from 'react'
-import {
-  fetchTeamView,
-  fetchTeamViewChildren,
-  searchTeamView,
-} from '../services/api.js'
-
-function TreeNode({ node, depth = 0, defaultExpanded = depth < 2 }) {
-  const [expanded, setExpanded] = useState(defaultExpanded)
-  const [children, setChildren] = useState(null)
-  const [loading, setLoading] = useState(false)
-
-  const loadChildren = useCallback(async () => {
-    if (children !== null) return
-    setLoading(true)
-    try {
-      const data = await fetchTeamViewChildren(node.id)
-      setChildren(data.children || [])
-    } catch {
-      setChildren([])
-    } finally {
-      setLoading(false)
-    }
-  }, [node.id, children])
-
-  useEffect(() => {
-    if (defaultExpanded && node.hasChildren && children === null) {
-      loadChildren()
-    }
-  }, [defaultExpanded, node.hasChildren, children, loadChildren])
-
-  const toggle = async () => {
-    if (!expanded && node.hasChildren) {
-      await loadChildren()
-    }
-    setExpanded((v) => !v)
-  }
-
-  const hasLoadedChildren = children && children.length > 0
-  const showExpand = node.hasChildren || hasLoadedChildren
-
-  return (
-    <div className="tv-node" style={{ marginLeft: depth * 24 }}>
-      <div className={`tv-node-card ${node.active ? '' : 'tv-inactive'}`}>
-        <div className="tv-node-header">
-          {showExpand ? (
-            <button type="button" className="tv-expand-btn" onClick={toggle} aria-label={expanded ? 'Collapse' : 'Expand'}>
-              {loading ? '…' : expanded ? '−' : '+'}
-            </button>
-          ) : (
-            <span className="tv-expand-spacer" />
-          )}
-          <div className="tv-node-info">
-            <div className="tv-node-title">
-              <span className="tv-user-id">{node.userIdDisplay}</span>
-              {node.position && <span className="tv-position">{node.position}</span>}
-              <span className={`status-badge ${node.active ? 'status-active' : 'status-inactive'}`}>
-                {node.activeStatus}
-              </span>
-            </div>
-            <div className="tv-node-meta">
-              <span>Placement: {node.placementIdDisplay}</span>
-              <span>Ref: {node.refStatus}</span>
-              <span>Team: {node.teamStatus}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {expanded && children && children.length > 0 && (
-        <div className="tv-children">
-          {children.map((child) => (
-            <TreeNode key={child.id} node={child} depth={depth + 1} />
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
+import { useEffect, useMemo, useState } from 'react'
+import { fetchTeamView } from '../services/api.js'
 
 export default function TeamView() {
   const [root, setRoot] = useState(null)
+  const [levelSummary, setLevelSummary] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState(null)
-  const [searching, setSearching] = useState(false)
+  const [breadcrumbs, setBreadcrumbs] = useState([])
 
   useEffect(() => {
-    fetchTeamView()
-      .then((data) => setRoot(data.tree))
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false))
+    const loadData = async () => {
+      try {
+        setLoading(true)
+        const data = await fetchTeamView()
+        setRoot(data.tree || null)
+        setLevelSummary(data.levelSummary || [])
+        setBreadcrumbs([])
+      } catch (err) {
+        setError(err.message || 'Failed to load team view')
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadData()
   }, [])
 
-  const handleSearch = async (e) => {
-    e.preventDefault()
-    if (!searchQuery.trim()) {
-      setSearchResults(null)
-      return
-    }
-    setSearching(true)
+  const [selectedMember, setSelectedMember] = useState(null)
+  const [selectedMemberSerial, setSelectedMemberSerial] = useState(null)
+
+  const loadTeamView = async (userId) => {
     try {
-      const data = await searchTeamView(searchQuery.trim())
-      setSearchResults(data.results || [])
+      setLoading(true)
+      const data = await fetchTeamView(userId)
+      setRoot(data.tree || null)
+      setLevelSummary(data.levelSummary || [])
     } catch (err) {
-      setSearchResults([])
-      setError(err.message)
+      setError(err.message || 'Failed to load team view')
     } finally {
-      setSearching(false)
+      setLoading(false)
     }
   }
+
+  const handleMemberClick = (member, index) => {
+    const isDeselecting = selectedMember?.id === member.id
+    if (isDeselecting) {
+      setSelectedMember(null)
+      setSelectedMemberSerial(null)
+      setBreadcrumbs([])
+      loadTeamView()
+    } else {
+      setSelectedMember(member)
+      setSelectedMemberSerial(index + 1)
+      setRoot({
+        id: member.id,
+        userIdDisplay: member.userIdDisplay,
+        name: member.name
+      })
+      setBreadcrumbs((prev) => [
+        ...prev,
+        { id: member.id, userIdDisplay: member.userIdDisplay, name: member.name },
+      ])
+      loadTeamView(member.id)
+    }
+  }
+
+  const handleBreadcrumbClick = async (crumb, index) => {
+    setSelectedMember(null)
+    setSelectedMemberSerial(null)
+    const newCrumbs = breadcrumbs.slice(0, index)
+    setBreadcrumbs(newCrumbs)
+    if (index === 0) {
+      setRoot(null)
+      await loadTeamView()
+    } else {
+      const target = newCrumbs[newCrumbs.length - 1]
+      setRoot({
+        id: target.id,
+        userIdDisplay: target.userIdDisplay,
+        name: target.name,
+      })
+      await loadTeamView(target.id)
+    }
+  }
+
+  const members = useMemo(() => {
+    const all = levelSummary.flatMap(level => level.members || [])
+    // Exclude root user (current user) from the table
+    return all.filter(m => m.id !== root?.id)
+  }, [levelSummary, root])
+
+  const filteredMembers = members
 
   if (loading) {
     return (
       <main className="page-shell layout-with-sidebar">
-        <div className="ad-loading"><div className="ad-spinner" /><span>Loading…</span></div>
+        <div className="ad-loading">
+          <div className="ad-spinner" />
+          <span>Loading...</span>
+        </div>
       </main>
     )
   }
 
   return (
     <main className="page-shell layout-with-sidebar">
+
       <div className="page-header">
         <h1>Team View</h1>
-        <p>Genealogy tree visualization with expand/collapse.</p>
       </div>
 
-      {error && <div className="alert alert-danger"><p>{error}</p></div>}
+      {error && (
+        <div className="alert alert-danger">
+          <p>{error}</p>
+        </div>
+      )}
 
-      <div className="tv-search-card">
-        <form onSubmit={handleSearch} className="tv-search-form">
-          <input
-            type="text"
-            placeholder="Search by User ID…"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <button type="submit" className="button button-primary" disabled={searching}>
-            {searching ? 'Searching…' : 'Search'}
-          </button>
-          {searchResults !== null && (
-            <button
-              type="button"
-              className="button button-secondary"
-              onClick={() => { setSearchResults(null); setSearchQuery('') }}
-            >
-              Clear
-            </button>
-          )}
-        </form>
-      </div>
-
-      {searchResults !== null ? (
-        <div className="ad-table-card">
-          <h2 className="ad-table-title">Search Results ({searchResults.length})</h2>
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>User ID</th>
-                  <th>Position</th>
-                  <th>Placement ID</th>
-                  <th>Active Status</th>
-                  <th>Ref Status</th>
-                  <th>Team Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {searchResults.length === 0 ? (
-                  <tr><td colSpan="6" style={{ textAlign: 'center', padding: '24px', color: 'var(--muted)' }}>No matches found.</td></tr>
-                ) : searchResults.map((r) => (
-                  <tr key={r.id}>
-                    <td>{r.userIdDisplay}</td>
-                    <td>{r.position || '—'}</td>
-                    <td>{r.placementIdDisplay}</td>
-                    <td>{r.activeStatus}</td>
-                    <td>{r.refStatus}</td>
-                    <td>{r.teamStatus}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {root && (
+        <div className="tv-profile-card">
+          <div>
+            <span>User ID</span>
+            <strong>{root.userIdDisplay}</strong>
+          </div>
+          <div>
+            <span>Name</span>
+            <strong>{root.name || '-'}</strong>
           </div>
         </div>
-      ) : root ? (
-        <div className="tv-tree-container">
-          <TreeNode node={root} depth={0} defaultExpanded={true} />
-        </div>
-      ) : (
-        <div className="ad-no-data">No tree data available.</div>
       )}
+
+      {breadcrumbs.length > 0 && (
+        <div className="ad-table-card" style={{ marginBottom: 12 }}>
+          
+          <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="button button-secondary button-small"
+              onClick={() => handleBreadcrumbClick({ id: null, userIdDisplay: 'All', name: 'All' }, 0)}
+            >
+              All
+            </button>
+            {breadcrumbs.map((crumb, index) => (
+              <span key={crumb.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ color: 'var(--muted)' }}>/</span>
+                <button
+                  type="button"
+                  className="button button-secondary button-small"
+                  onClick={() => handleBreadcrumbClick(crumb, index + 1)}
+                >
+                  {crumb.userIdDisplay}
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="ad-table-card">
+
+        <div className="table-header">
+          <h3>Team Members</h3>
+        </div>
+
+        <div className="table-scroll">
+
+          <table>
+
+            <thead>
+              <tr>
+                {/* <th>S.NO</th> */}
+                <th>USER ID</th>
+                <th>NAME</th>
+                <th>REFERRER</th>
+                {/* <th>STATUS</th> */}
+                <th>LEVEL</th>
+                <th>REFERRALS</th>
+                <th>TEAM</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {selectedMember && (
+                <tr className="selected-member-row">
+                  {/* <td>{selectedMemberSerial }</td> */}
+                  <td>
+                    <span className="ad-cid-badge">{selectedMember.userIdDisplay}</span>
+                  </td>
+                  <td>{selectedMember.name}</td>
+                  <td>{selectedMember.referrerName || '-'}</td>
+                  {/* <td>
+                    <span className={selectedMember.active ? 'status-active' : 'status-inactive'}>
+                      {selectedMember.activeStatus}
+                    </span>
+                  </td> */}
+                  <td>Level {selectedMember.level}</td>
+                  <td>{selectedMember.refStatus}</td>
+                  <td>{selectedMember.teamStatus}</td>
+                </tr>
+              )}
+              {filteredMembers.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan="8"
+                    style={{
+                      textAlign: 'center',
+                      padding: '25px'
+                    }}
+                  >
+                    No members found
+                  </td>
+                </tr>
+              ) : (
+                filteredMembers.map((member, index) => (
+                  <tr 
+                    key={member.id} 
+                    className={selectedMember?.id === member.id ? 'row-selected' : ''}
+                    onClick={() => handleMemberClick(member, index)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {/* <td>{index + 1}</td> */}
+                    <td>
+                      <span className="ad-cid-badge">{member.userIdDisplay}</span>
+                    </td>
+                    <td>{member.name}</td>
+                    <td>{member.referrerName || '-'}</td>
+                    {/* <td>
+                      <span className={member.active ? 'status-active' : 'status-inactive'}>
+                        {member.activeStatus}
+                      </span>
+                    </td> */}
+                    <td>Level {member.level}</td>
+                    <td>{member.refStatus}</td>
+                    <td>{member.teamStatus}</td>
+                  </tr>
+                ))
+              )}
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
     </main>
   )
 }
