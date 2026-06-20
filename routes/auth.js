@@ -11,6 +11,7 @@ import { determinePlacement } from '../services/binaryTree.js'
 import { propagateTeamStats } from '../services/teamStats.js'
 import { generateUserId } from '../services/userIdService.js'
 import { enrichUserStats } from '../services/userEnrichment.js'
+import { createLevelRecordsForNewUser } from '../services/levelService.js'
 
 dotenv.config()
 
@@ -127,6 +128,9 @@ router.post('/register', async (req, res) => {
 
     // Update referrer's referral count via propagateTeamStats
     await propagateTeamStats(user.id, refId)
+
+    // Populate levels table for the new user with all ancestor records
+    await createLevelRecordsForNewUser(user.id, refId)
 
     const prefix = await getReferralPrefix()
     const saved = await User.findByPk(user.id, { attributes: { exclude: HIDDEN_FIELDS } })

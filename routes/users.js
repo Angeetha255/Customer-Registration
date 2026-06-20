@@ -13,15 +13,55 @@ import {
   enrichGenealogyMember,
   getDownlineIds,
   getTeamViewRoot,
-  getPlacementLevelSummary,
   getPlacementChildren,
   hasPlacementChildren,
-  getPlacementLevelUsers,
-  getUserLevel,
   buildPlacementTree,
 } from '../services/genealogyService.js'
 
+import { getLevelSummary, getLevelUsers, deleteLevelRecordsForJoiner, deleteLevelRecordsForSponsor } from '../services/levelService.js'
+
 const router = express.Router()
+
+// GET /api/users/level-summary — level summary from levels table
+router.get('/level-summary', authMiddleware, async (req, res) => {
+  try {
+    if (req.userType === 'admin') {
+      return res.status(403).json({ message: 'Customer access only.' })
+    }
+
+    // Use userId from query param if provided, otherwise use logged-in user
+    const userId = req.query.userId ? parseInt(req.query.userId, 10) : req.user.id
+    if (isNaN(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID.' })
+    }
+
+    const summary = await getLevelSummary(userId)
+    res.json({ summary })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: 'Unable to fetch level summary.' })
+  }
+})
+
+// GET /api/users/level-users/:level — users at a specific level from levels table
+router.get('/level-users/:level', authMiddleware, async (req, res) => {
+  try {
+    if (req.userType === 'admin') {
+      return res.status(403).json({ message: 'Customer access only.' })
+    }
+
+    const level = parseInt(req.params.level, 10)
+    if (isNaN(level) || level < 1) {
+      return res.status(400).json({ message: 'Invalid level.' })
+    }
+
+    const users = await getLevelUsers(req.user.id, level)
+    res.json({ users })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: 'Unable to fetch level users.' })
+  }
+})
 
 // Helper: get referral prefix
 const getReferralPrefix = async () => {

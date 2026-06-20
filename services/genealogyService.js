@@ -37,20 +37,40 @@ export const buildUserLookup = async (ids) => {
  * @param {number} userId - The user ID whose level to calculate.
  * @returns {Promise<number>} The placement level (1-based).
  */
-export const getUserLevel = async (userId) => {
+// Cache for user levels to avoid repeated database queries
+const levelCache = new Map()
+
+export const getUserLevel = async (userId, depth = 0) => {
   if (!userId) return 1
+  if (depth > 100) return 1 // Safety limit to prevent infinite recursion
+
+  // Check cache first
+  if (levelCache.has(userId)) {
+    return levelCache.get(userId)
+  }
 
   const user = await User.findByPk(userId, { attributes: ['id', 'placeid'] })
-  if (!user) return 1
+  if (!user) {
+    levelCache.set(userId, 1)
+    return 1
+  }
 
   // Root: no placement parent or self-referencing placement
   if (!user.placeid || user.placeid === user.id) {
+    levelCache.set(userId, 1)
     return 1
   }
 
   // Recursively calculate parent's level and add 1
-  const parentLevel = await getUserLevel(user.placeid)
-  return parentLevel + 1
+  const parentLevel = await getUserLevel(user.placeid, depth + 1)
+  const level = parentLevel + 1
+  levelCache.set(userId, level)
+  return level
+}
+
+// Clear the cache (useful for testing or when data changes)
+export const clearLevelCache = () => {
+  levelCache.clear()
 }
 
 /**

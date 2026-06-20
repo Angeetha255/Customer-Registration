@@ -19,6 +19,8 @@
     "rebuild-stats": "node scripts/rebuild-team-stats.js",
     "drop-role": "node scripts/migrate-drop-role.js",
     "add-topid": "node scripts/migrate-add-topid.js",
+    "reset-levels-final": "node scripts/reset-levels-final.js",
+    "backfill-levels": "node scripts/backfill-levels.js",
     "lint": "eslint ."
   },
   "dependencies": {

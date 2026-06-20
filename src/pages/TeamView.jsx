@@ -1,95 +1,83 @@
-import { useEffect, useMemo, useState } from 'react'
-import { fetchTeamView } from '../services/api.js'
+import { useEffect, useState } from 'react'
+import { fetchLevelSummary, fetchLevelUsers } from '../services/api.js'
 
 export default function TeamView() {
-  const [root, setRoot] = useState(null)
-  const [levelSummary, setLevelSummary] = useState([])
+  const [summary, setSummary] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [selectedLevel, setSelectedLevel] = useState(null)
+  const [levelUsers, setLevelUsers] = useState([])
+  const [loadingUsers, setLoadingUsers] = useState(false)
   const [breadcrumbs, setBreadcrumbs] = useState([])
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true)
-        const data = await fetchTeamView()
-        setRoot(data.tree || null)
-        setLevelSummary(data.levelSummary || [])
-        setBreadcrumbs([])
-      } catch (err) {
-        setError(err.message || 'Failed to load team view')
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadData()
+    loadSummary()
   }, [])
 
-  const [selectedMember, setSelectedMember] = useState(null)
-  const [selectedMemberSerial, setSelectedMemberSerial] = useState(null)
-
-  const loadTeamView = async (userId) => {
+  const loadSummary = async (userId = null) => {
     try {
       setLoading(true)
-      const data = await fetchTeamView(userId)
-      setRoot(data.tree || null)
-      setLevelSummary(data.levelSummary || [])
+      const data = await fetchLevelSummary(userId)
+      setSummary(data.summary || [])
+      setSelectedLevel(null)
+      setLevelUsers([])
     } catch (err) {
-      setError(err.message || 'Failed to load team view')
+      setError(err.message)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleMemberClick = (member, index) => {
-    const isDeselecting = selectedMember?.id === member.id
-    if (isDeselecting) {
-      setSelectedMember(null)
-      setSelectedMemberSerial(null)
-      setBreadcrumbs([])
-      loadTeamView()
-    } else {
-      setSelectedMember(member)
-      setSelectedMemberSerial(index + 1)
-      setRoot({
-        id: member.id,
-        userIdDisplay: member.userIdDisplay,
-        name: member.name
-      })
-      setBreadcrumbs((prev) => [
-        ...prev,
-        { id: member.id, userIdDisplay: member.userIdDisplay, name: member.name },
-      ])
-      loadTeamView(member.id)
+  const handleViewClick = async (level) => {
+    setSelectedLevel(level)
+    setLoadingUsers(true)
+    try {
+      const data = await fetchLevelUsers(level)
+      setLevelUsers(data.users || [])
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoadingUsers(false)
     }
   }
 
-  const handleBreadcrumbClick = async (crumb, index) => {
-    setSelectedMember(null)
-    setSelectedMemberSerial(null)
-    const newCrumbs = breadcrumbs.slice(0, index)
-    setBreadcrumbs(newCrumbs)
-    if (index === 0) {
-      setRoot(null)
-      await loadTeamView()
-    } else {
-      const target = newCrumbs[newCrumbs.length - 1]
-      setRoot({
-        id: target.id,
-        userIdDisplay: target.userIdDisplay,
-        name: target.name,
-      })
-      await loadTeamView(target.id)
+  const handleUserClick = async (userId, userName) => {
+    try {
+      setLoading(true)
+      const data = await fetchLevelSummary(userId)
+      setSummary(data.summary || [])
+      setSelectedLevel(null)
+      setLevelUsers([])
+      setBreadcrumbs((prev) => [...prev, { userId, userName }])
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const members = useMemo(() => {
-    const all = levelSummary.flatMap(level => level.members || [])
-    // Exclude root user (current user) from the table
-    return all.filter(m => m.id !== root?.id)
-  }, [levelSummary, root])
-
-  const filteredMembers = members
+  const handleBreadcrumbClick = async (index) => {
+    try {
+      setLoading(true)
+      if (index === -1) {
+        // Home - load current user's summary
+        setBreadcrumbs([])
+        await loadSummary()
+      } else {
+        // Load clicked user's summary
+        const crumb = breadcrumbs[index]
+        const data = await fetchLevelSummary(crumb.userId)
+        setSummary(data.summary || [])
+        setSelectedLevel(null)
+        setLevelUsers([])
+        setBreadcrumbs((prev) => prev.slice(0, index + 1))
+      }
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -104,9 +92,9 @@ export default function TeamView() {
 
   return (
     <main className="page-shell layout-with-sidebar">
-
       <div className="page-header">
         <h1>Team View</h1>
+        <p>Team members organized by referral level.</p>
       </div>
 
       {error && (
@@ -115,134 +103,142 @@ export default function TeamView() {
         </div>
       )}
 
-      {root && (
-        <div className="tv-profile-card">
-          <div>
-            <span>User ID</span>
-            <strong>{root.userIdDisplay}</strong>
-          </div>
-          <div>
-            <span>Name</span>
-            <strong>{root.name || '-'}</strong>
+      {/* Breadcrumb Navigation */}
+      {breadcrumbs.length > 0 && (
+        <div style={{ marginBottom: 12, padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', fontSize: 12 }}>
+          <button
+            type="button"
+            onClick={() => handleBreadcrumbClick(-1)}
+            style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: '2px 6px', fontSize: 12 }}
+          >
+            Home
+          </button>
+          {breadcrumbs.map((crumb, index) => (
+            <span key={crumb.userId} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ color: 'var(--muted)' }}>/</span>
+              <button
+                type="button"
+                onClick={() => handleBreadcrumbClick(index)}
+                style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: '2px 6px', fontSize: 12 }}
+              >
+                {crumb.userName} ({crumb.userId})
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Level Summary Table */}
+      {!selectedLevel && (
+        <div className="ad-table-card">
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>S.No</th>
+                  <th>Level</th>
+                  <th>Active/Total</th>
+                  <th>View</th>
+                </tr>
+              </thead>
+              <tbody>
+                {summary.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" style={{ textAlign: 'center', color: 'var(--muted)', padding: '24px' }}>
+                      No team members yet.
+                    </td>
+                  </tr>
+                ) : (
+                  summary.map((item, index) => (
+                    <tr key={item.level}>
+                      <td>{index + 1}</td>
+                      <td>Level {item.level}</td>
+                      <td>{item.activeCount}/{item.totalCount}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="button button-secondary button-small"
+                          onClick={() => handleViewClick(item.level)}
+                        >
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
 
-      {breadcrumbs.length > 0 && (
-        <div className="ad-table-card" style={{ marginBottom: 12 }}>
-          
-          <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      {/* Level Members Table */}
+      {selectedLevel && (
+        <div className="ad-table-card">
+          <div className="table-header">
+            <h3>Level {selectedLevel} Users</h3>
             <button
               type="button"
               className="button button-secondary button-small"
-              onClick={() => handleBreadcrumbClick({ id: null, userIdDisplay: 'All', name: 'All' }, 0)}
+              onClick={() => setSelectedLevel(null)}
             >
-              All
+              Back to Summary
             </button>
-            {breadcrumbs.map((crumb, index) => (
-              <span key={crumb.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ color: 'var(--muted)' }}>/</span>
-                <button
-                  type="button"
-                  className="button button-secondary button-small"
-                  onClick={() => handleBreadcrumbClick(crumb, index + 1)}
-                >
-                  {crumb.userIdDisplay}
-                </button>
-              </span>
-            ))}
+          </div>
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>S.No</th>
+                  <th>User</th>
+                  <th>Sponsor</th>
+                  <th>Level</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loadingUsers ? (
+                  <tr>
+                    <td colSpan="4" style={{ textAlign: 'center', padding: '24px' }}>
+                      Loading…
+                    </td>
+                  </tr>
+                ) : levelUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" style={{ textAlign: 'center', color: 'var(--muted)', padding: '24px' }}>
+                      No users found at this level.
+                    </td>
+                  </tr>
+                ) : (
+                  levelUsers.map((user, index) => (
+                    <tr key={user.id}>
+                      <td>{index + 1}</td>
+                      <td>
+                        <button
+                          type="button"
+                          onClick={() => handleUserClick(user.joinerId, user.joinerName)}
+                          style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0, fontSize: 'inherit' }}
+                        >
+                          {user.joinerName} ({user.joinerId})
+                        </button>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          onClick={() => handleUserClick(user.sponsorId, user.sponsorName)}
+                          style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0, fontSize: 'inherit' }}
+                        >
+                          {user.sponsorName} ({user.sponsorId})
+                        </button>
+                      </td>
+                      <td>{user.level}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
-
-      <div className="ad-table-card">
-
-        <div className="table-header">
-          <h3>Team Members</h3>
-        </div>
-
-        <div className="table-scroll">
-
-          <table>
-
-            <thead>
-              <tr>
-                {/* <th>S.NO</th> */}
-                <th>USER ID</th>
-                <th>NAME</th>
-                <th>REFERRER</th>
-                {/* <th>STATUS</th> */}
-                <th>LEVEL</th>
-                <th>REFERRALS</th>
-                <th>TEAM</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {selectedMember && (
-                <tr className="selected-member-row">
-                  {/* <td>{selectedMemberSerial }</td> */}
-                  <td>
-                    <span className="ad-cid-badge">{selectedMember.userIdDisplay}</span>
-                  </td>
-                  <td>{selectedMember.name}</td>
-                  <td>{selectedMember.referrerName || '-'}</td>
-                  {/* <td>
-                    <span className={selectedMember.active ? 'status-active' : 'status-inactive'}>
-                      {selectedMember.activeStatus}
-                    </span>
-                  </td> */}
-                  <td>Level {selectedMember.level}</td>
-                  <td>{selectedMember.refStatus}</td>
-                  <td>{selectedMember.teamStatus}</td>
-                </tr>
-              )}
-              {filteredMembers.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan="8"
-                    style={{
-                      textAlign: 'center',
-                      padding: '25px'
-                    }}
-                  >
-                    No members found
-                  </td>
-                </tr>
-              ) : (
-                filteredMembers.map((member, index) => (
-                  <tr 
-                    key={member.id} 
-                    className={selectedMember?.id === member.id ? 'row-selected' : ''}
-                    onClick={() => handleMemberClick(member, index)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    {/* <td>{index + 1}</td> */}
-                    <td>
-                      <span className="ad-cid-badge">{member.userIdDisplay}</span>
-                    </td>
-                    <td>{member.name}</td>
-                    <td>{member.referrerName || '-'}</td>
-                    {/* <td>
-                      <span className={member.active ? 'status-active' : 'status-inactive'}>
-                        {member.activeStatus}
-                      </span>
-                    </td> */}
-                    <td>Level {member.level}</td>
-                    <td>{member.refStatus}</td>
-                    <td>{member.teamStatus}</td>
-                  </tr>
-                ))
-              )}
-
-            </tbody>
-
-          </table>
-
-        </div>
-
-      </div>
-
     </main>
   )
 }
