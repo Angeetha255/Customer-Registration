@@ -16,6 +16,7 @@ import {
   getPlacementChildren,
   hasPlacementChildren,
   buildPlacementTree,
+  getUserLevel,
 } from '../services/genealogyService.js'
 
 import { getLevelSummary, getLevelUsers, deleteLevelRecordsForJoiner, deleteLevelRecordsForSponsor } from '../services/levelService.js'
@@ -55,7 +56,13 @@ router.get('/level-users/:level', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Invalid level.' })
     }
 
-    const users = await getLevelUsers(req.user.id, level)
+    // Use userId from query param if provided, otherwise use logged-in user
+    const userId = req.query.userId ? parseInt(req.query.userId, 10) : req.user.id
+    if (isNaN(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID.' })
+    }
+
+    const users = await getLevelUsers(userId, level)
     res.json({ users })
   } catch (err) {
     console.error(err)
@@ -256,11 +263,13 @@ router.get('/me', authMiddleware, async (req, res) => {
     // Resolve referrer name and display id
     let referrerName = null
     let referrerDisplayId = null
+    let referrerReferralId = null
     if (userRecord.refid) {
-      const referrer = await User.findByPk(userRecord.refid, { attributes: ['id', 'name'] })
+      const referrer = await User.findByPk(userRecord.refid, { attributes: ['id', 'name', 'userId'] })
       if (referrer) {
         referrerName = referrer.name
-        referrerDisplayId = toReferralId(prefix, referrer.id)
+        referrerDisplayId = referrer.userId || toReferralId(prefix, referrer.id)
+        referrerReferralId = referrer.userId || toReferralId(prefix, referrer.id)
       }
     }
 
@@ -288,6 +297,7 @@ router.get('/me', authMiddleware, async (req, res) => {
       referralLink,
       referrerName,
       referrerDisplayId,
+      referrerReferralId,
       placementParentName,
       placementParentDisplayId,
       level,

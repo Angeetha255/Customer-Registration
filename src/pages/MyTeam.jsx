@@ -75,11 +75,11 @@ export default function MyTeam() {
                 members.map((member, index) => (
                   <tr key={member.id}>
                     <td>{index + 1}</td>
-                    <td><span className="ad-cid-badge">{member.userIdDisplay}</span></td>
-                    <td>{member.refIdDisplay || '-'}</td>
+                    <td><span className="ad-cid-badge">{member.userIdDisplay}</span> {member.joinerName || ''}</td>
+                    <td>{member.refIdDisplay || '-'} {member.sponsorName || ''}</td>
                     <td>{member.level}</td>
-                    <td>{member.refcount || 0}</td>
-                    <td>{member.teamcount || 0}</td>
+                    <td>{member.refactcount || 0}/{member.refcount || 0}</td>
+                    <td>{member.teamactcount || 0}/{member.teamcount || 0}</td>
                   </tr>
                 ))
               )}

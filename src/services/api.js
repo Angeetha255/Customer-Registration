@@ -126,8 +126,8 @@ export const updateTopId = (data) =>
 export const fetchLevelSummary = (userId) =>
   send(userId ? `/users/level-summary?userId=${encodeURIComponent(userId)}` : '/users/level-summary', { headers: authHeaders() })
 
-export const fetchLevelUsers = (level) =>
-  send(`/users/level-users/${encodeURIComponent(level)}`, { headers: authHeaders() })
+export const fetchLevelUsers = (level, userId) =>
+  send(userId ? `/users/level-users/${encodeURIComponent(level)}?userId=${encodeURIComponent(userId)}` : `/users/level-users/${encodeURIComponent(level)}`, { headers: authHeaders() })
 
 // Genealogy pages
 export const fetchMyDirect = () =>

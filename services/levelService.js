@@ -9,6 +9,16 @@
 import { sequelize } from '../models/index.js'
 import User from '../models/User.js'
 import Level from '../models/Level.js'
+import Settings from '../models/Settings.js'
+
+// Helper: get referral prefix
+const getReferralPrefix = async () => {
+  const setting = await Settings.findOne({ where: { key: 'referralPrefix' } })
+  return setting ? setting.value : 'REF'
+}
+
+// Helper: format a user's referral display id
+const toReferralId = (prefix, userId) => `${prefix}${userId}`
 
 /**
  * Insert level records for a newly registered user.
@@ -124,6 +134,8 @@ export const getLevelSummary = async (sponsorId) => {
  * Used by the "Team View" page when a level row is expanded.
  */
 export const getLevelUsers = async (sponsorId, level) => {
+  const prefix = await getReferralPrefix()
+  
   const rows = await Level.findAll({
     where: { sponsor: sponsorId, level },
     order: [['id', 'ASC']],
@@ -138,33 +150,45 @@ export const getLevelUsers = async (sponsorId, level) => {
   const users = allIds.length > 0
     ? await User.findAll({
         where: { id: allIds },
-        attributes: ['id', 'name', 'email', 'phone', 'userId', 'active', 'refcount', 'teamcount'],
+        attributes: ['id', 'name', 'email', 'phone', 'userId', 'active', 'refcount', 'refactcount', 'teamcount', 'teamactcount', 'refid'],
       })
     : []
 
   const userMap = new Map(users.map((u) => [u.id, u]))
 
+  // Get all unique refid values from joiners to fetch their referrer details
+  const referrerIds = [...new Set(users.map((u) => u.refid).filter(Boolean))]
+  const referrers = referrerIds.length > 0
+    ? await User.findAll({
+        where: { id: referrerIds },
+        attributes: ['id', 'name', 'userId'],
+      })
+    : []
+  const referrerMap = new Map(referrers.map((r) => [r.id, r]))
+
   return rows.map((row) => {
     const json = typeof row.toJSON === 'function' ? row.toJSON() : row
     const joiner = userMap.get(json.joiner)
-    const sponsor = userMap.get(json.sponsor)
     
     if (!joiner) return null
 
     const joinerJson = typeof joiner.toJSON === 'function' ? joiner.toJSON() : joiner
-    const sponsorJson = sponsor ? (typeof sponsor.toJSON === 'function' ? sponsor.toJSON() : sponsor) : null
+    const referrer = joinerJson.refid ? referrerMap.get(joinerJson.refid) : null
+    const referrerJson = referrer ? (typeof referrer.toJSON === 'function' ? referrer.toJSON() : referrer) : null
 
     return {
       id: json.id,
       joinerId: joinerJson.id,
       joinerName: joinerJson.name,
-      sponsorId: sponsorJson ? sponsorJson.id : null,
-      sponsorName: sponsorJson ? sponsorJson.name : null,
+      sponsorId: referrerJson ? referrerJson.id : null,
+      sponsorName: referrerJson ? referrerJson.name : null,
       level: json.level,
       userIdDisplay: joinerJson.userId || `#${joinerJson.id}`,
-      refIdDisplay: sponsorJson ? (sponsorJson.userId || `#${sponsorJson.id}`) : '-',
+      refIdDisplay: joinerJson.refid ? toReferralId(prefix, joinerJson.refid) : '-',
       refcount: joinerJson.refcount || 0,
+      refactcount: joinerJson.refactcount || 0,
       teamcount: joinerJson.teamcount || 0,
+      teamactcount: joinerJson.teamactcount || 0,
     }
   }).filter(Boolean)
 }
