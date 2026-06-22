@@ -7,7 +7,7 @@ import FloatingInput from '../components/FloatingInput.jsx'
 import illustration from '../assets/register-illustration.svg'
 
 export default function Register() {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '' })
+  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '', referralUserId: '' })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [referrer, setReferrer] = useState(null)
@@ -16,6 +16,9 @@ export default function Register() {
   const [loading, setLoading] = useState(false)
   const [topIdExists, setTopIdExists] = useState(false)
   const [validReferral, setValidReferral] = useState(false)
+  const [referralMode, setReferralMode] = useState('link') // 'link' or 'userid'
+  const [validatingUserId, setValidatingUserId] = useState(false)
+  const [userIdError, setUserIdError] = useState('')
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -34,17 +37,21 @@ export default function Register() {
             if (referralData?.valid) {
               setReferrer(referralData.referrer)
               setValidReferral(true)
+              setReferralMode('link')
             } else {
               setValidReferral(false)
               setReferrer(null)
+              setReferralMode('userid')
             }
           } catch (e) {
             setValidReferral(false)
             setReferrer(null)
+            setReferralMode('userid')
           }
         } else {
           setValidReferral(false)
           setReferrer(null)
+          setReferralMode('userid')
         }
       } catch (e) {
         console.error('Init failed:', e)
@@ -59,8 +66,38 @@ export default function Register() {
     if (name === 'phone') {
       const digits = value.replace(/\D/g, '').slice(0, 10)
       setForm({ ...form, phone: digits })
+    } else if (name === 'referralUserId') {
+      setForm({ ...form, referralUserId: value })
+      setUserIdError('')
     } else {
       setForm({ ...form, [name]: value })
+    }
+  }
+
+  const validateReferralUserId = async () => {
+    const userIdValue = form.referralUserId.trim()
+    if (!userIdValue) {
+      setUserIdError('Referral User ID is required.')
+      return
+    }
+    setValidatingUserId(true)
+    setUserIdError('')
+    try {
+      const user = await fetchReferrer(userIdValue)
+      if (user) {
+        setReferrer(user)
+        setValidReferral(true)
+      } else {
+        setUserIdError('Invalid User ID. Please enter a valid User ID.')
+        setValidReferral(false)
+        setReferrer(null)
+      }
+    } catch (err) {
+      setUserIdError('Invalid User ID. Please enter a valid User ID.')
+      setValidReferral(false)
+      setReferrer(null)
+    } finally {
+      setValidatingUserId(false)
     }
   }
 
@@ -74,23 +111,25 @@ export default function Register() {
         setError('Registration is currently unavailable. Please contact support.')
         return
       }
-      if (!validReferral || !referrer?.id) {
-        setError('Registration requires a valid referral link.')
-        return
-      }
       if (!/^[0-9]{10}$/.test(form.phone)) {
         setError('Phone number must be 10 digits.')
         setLoading(false)
         return
       }
       const payload = { ...form }
+      delete payload.referralUserId
       // Pass the referrer's numeric id so the backend can store it as referredBy
-      payload.referredBy = referrer.id
+      // If no valid referrer, don't send referredBy (registration without sponsor)
+      if (validReferral && referrer?.id) {
+        payload.referredBy = referrer.id
+      } else {
+        delete payload.referredBy
+      }
       const response = await registerCustomer(payload)
-      setSuccess(`Registration completed! Your Referral ID is ${response.referralId}`)
+      setSuccess('Registration completed!')
       setCreatedUser(response.user || { name: form.name, email: form.email, phone: form.phone })
       setModalOpen(true)
-      setForm({ name: '', email: '', phone: '', password: '', confirmPassword: '' })
+      setForm({ name: '', email: '', phone: '', password: '', confirmPassword: '', referralUserId: '' })
     } catch (err) {
       setError(err.message)
     } finally {
@@ -121,7 +160,7 @@ export default function Register() {
         <div className="register-form-panel">
           <div className="register-form-inner">
             <h1>Create an account</h1>
-            <p className="subtitle">Register and receive your auto-generated Referral ID.</p>
+            <p className="subtitle">Register and receive your auto-generated User ID.</p>
 
             <Alert type={error ? 'danger' : 'success'} message={error || success} />
 
@@ -130,20 +169,50 @@ export default function Register() {
                 <h3>Registration Unavailable</h3>
                 <p>Please contact support to get started.</p>
               </div>
-            ) : !validReferral ? (
-              <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-                <h3>Valid Referral Required</h3>
-                <p>You must have a valid referral link to register. Please ask a current member to invite you.</p>
-              </div>
             ) : (
               <form onSubmit={handleSubmit} className="form-grid register-form">
-                {referrer && (
+                {referrer && referralMode === 'link' && (
                   <div className="introducer-badge">
                     <span className="feature-icon">✦</span>
                     <div>
                       <strong>Referred by {referrer.name}</strong>
-                      <span>ID: {referrer.referralId || `REF${referrer.id}`}</span>
+                      <span>User ID: {referrer.userId || `MEM${referrer.id}`}</span>
                     </div>
+                  </div>
+                )}
+                {referralMode === 'userid' && (
+                  <div className="form-group">
+                   
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input
+                        type="text"
+                        name="referralUserId"
+                        value={form.referralUserId}
+                        onChange={handleChange}
+                        required
+                        placeholder="Enter User ID "
+                        className="form-input"
+                        style={{ flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        className="button button-secondary"
+                        onClick={validateReferralUserId}
+                        disabled={validatingUserId || !form.referralUserId.trim()}
+                      >
+                        {validatingUserId ? 'Validating...' : 'Validate'}
+                      </button>
+                    </div>
+                    {userIdError && <p style={{ color: 'red', fontSize: '0.85rem', marginTop: 4 }}>{userIdError}</p>}
+                    {referrer && referralMode === 'userid' && (
+                      <div className="introducer-badge" style={{ marginTop: 8 }}>
+                        <span className="feature-icon">✓</span>
+                        <div>
+                          <strong>Referred by {referrer.name}</strong>
+                          <span>User ID: {referrer.userId || `MEM${referrer.id}`}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
                 <FloatingInput label="Full Name"        name="name"            value={form.name}            onChange={handleChange} required />
@@ -187,7 +256,7 @@ export default function Register() {
             <>
               <h4>Referred By</h4>
               <div><strong>Name:</strong> {referrer.name}</div>
-              <div><strong>Referral ID:</strong> {referrer.referralId || `REF${referrer.id}`}</div>
+              <div><strong>User ID:</strong> {referrer.userId || `MEM${referrer.id}`}</div>
             </>
           )}
         </div>

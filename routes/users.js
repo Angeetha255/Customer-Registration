@@ -405,11 +405,10 @@ router.get('/me', authMiddleware, async (req, res) => {
 
     res.json({
       ...enrichUserStats(userRecord.toJSON()),
-      referralId,
+      userId: userRecord.userId,
       referralLink,
       referrerName,
       referrerDisplayId,
-      referrerReferralId,
       placementParentName,
       placementParentDisplayId,
       level,
@@ -484,19 +483,23 @@ router.get('/', authMiddleware, requireRole('admin'), async (req, res) => {
 
     const prefix = await getReferralPrefix()
 
-    // Collect all unique refid ids to batch-fetch referrer names
+    // Collect all unique refid ids to batch-fetch referrer names and user IDs
     const referrerIds = [...new Set(users.map((u) => u.refid).filter(Boolean))]
     const referrers = referrerIds.length
-      ? await User.findAll({ where: { id: referrerIds }, attributes: ['id', 'name'] })
+      ? await User.findAll({ where: { id: referrerIds }, attributes: ['id', 'name', 'userId'] })
       : []
-    const referrerMap = Object.fromEntries(referrers.map((r) => [r.id, r.name]))
+    const referrerMap = Object.fromEntries(referrers.map((r) => [r.id, { name: r.name, userId: r.userId }]))
 
-    const enriched = users.map((u) => ({
-      ...enrichUserStats(u.toJSON()),
-      referralId: toReferralId(prefix, u.id),
-      referrerName: u.refid ? (referrerMap[u.refid] || null) : null,
-      referrerDisplayId: u.refid ? toReferralId(prefix, u.refid) : null,
-    }))
+    const enriched = users.map((u) => {
+      const referrer = u.refid ? referrerMap[u.refid] : null
+      return {
+        ...enrichUserStats(u.toJSON()),
+        userId: u.userId,
+        referrerName: referrer ? referrer.name : null,
+        referrerUserId: referrer ? referrer.userId : null,
+        referrerDisplayId: u.refid ? (referrer ? (referrer.userId || `#${u.refid}`) : `#${u.refid}`) : null,
+      }
+    })
 
     res.json({ total, page: Number(page), limit: Number(limit), customers: enriched })
   } catch (error) {
@@ -796,15 +799,24 @@ router.get('/export', authMiddleware, requireRole('admin'), async (req, res) => 
     const { format = 'csv' } = req.query
     const prefix = await getReferralPrefix()
     const customers = await User.findAll({
-      attributes: ['id', 'name', 'email', 'phone', 'refid', 'regat'],
+      attributes: ['id', 'userId', 'name', 'email', 'phone', 'refid', 'regat'],
     })
 
-    // Batch fetch referrer names
+    // Ensure all customers have a userId; generate and save if missing
+    const missingUserId = customers.filter((c) => !c.userId)
+    if (missingUserId.length > 0) {
+      for (const customer of missingUserId) {
+        customer.userId = await generateUserId()
+        await customer.save()
+      }
+    }
+
+    // Batch fetch referrer names and user IDs
     const referrerIds = [...new Set(customers.map((c) => c.refid).filter(Boolean))]
     const referrers = referrerIds.length
-      ? await User.findAll({ where: { id: referrerIds }, attributes: ['id', 'name'] })
+      ? await User.findAll({ where: { id: referrerIds }, attributes: ['id', 'name', 'userId'] })
       : []
-    const referrerMap = Object.fromEntries(referrers.map((r) => [r.id, r.name]))
+    const referrerMap = Object.fromEntries(referrers.map((r) => [r.id, { name: r.name, userId: r.userId }]))
 
     if (format === 'pdf') {
       const doc = new pdfkit({ size: 'A4', margin: 40 })
@@ -814,13 +826,12 @@ router.get('/export', authMiddleware, requireRole('admin'), async (req, res) => 
       doc.fontSize(18).text('Customer Export', { underline: true })
       doc.moveDown()
       customers.forEach((customer) => {
-        doc.fontSize(11).text(`Referral ID: ${toReferralId(prefix, customer.id)}`)
+        doc.fontSize(11).text(`User ID: ${customer.userId}`)
         doc.text(`Name: ${customer.name}`)
         doc.text(`Email: ${customer.email}`)
         doc.text(`Phone: ${customer.phone}`)
-        doc.text(
-          `Referred By: ${customer.refid ? (referrerMap[customer.refid] || 'Unknown') : 'N/A'} (${customer.refid ? toReferralId(prefix, customer.refid) : 'N/A'})`
-        )
+        const referrerInfo = customer.refid ? (referrerMap[customer.refid] || { name: 'Unknown', userId: 'N/A' }) : { name: 'N/A', userId: 'N/A' }
+        doc.text(`Referred By: ${referrerInfo.name} (${referrerInfo.userId})`)
         doc.text(`Registered At: ${customer.regat.toISOString()}`)
         doc.moveDown()
       })
@@ -828,21 +839,21 @@ router.get('/export', authMiddleware, requireRole('admin'), async (req, res) => 
       return
     }
 
-    const header = 'Referral ID,Name,Email,Phone,Referred By Name,Referred By ID,Registered At\n'
+    const header = 'User ID,Name,Email,Phone,Referred By Name,Referred By User ID,Registered At\n'
     const rows = customers
-      .map((c) =>
-        [
-          toReferralId(prefix, c.id),
+      .map((c) => {
+        const referrerInfo = c.refid ? (referrerMap[c.refid] || { name: 'Unknown', userId: 'N/A' }) : { name: '', userId: '' }
+        return [
+          c.userId,
           c.name,
           c.email,
           c.phone,
-          c.refid ? (referrerMap[c.refid] || 'Unknown') : '',
-          c.refid ? toReferralId(prefix, c.refid) : '',
+          referrerInfo.name,
+          referrerInfo.userId,
           c.regat.toISOString(),
         ]
-          .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-          .join(',')
-      )
+      })
+      .map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
       .join('\n')
 
     res.setHeader('Content-Type', 'text/csv')
@@ -880,7 +891,7 @@ router.get('/:id', authMiddleware, requireRole('admin'), async (req, res) => {
 
     res.json({
       ...customer.toJSON(),
-      referralId: toReferralId(prefix, customer.id),
+      userId: customer.userId,
       referrerName,
       referrerDisplayId,
       level,

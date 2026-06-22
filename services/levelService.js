@@ -184,7 +184,7 @@ export const getLevelUsers = async (sponsorId, level) => {
       sponsorName: referrerJson ? referrerJson.name : null,
       level: json.level,
       userIdDisplay: joinerJson.userId || `#${joinerJson.id}`,
-      refIdDisplay: joinerJson.refid ? toReferralId(prefix, joinerJson.refid) : '-',
+      sponsorUserIdDisplay: joinerJson.refid ? (referrerJson?.userId || `#${joinerJson.refid}`) : '-',
       refcount: joinerJson.refcount || 0,
       refactcount: joinerJson.refactcount || 0,
       teamcount: joinerJson.teamcount || 0,

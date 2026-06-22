@@ -41,14 +41,16 @@ router.get('/top-id', async (req, res) => {
   }
 })
 
-// ── GET /api/auth/check-referral/:refId ───────────────────────────────────────────
-// Check if a referral ID is valid
-router.get('/check-referral/:refId', async (req, res) => {
+// ── GET /api/auth/check-referral/:userId ───────────────────────────────────────────
+// Check if a referral User ID is valid
+router.get('/check-referral/:userId', async (req, res) => {
   try {
-    const refId = parseInt(req.params.refId, 10)
-    if (isNaN(refId)) return res.status(400).json({ message: 'Invalid referral ID.' })
+    const userIdValue = req.params.userId
+    if (!userIdValue || typeof userIdValue !== 'string') {
+      return res.status(400).json({ message: 'Invalid User ID.' })
+    }
 
-    const referrer = await User.findByPk(refId, { attributes: ['id', 'name', 'email', 'userId', 'active'] })
+    const referrer = await User.findOne({ where: { userId: userIdValue }, attributes: ['id', 'name', 'email', 'userId', 'active'] })
     if (!referrer) return res.status(404).json({ message: 'Referrer not found.' })
 
     const prefix = await getReferralPrefix()
@@ -73,22 +75,29 @@ router.post('/register', async (req, res) => {
       return res.status(403).json({ message: 'Registration is not available yet. Contact admin.' })
     }
 
-    // Require valid referral link
-    if (!refParam) {
-      return res.status(400).json({ message: 'Registration requires a valid referral link.' })
-    }
+    // Referral is optional - validate if provided
+    let refId = null
+    let referrer = null
+    if (refParam) {
+      // Accept either numeric database ID or generated User ID
+      const isNumeric = /^\d+$/.test(String(refParam))
+      if (isNumeric) {
+        refId = parseInt(refParam, 10)
+        referrer = await User.findByPk(refId)
+      } else {
+        referrer = await User.findOne({ where: { userId: String(refParam) } })
+        if (referrer) refId = referrer.id
+      }
 
-    const refId = parseInt(refParam, 10)
-    if (isNaN(refId)) {
-      return res.status(400).json({ message: 'Invalid referral link.' })
-    }
-
-    const referrer = await User.findByPk(refId)
-    if (!referrer) {
-      return res.status(400).json({ message: 'Referrer not found. Invalid referral link.' })
-    }
-    if (!referrer.active) {
-      return res.status(400).json({ message: 'Referrer account is inactive. Invalid referral link.' })
+      if (!referrer) {
+        return res.status(400).json({ message: 'Referrer not found. Invalid referral ID.' })
+      }
+      if (!referrer.active) {
+        return res.status(400).json({ message: 'Referrer account is inactive. Invalid referral ID.' })
+      }
+      if (referrer.email === email) {
+        return res.status(400).json({ message: 'You cannot refer yourself.' })
+      }
     }
 
     if (!name || !email || !phone || !password || !confirmPassword)
@@ -98,18 +107,24 @@ router.post('/register', async (req, res) => {
     if (password !== confirmPassword)
       return res.status(400).json({ message: 'Passwords do not match.' })
 
-    if (referrer.email === email)
-      return res.status(400).json({ message: 'You cannot refer yourself.' })
-
     const existingUser = await User.findOne({ where: { email } })
     if (existingUser)
       return res.status(409).json({ message: 'Email is already registered.' })
 
-    // Binary-tree placement
+    // Binary-tree placement - if no referrer, place under top user or as root
     let placementId = null
     let position = null
-    const slot = await determinePlacement(refId)
-    if (slot) { placementId = slot.parentId; position = slot.position }
+    if (refId) {
+      const slot = await determinePlacement(refId)
+      if (slot) { placementId = slot.parentId; position = slot.position }
+    } else {
+      // No referrer - place directly under top user if exists
+      const topUserIdSetting = await Settings.findOne({ where: { key: 'topUserId' } })
+      if (topUserIdSetting) {
+        placementId = parseInt(topUserIdSetting.value, 10)
+        position = 'left' // Default position for direct referrals to top
+      }
+    }
 
     const userId = await generateUserId()
     const now = new Date()
@@ -119,19 +134,21 @@ router.post('/register', async (req, res) => {
       name, email, phone,
       regat: now,
       userId,
-      refid: refId,
+      refid: refId || null,
       placeid: placementId,
-      position,
+      position: position || null,
       DOJ: now,
       DOA: now,
       password: hashedPassword,
+      active: false,
     })
 
-    // Update referrer's referral count via propagateTeamStats
-    await propagateTeamStats(user.id, refId)
-
-    // Populate levels table for the new user with all ancestor records
-    await createLevelRecordsForNewUser(user.id, refId)
+    // Update team stats only if there's a referrer
+    if (refId) {
+      await propagateTeamStats(user.id, refId)
+      // Populate levels table for the new user with all ancestor records
+      await createLevelRecordsForNewUser(user.id, refId)
+    }
 
     const prefix = await getReferralPrefix()
     const saved = await User.findByPk(user.id, { attributes: { exclude: HIDDEN_FIELDS } })
@@ -149,7 +166,6 @@ router.post('/register', async (req, res) => {
 
     res.status(201).json({
       message: 'Customer registered successfully.',
-      referralId: `${prefix}${user.id}`,
       userId,
       user: enrichUserStats(saved.toJSON()),
     })
@@ -184,7 +200,6 @@ router.post('/login', async (req, res) => {
       type: 'customer',
       userId: user.userId,
       refid: user.refid,
-      referralId: `${prefix}${user.id}`,
       active: user.active,
       teamcount: user.teamcount,
       teamactcount: user.teamactcount,
@@ -232,12 +247,15 @@ router.post('/admin/login', async (req, res) => {
   }
 })
 
-// ── GET /api/auth/referrer/:id ────────────────────────────────────────────────
-router.get('/referrer/:id', async (req, res) => {
+// ── GET /api/auth/referrer/:userId ────────────────────────────────────────────────
+router.get('/referrer/:userId', async (req, res) => {
   try {
-    const refId = parseInt(req.params.id, 10)
-    if (isNaN(refId)) return res.status(400).json({ message: 'Invalid referrer ID.' })
-    const referrer = await User.findByPk(refId, {
+    const userIdValue = req.params.userId
+    if (!userIdValue || typeof userIdValue !== 'string') {
+      return res.status(400).json({ message: 'Invalid User ID.' })
+    }
+    const referrer = await User.findOne({
+      where: { userId: userIdValue },
       attributes: ['id', 'name', 'email', 'phone', 'userId'],
     })
     if (!referrer) return res.status(404).json({ message: 'Referrer not found.' })

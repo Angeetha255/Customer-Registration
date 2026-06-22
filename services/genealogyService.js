@@ -81,16 +81,16 @@ export const enrichGenealogyMember = (user, lookup, prefix) => {
   const referrer = user.refid ? lookup.get(user.refid) : null
   const placement = user.placeid ? lookup.get(user.placeid) : null
   const userIdDisplay = user.userId || `#${user.id}`
-  const refIdDisplay = referrer ? (referrer.userId || `${prefix}${referrer.id}`) : '-'
-  const placementIdDisplay = placement ? (placement.userId || `${prefix}${placement.id}`) : '-'
+  const sponsorUserIdDisplay = referrer ? (referrer.userId || `#${referrer.id}`) : '-'
+  const placementIdDisplay = placement ? (placement.userId || `#${placement.id}`) : '-'
 
   return {
     ...base,
     userIdDisplay,
     userIdNameDisplay: user.name ? `${userIdDisplay} - ${user.name}` : userIdDisplay,
-    refIdDisplay,
+    sponsorUserIdDisplay,
     referrerName: referrer?.name || null,
-    refIdNameDisplay: referrer?.name ? `${refIdDisplay} - ${referrer.name}` : refIdDisplay,
+    sponsorUserIdNameDisplay: referrer?.name ? `${sponsorUserIdDisplay} - ${referrer.name}` : sponsorUserIdDisplay,
     placementIdDisplay,
     placementName: placement?.name || null,
     placementIdNameDisplay: placement?.name ? `${placementIdDisplay} - ${placement.name}` : placementIdDisplay,
@@ -176,7 +176,7 @@ const toReferralHierarchyMember = (user, level, prefix, childrenMap, userMap) =>
   const referrer = user.refid ? userMap.get(user.refid) : null
   const stats = calculateReferralStats(user, childrenMap, userMap)
   const userIdDisplay = user.userId || `#${user.id}`
-  const refIdDisplay = referrer ? (referrer.userId || `${prefix}${referrer.id}`) : '-'
+  const sponsorUserIdDisplay = referrer ? (referrer.userId || `#${referrer.id}`) : '-'
 
   return {
     id: user.id,
@@ -184,9 +184,9 @@ const toReferralHierarchyMember = (user, level, prefix, childrenMap, userMap) =>
     userId: user.userId,
     userIdDisplay,
     userIdNameDisplay: user.name ? `${userIdDisplay} - ${user.name}` : userIdDisplay,
-    refIdDisplay,
+    sponsorUserIdDisplay,
     referrerName: referrer?.name || null,
-    refIdNameDisplay: referrer?.name ? `${refIdDisplay} - ${referrer.name}` : refIdDisplay,
+    sponsorUserIdNameDisplay: referrer?.name ? `${sponsorUserIdDisplay} - ${referrer.name}` : sponsorUserIdDisplay,
     refid: user.refid,
     level,
     active: !!user.active,

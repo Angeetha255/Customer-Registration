@@ -58,7 +58,7 @@ export default function MyTeam() {
               <tr>
                 <th>S.No</th>
                 <th>User ID</th>
-                <th>Ref ID</th>
+                <th>Sponsor User ID</th>
                 <th>Level</th>
                 <th>Ref Count</th>
                 <th>Team Count</th>
@@ -76,7 +76,7 @@ export default function MyTeam() {
                   <tr key={member.id}>
                     <td>{index + 1}</td>
                     <td><span className="ad-cid-badge">{member.userIdDisplay}</span> {member.joinerName || ''}</td>
-                    <td>{member.refIdDisplay || '-'} {member.sponsorName || ''}</td>
+                    <td>{member.sponsorUserIdDisplay || '-'} {member.sponsorName || ''}</td>
                     <td>{member.level}</td>
                     <td>{member.refactcount || 0}/{member.refcount || 0}</td>
                     <td>{member.teamactcount || 0}/{member.teamcount || 0}</td>

@@ -242,7 +242,7 @@ export default function AdminCustomers() {
                 <th>Phone</th>
                 
                 <th>Referred By</th>
-                <th>Referrer ID</th>
+                <th>Referrer User ID</th>
                 <th>Registered</th>
                 <th>Actions</th>
               </tr>
@@ -261,7 +261,7 @@ export default function AdminCustomers() {
                   <td>{customer.phone}</td>
                  
                   <td>{customer.referrerName || '—'}</td>
-                  <td>{customer.referrerDisplayId || '—'}</td>
+                  <td>{customer.referrerUserId || '—'}</td>
                   <td>
                     {(function (d) {
                       if (!d) return '—'
@@ -395,8 +395,8 @@ export default function AdminCustomers() {
                     <input value={editingCustomer?.referrerName || '—'} disabled />
                   </label>
                   <label>
-                    Referrer ID
-                    <input value={editingCustomer?.referrerDisplayId || '—'} disabled />
+                    Referrer User ID
+                    <input value={editingCustomer?.referrerUserId || '—'} disabled />
                   </label>
                 </div>
               </div>

@@ -18,7 +18,7 @@ const User = sequelize.define(
     refactcount: { type: DataTypes.INTEGER, defaultValue: 0 },
     teamcount: { type: DataTypes.INTEGER, defaultValue: 0 },
     teamactcount: { type: DataTypes.INTEGER, defaultValue: 0 },
-    active: { type: DataTypes.BOOLEAN, defaultValue: true },
+    active: { type: DataTypes.BOOLEAN, defaultValue: false },
     password: { type: DataTypes.STRING, allowNull: false },
     pwdtoken: { type: DataTypes.STRING, allowNull: true },
     pwdexp: { type: DataTypes.DATE, allowNull: true },

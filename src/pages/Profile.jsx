@@ -150,8 +150,8 @@ export default function Profile() {
           <div className="profile-info-list">
             {/* Referred By: referrer's name | Referrer ID: referrer's referral ID (userId with prefix) */}
             <ProfileRow label="Referred By"      value={profile?.referrerName     || '—'} />
-            <ProfileRow label="Referrer ID"      value={profile?.referrerReferralId || '—'} />
-            <ProfileRow label="Your Referral ID" value={profile?.referralId        || (profile?.id ? `REF${profile.id}` : '—')}/>
+            <ProfileRow label="Referrer User ID" value={profile?.referrerDisplayId || '—'} />
+            <ProfileRow label="Your User ID"     value={profile?.userId           || (profile?.id ? `MEM${profile.id}` : '—')}/>
 
             <ProfileRow label="Phone"            value={profile?.phone            || '—'} />
             <ProfileRow label="Email"            value={profile?.email            || '—'} />
@@ -190,7 +190,7 @@ export default function Profile() {
                 </div>
               </>
             ) : (
-              <p className="pref-empty">No referral ID assigned yet.</p>
+              <p className="pref-empty">No User ID assigned yet.</p>
             )}
           </div>
 

@@ -246,14 +246,14 @@ export default function TeamView() {
                           {user.joinerName} ({user.userIdDisplay})
                         </button>
                       </td>
-                      <td>
+                       <td>
                         {user.sponsorName ? (
                           <button
                             type="button"
-                            onClick={() => handleUserClick(user.sponsorId, user.refIdDisplay, user.sponsorName)}
+                            onClick={() => handleUserClick(user.sponsorId, user.sponsorUserIdDisplay, user.sponsorName)}
                             style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0, fontSize: 'inherit' }}
                           >
-                            {user.sponsorName} ({user.refIdDisplay})
+                            {user.sponsorName} ({user.sponsorUserIdDisplay})
                           </button>
                         ) : '-'}
                       </td>
