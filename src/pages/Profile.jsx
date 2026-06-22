@@ -151,8 +151,7 @@ export default function Profile() {
             {/* Referred By: referrer's name | Referrer ID: referrer's referral ID (userId with prefix) */}
             <ProfileRow label="Referred By"      value={profile?.referrerName     || '—'} />
             <ProfileRow label="Referrer User ID" value={profile?.referrerDisplayId || '—'} />
-            <ProfileRow label="Your User ID"     value={profile?.userId           || (profile?.id ? `MEM${profile.id}` : '—')}/>
-
+           
             <ProfileRow label="Phone"            value={profile?.phone            || '—'} />
             <ProfileRow label="Email"            value={profile?.email            || '—'} />
             <ProfileRow label="Date Joined"      value={formatDate(profile?.regat)} />

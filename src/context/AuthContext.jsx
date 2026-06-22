@@ -26,8 +26,13 @@ export const AuthProvider = ({ children }) => {
     initializeAuth()
   }, [])
 
-  // Customer sign-in
+  // Customer sign-in — clears any existing session first
   const signIn = async (credentials) => {
+    // Wipe any previous session (admin or customer) before logging in as new user
+    window.localStorage.removeItem('adminAuthToken')
+    window.localStorage.removeItem('authToken')
+    setUser(null)
+
     const response = await apiLogin(credentials)
     window.localStorage.setItem('authToken', response.token)
     setUser(response.user)

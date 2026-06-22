@@ -84,9 +84,7 @@ router.post('/register', async (req, res) => {
       if (!referrer) {
         return res.status(400).json({ message: 'Referrer not found. Invalid referral ID.' })
       }
-      if (!referrer.active) {
-        return res.status(400).json({ message: 'Referrer account is inactive. Invalid referral ID.' })
-      }
+      // Allow registration regardless of referrer's active status
       if (referrer.email === email) {
         return res.status(400).json({ message: 'You cannot refer yourself.' })
       }

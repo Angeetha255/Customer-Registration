@@ -19,9 +19,11 @@ export default function Register() {
   const [autoLoggingIn, setAutoLoggingIn] = useState(false)
   const [topIdExists, setTopIdExists] = useState(false)
   const [validReferral, setValidReferral] = useState(false)
-  const [referralMode, setReferralMode] = useState('link') // 'link' or 'userid'
+  const [referralMode, setReferralMode] = useState('link')
   const [validatingUserId, setValidatingUserId] = useState(false)
   const [userIdError, setUserIdError] = useState('')
+  // Saved before form is cleared — used for auto-login after registration
+  const [savedCredentials, setSavedCredentials] = useState(null)
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -72,6 +74,9 @@ export default function Register() {
     } else if (name === 'referralUserId') {
       setForm({ ...form, referralUserId: value })
       setUserIdError('')
+      // Reset validation state when the field is edited
+      setValidReferral(false)
+      setReferrer(null)
     } else {
       setForm({ ...form, [name]: value })
     }
@@ -121,8 +126,6 @@ export default function Register() {
       }
       const payload = { ...form }
       delete payload.referralUserId
-      // Pass the referrer's numeric id so the backend can store it as referredBy
-      // If no valid referrer, don't send referredBy (registration without sponsor)
       if (validReferral && referrer?.id) {
         payload.referredBy = referrer.id
       } else {
@@ -131,6 +134,8 @@ export default function Register() {
       const response = await registerCustomer(payload)
       setSuccess('Registration completed!')
       setCreatedUser(response.user || { name: form.name, email: form.email, phone: form.phone })
+      // Save credentials before clearing form so auto-login can use them
+      setSavedCredentials({ email: form.email, password: form.password })
       setModalOpen(true)
       setForm({ name: '', email: '', phone: '', password: '', confirmPassword: '', referralUserId: '' })
     } catch (err) {
@@ -140,14 +145,19 @@ export default function Register() {
     }
   }
 
-  const handleGoToLogin = async () => {
+  const handleGoToDashboard = async () => {
+    if (!savedCredentials) { navigate('/login'); return }
     setAutoLoggingIn(true)
     try {
-      await signIn({ email: form.email, password: form.password })
-      navigate('/dashboard')
+      // signIn clears old session, logs in fresh as the new user
+      await signIn(savedCredentials)
+      setModalOpen(false)
+      // Small delay lets React flush the new user state before navigating
+      setTimeout(() => navigate('/dashboard'), 50)
     } catch (err) {
       setModalOpen(false)
-      setError(err.message || 'Auto-login failed. Please login manually.')
+      setError(err.message || 'Auto-login failed. Please log in manually.')
+      navigate('/login')
     } finally {
       setAutoLoggingIn(false)
     }
@@ -206,7 +216,7 @@ export default function Register() {
                         value={form.referralUserId}
                         onChange={handleChange}
                         required
-                        placeholder="Enter User ID "
+                      placeholder="Enter Referral User ID *"
                         className="form-input"
                         style={{ flex: 1 }}
                       />
@@ -231,13 +241,14 @@ export default function Register() {
                     )}
                   </div>
                 )}
-                <FloatingInput label="Full Name"        name="name"            value={form.name}            onChange={handleChange} required />
-                <FloatingInput label="Email Address"    name="email"           type="email" value={form.email}    onChange={handleChange} required />
-                <FloatingInput label="Phone Number"     name="phone"           type="tel"   value={form.phone}    onChange={handleChange} required inputProps={{ inputMode: 'numeric', maxLength: 10 }} />
-                <FloatingInput label="Password"         name="password"        type="password" value={form.password}    onChange={handleChange} required minLength={6} showToggle />
-                <FloatingInput label="Confirm Password" name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} required minLength={6} showToggle />
+                <FloatingInput label="Full Name *"        name="name"            value={form.name}            onChange={handleChange} required />
+                <FloatingInput label="Email Address *"    name="email"           type="email" value={form.email}    onChange={handleChange} required />
+                <FloatingInput label="Phone Number *"     name="phone"           type="tel"   value={form.phone}    onChange={handleChange} required inputProps={{ inputMode: 'numeric', maxLength: 10 }} />
+                <FloatingInput label="Password *"         name="password"        type="password" value={form.password}    onChange={handleChange} required minLength={6} showToggle />
+                <FloatingInput label="Confirm Password *" name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} required minLength={6} showToggle />
 
-                <button type="submit" className="button button-primary register-submit" disabled={loading}>
+                <button type="submit" className="button button-primary register-submit"
+                  disabled={loading || (referralMode === 'userid' && !validReferral)}>
                   {loading ? 'Creating account…' : 'Create Account'}
                 </button>
               </form>
@@ -261,10 +272,10 @@ export default function Register() {
           <button
             type="button"
             className="button button-primary"
-            onClick={handleGoToLogin}
+            onClick={handleGoToDashboard}
             disabled={autoLoggingIn}
           >
-            {autoLoggingIn ? 'Logging in…' : 'Go to Login'}
+            {autoLoggingIn ? 'Logging in…' : 'Go to Dashboard'}
           </button>
         }
       >
