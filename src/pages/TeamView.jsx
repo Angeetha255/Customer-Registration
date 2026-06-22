@@ -119,7 +119,7 @@ export default function TeamView() {
             </p>
           )}
         </div>
-        <p>Team members organized by referral level.</p>
+        {/* <p>Team members organized by referral level.</p> */}
       </div>
 
       {error && (

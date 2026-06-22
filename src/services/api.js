@@ -114,6 +114,22 @@ export const resetDatabase = (data) =>
     body: JSON.stringify(data),
   })
 
+// New: Create first Top ID (when no users exist)
+export const createFirstTopId = (data) =>
+  send('/users/create-first-top-id', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(data),
+  })
+
+// New: Set Top ID from existing user
+export const setTopId = (userId) =>
+  send('/users/top-id', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ userId }),
+  })
+
 // New: Update Top ID details
 export const updateTopId = (data) =>
   send('/users/top-id', {

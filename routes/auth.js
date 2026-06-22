@@ -12,6 +12,7 @@ import { propagateTeamStats } from '../services/teamStats.js'
 import { generateUserId } from '../services/userIdService.js'
 import { enrichUserStats } from '../services/userEnrichment.js'
 import { createLevelRecordsForNewUser } from '../services/levelService.js'
+import { sendWelcomeMail } from '../services/mailService.js'
 
 dotenv.config()
 
@@ -30,8 +31,8 @@ router.get('/top-id', async (req, res) => {
   try {
     const topUserIdSetting = await Settings.findOne({ where: { key: 'topUserId' } })
     const topUserId = topUserIdSetting ? parseInt(topUserIdSetting.value, 10) : null
-    const topUser = topUserId ? await User.findByPk(topUserId, { 
-      attributes: ['id', 'name', 'email', 'userId', 'active'] 
+    const topUser = topUserId ? await User.findByPk(topUserId, {
+      attributes: ['id', 'name', 'email', 'userId', 'active']
     }) : null
     res.json({ topUserId, topUser })
   } catch (error) {
@@ -46,13 +47,13 @@ router.get('/check-referral/:refId', async (req, res) => {
   try {
     const refId = parseInt(req.params.refId, 10)
     if (isNaN(refId)) return res.status(400).json({ message: 'Invalid referral ID.' })
-    
+
     const referrer = await User.findByPk(refId, { attributes: ['id', 'name', 'email', 'userId', 'active'] })
     if (!referrer) return res.status(404).json({ message: 'Referrer not found.' })
-    
+
     const prefix = await getReferralPrefix()
     const referralId = `${prefix}${referrer.id}`
-    
+
     res.json({ valid: true, referrer: { ...referrer.toJSON(), referralId } })
   } catch (error) {
     console.error(error)
@@ -126,6 +127,11 @@ router.post('/register', async (req, res) => {
       password: hashedPassword,
     })
 
+    await sendWelcomeMail(user.email, user.name);
+
+    res.status(201).json({
+      success: true
+    });
     // Update referrer's referral count via propagateTeamStats
     await propagateTeamStats(user.id, refId)
 
@@ -134,6 +140,17 @@ router.post('/register', async (req, res) => {
 
     const prefix = await getReferralPrefix()
     const saved = await User.findByPk(user.id, { attributes: { exclude: HIDDEN_FIELDS } })
+
+    // Send welcome email
+    console.log('=== Registration Successful ===')
+    console.log('Attempting to send welcome email to:', email)
+    try {
+      await sendWelcomeMail(email, name, `${prefix}${user.id}`, userId)
+      console.log('Welcome email sent successfully')
+    } catch (emailError) {
+      console.error('Failed to send welcome email:', emailError)
+      // Don't fail registration if email fails, just log the error
+    }
 
     res.status(201).json({
       message: 'Customer registered successfully.',

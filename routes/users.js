@@ -178,6 +178,118 @@ router.post('/reset-db', authMiddleware, requireRole('admin'), async (req, res) 
   }
 })
 
+// POST /api/users/top-id  — set Top ID from existing user
+router.post('/top-id', authMiddleware, requireRole('admin'), async (req, res) => {
+  try {
+    const { userId } = req.body
+    if (!userId) {
+      return res.status(400).json({ message: 'User ID is required.' })
+    }
+
+    const selectedUser = await User.findByPk(userId, { attributes: { exclude: HIDDEN_FIELDS } })
+    if (!selectedUser) {
+      return res.status(404).json({ message: 'Selected user not found.' })
+    }
+
+    // Save Top User ID in settings
+    await Settings.findOrCreate({
+      where: { key: 'topUserId' },
+      defaults: { value: userId.toString() }
+    }).then(async ([setting, created]) => {
+      if (!created) {
+        setting.value = userId.toString()
+        await setting.save()
+      }
+    })
+
+    await propagateTeamStats(userId, selectedUser.refid)
+
+    const prefix = await getReferralPrefix()
+    res.json({
+      message: 'Top ID set successfully.',
+      topUser: {
+        id: selectedUser.id,
+        name: selectedUser.name,
+        email: selectedUser.email,
+        userId: selectedUser.userId,
+        referralId: toReferralId(prefix, selectedUser.id),
+      }
+    })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: 'Failed to set Top ID.', error: error.message })
+  }
+})
+
+// POST /api/users/create-first-top-id  — create first user as Top ID (when no users exist)
+router.post('/create-first-top-id', authMiddleware, requireRole('admin'), async (req, res) => {
+  try {
+    const { name, email, phone, password } = req.body
+    if (!name || !email || !phone || !password) {
+      return res.status(400).json({ message: 'All fields are required.' })
+    }
+    if (!/^[0-9]{10}$/.test(String(phone))) {
+      return res.status(400).json({ message: 'Phone number must be 10 digits.' })
+    }
+
+    const existingUser = await User.findOne({ where: { email } })
+    if (existingUser) {
+      return res.status(409).json({ message: 'Email is already registered.' })
+    }
+
+    const now = new Date()
+    const hashedPassword = await bcrypt.hash(password, 10)
+    const topUser = await User.create({
+      name,
+      email,
+      phone,
+      regat: now,
+      userId: await generateUserId(),
+      refid: null,
+      placeid: null,
+      position: null,
+      DOJ: now,
+      DOA: now,
+      password: hashedPassword,
+      refcount: 0,
+      refactcount: 0,
+      teamcount: 0,
+      teamactcount: 0,
+      active: true
+    })
+
+    // Save Top User ID in settings
+    await Settings.findOrCreate({
+      where: { key: 'topUserId' },
+      defaults: { value: topUser.id.toString() }
+    }).then(async ([setting, created]) => {
+      if (!created) {
+        setting.value = topUser.id.toString()
+        await setting.save()
+      }
+    })
+
+    await propagateTeamStats(topUser.id, null)
+
+    const prefix = await getReferralPrefix()
+    const savedTopUser = await User.findByPk(topUser.id, { attributes: { exclude: HIDDEN_FIELDS } })
+
+    res.status(201).json({
+      message: 'Top ID created successfully.',
+      topUser: {
+        id: savedTopUser.id,
+        name: savedTopUser.name,
+        email: savedTopUser.email,
+        userId: savedTopUser.userId,
+        referralId: toReferralId(prefix, savedTopUser.id),
+      }
+    })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: 'Failed to create Top ID.', error: error.message })
+  }
+})
+
 // PUT /api/users/top-id  — update Top ID details
 router.put('/top-id', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
@@ -185,7 +297,7 @@ router.put('/top-id', authMiddleware, requireRole('admin'), async (req, res) => 
 
     const topUserIdSetting = await Settings.findOne({ where: { key: 'topUserId' } })
     if (!topUserIdSetting) {
-      return res.status(404).json({ message: 'Top ID not found. Please reset database first.' })
+      return res.status(404).json({ message: 'Top ID not found. Please set Top ID first.' })
     }
 
     const topUserId = parseInt(topUserIdSetting.value, 10)

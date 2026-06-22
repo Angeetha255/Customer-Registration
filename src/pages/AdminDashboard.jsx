@@ -90,14 +90,24 @@ export default function AdminDashboard() {
   })
   const navigate = useNavigate()
 
+  const refreshDashboard = async () => {
+    try {
+      const [statsData, topIdData] = await Promise.all([fetchAdminStats(), fetchTopId()])
+      setStats(statsData)
+      setTopUser(topIdData.topUser)
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
   useEffect(() => {
-    Promise.all([fetchAdminStats(), fetchTopId()])
-      .then(([statsData, topIdData]) => {
-        setStats(statsData)
-        setTopUser(topIdData.topUser)
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false))
+    refreshDashboard().finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    const handler = () => refreshDashboard()
+    window.addEventListener('topIdUpdated', handler)
+    return () => window.removeEventListener('topIdUpdated', handler)
   }, [])
 
   const handleResetDB = async (e) => {

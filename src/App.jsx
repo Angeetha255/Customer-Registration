@@ -18,7 +18,8 @@ import MyDirect from './pages/MyDirect.jsx'
 import MyTeam from './pages/MyTeam.jsx'
 import TeamView from './pages/TeamView.jsx'
 import NotFound from './pages/NotFound.jsx'
-import { fetchTopId, updateTopId } from './services/api.js'
+import { fetchTopId, setTopId, updateTopId, fetchAdminStats, createFirstTopId } from './services/api.js'
+import Toast from './components/Toast.jsx'
 import './index.css'
 import './App.css'
 
@@ -39,6 +40,16 @@ function AppLayout({ children }) {
     password: '',
   })
   const [error, setError] = useState('')
+  const [toast, setToast] = useState({ message: '', type: 'success' })
+  const [users, setUsers] = useState([])
+  const [selectedUserId, setSelectedUserId] = useState('')
+  const [loadingUsers, setLoadingUsers] = useState(false)
+  const [firstTopIdForm, setFirstTopIdForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+  })
 
   const toggleSidebar = () => setSidebarOpen((v) => !v)
 
@@ -54,6 +65,29 @@ function AppLayout({ children }) {
     }
   }, [user])
 
+  const fetchUsers = async () => {
+    setLoadingUsers(true)
+    try {
+      const data = await fetchAdminCustomers({ page: 1, limit: 100 })
+      setUsers(data.customers || [])
+    } catch (err) {
+      console.error('Failed to fetch users:', err)
+    } finally {
+      setLoadingUsers(false)
+    }
+  }
+
+  const openUpdateTopIdModal = async () => {
+    setError('')
+    setTopIdForm({ name: '', email: '', phone: '', password: '' })
+    setSelectedUserId('')
+    setFirstTopIdForm({ name: '', email: '', phone: '', password: '' })
+    if (!topUser) {
+      await fetchUsers()
+    }
+    setUpdateTopIdModalOpen(true)
+  }
+
   const handleUpdateTopId = async (e) => {
     e.preventDefault()
     try {
@@ -62,6 +96,54 @@ function AppLayout({ children }) {
       setTopIdForm({ name: '', email: '', phone: '', password: '' })
       setUpdateTopIdModalOpen(false)
       setError('')
+      setToast({ message: response.message || 'Top ID updated successfully.', type: 'success' })
+      // Notify AdminDashboard to refresh
+      window.dispatchEvent(new CustomEvent('topIdUpdated'))
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  const handleSetTopId = async (e) => {
+    e.preventDefault()
+    if (!selectedUserId) {
+      setError('Please select a user.')
+      return
+    }
+    try {
+      const response = await setTopId(selectedUserId)
+      setTopUser(response.topUser)
+      setSelectedUserId('')
+      setUpdateTopIdModalOpen(false)
+      setError('')
+      setToast({ message: response.message || 'Top ID set successfully.', type: 'success' })
+      // Notify AdminDashboard to refresh
+      window.dispatchEvent(new CustomEvent('topIdUpdated'))
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  const handleCreateFirstTopId = async (e) => {
+    e.preventDefault()
+    const { name, email, phone, password } = firstTopIdForm
+    if (!name || !email || !phone || !password) {
+      setError('All fields are required.')
+      return
+    }
+    if (!/^[0-9]{10}$/.test(String(phone))) {
+      setError('Phone number must be 10 digits.')
+      return
+    }
+    try {
+      const response = await createFirstTopId(firstTopIdForm)
+      setTopUser(response.topUser)
+      setFirstTopIdForm({ name: '', email: '', phone: '', password: '' })
+      setUpdateTopIdModalOpen(false)
+      setError('')
+      setToast({ message: response.message || 'Top ID created successfully.', type: 'success' })
+      // Notify AdminDashboard to refresh
+      window.dispatchEvent(new CustomEvent('topIdUpdated'))
     } catch (err) {
       setError(err.message)
     }
@@ -128,10 +210,10 @@ function AppLayout({ children }) {
                           className="button button-link"
                           onClick={() => {
                             setUserMenuOpen(false)
-                            setUpdateTopIdModalOpen(true)
+                            openUpdateTopIdModal()
                           }}
                         >
-                          Update Top ID
+                          {topUser ? 'Update Top ID' : 'Set Top ID'}
                         </button>
                         {/* <button
                           className="button button-link"
@@ -164,7 +246,7 @@ function AppLayout({ children }) {
         <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setUpdateTopIdModalOpen(false) }}>
           <div className="modal-card">
             <div className="modal-header">
-              <h3>Update Top ID Details</h3>
+              <h3>{topUser ? 'Update Top ID Details' : 'Set Top ID'}</h3>
               <button className="modal-close" onClick={() => setUpdateTopIdModalOpen(false)} aria-label="Close">✕</button>
             </div>
             <div className="modal-body">
@@ -212,17 +294,101 @@ function AppLayout({ children }) {
                     />
                   </label>
                 </form>
+              ) : users.length === 0 ? (
+                <form id="create-first-top-id-form" onSubmit={handleCreateFirstTopId} className="form-grid">
+                  <p style={{ marginBottom: '16px', color: 'var(--muted)' }}>
+                    No users exist yet. Create the first user as the Top ID. New user registrations require a Top ID.
+                  </p>
+                  <label>
+                    Full Name
+                    <input
+                      type="text"
+                      value={firstTopIdForm.name}
+                      onChange={(e) => setFirstTopIdForm({ ...firstTopIdForm, name: e.target.value })}
+                      required
+                    />
+                  </label>
+                  <label>
+                    Email Address
+                    <input
+                      type="email"
+                      value={firstTopIdForm.email}
+                      onChange={(e) => setFirstTopIdForm({ ...firstTopIdForm, email: e.target.value })}
+                      required
+                    />
+                  </label>
+                  <label>
+                    Phone Number
+                    <input
+                      type="tel"
+                      value={firstTopIdForm.phone}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, '').slice(0, 10)
+                        setFirstTopIdForm({ ...firstTopIdForm, phone: digits })
+                      }}
+                      maxLength={10}
+                      required
+                    />
+                  </label>
+                  <label>
+                    Password
+                    <input
+                      type="password"
+                      value={firstTopIdForm.password}
+                      onChange={(e) => setFirstTopIdForm({ ...firstTopIdForm, password: e.target.value })}
+                      minLength={6}
+                      required
+                    />
+                  </label>
+                </form>
               ) : (
-                <p style={{ color: 'var(--muted)' }}>No Top ID found!</p>
+                <form id="set-top-id-form" onSubmit={handleSetTopId} className="form-grid">
+                  <p style={{ marginBottom: '16px', color: 'var(--muted)' }}>
+                    No Top ID is set. Please select a user to become the Top ID. New user registrations require a Top ID.
+                  </p>
+                  <label>
+                    Select User
+                    <select
+                      value={selectedUserId}
+                      onChange={(e) => setSelectedUserId(e.target.value)}
+                      required
+                    >
+                      <option value="">-- Select a user --</option>
+                      {loadingUsers ? (
+                        <option value="" disabled>Loading users...</option>
+                      ) : (
+                        users.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name} ({u.email}) - ID: {u.id}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </label>
+                </form>
               )}
             </div>
             <div className="modal-footer">
               <button type="button" className="button button-muted" onClick={() => setUpdateTopIdModalOpen(false)}>Cancel</button>
-              {topUser && <button type="submit" form="update-top-id-form" className="button button-primary">Update Top ID</button>}
+              {topUser ? (
+                <button type="submit" form="update-top-id-form" className="button button-primary">Update Top ID</button>
+              ) : users.length === 0 ? (
+                <button type="submit" form="create-first-top-id-form" className="button button-primary">Create Top ID</button>
+              ) : (
+                <button type="submit" form="set-top-id-form" className="button button-primary" disabled={loadingUsers || !selectedUserId}>
+                  {loadingUsers ? 'Loading...' : 'Set Top ID'}
+                </button>
+              )}
             </div>
           </div>
         </div>
       )}
+
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ message: '', type: 'success' })}
+      />
 
     </div>
   )
