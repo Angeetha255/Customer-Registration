@@ -127,7 +127,7 @@ router.post('/register', async (req, res) => {
       password: hashedPassword,
     })
 
-    await sendWelcomeMail(user.email, user.name);
+    //await sendWelcomeMail(user.email, user.name);
 
     res.status(201).json({
       success: true
