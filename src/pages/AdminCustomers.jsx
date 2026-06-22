@@ -22,8 +22,6 @@ export default function AdminCustomers() {
 
   // Settings panel
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [prefix, setPrefix] = useState('REF')
-  const [prefixInput, setPrefixInput] = useState('REF')
   const [userIdPrefix, setUserIdPrefix] = useState('MEM')
   const [userIdPrefixInput, setUserIdPrefixInput] = useState('MEM')
   const [savingPrefix, setSavingPrefix] = useState(false)
@@ -51,9 +49,6 @@ export default function AdminCustomers() {
   useEffect(() => {
     fetchSettings()
       .then((s) => {
-        const p = s.referralPrefix || 'REF'
-        setPrefix(p)
-        setPrefixInput(p)
         const u = s.userIdPrefix || 'MEM'
         setUserIdPrefix(u)
         setUserIdPrefixInput(u)
@@ -67,23 +62,16 @@ export default function AdminCustomers() {
   }
 
   const openSettings = () => {
-    setPrefixInput(prefix)
     setUserIdPrefixInput(userIdPrefix)
     setSettingsOpen(true)
   }
 
   const savePrefix = async () => {
-    if (!prefixInput.trim() && !userIdPrefixInput.trim()) return
+    if (!userIdPrefixInput.trim()) return
     setSavingPrefix(true)
     try {
-      if (prefixInput.trim()) {
-        await updateSetting('referralPrefix', prefixInput.trim().toUpperCase())
-        setPrefix(prefixInput.trim().toUpperCase())
-      }
-      if (userIdPrefixInput.trim()) {
-        await updateSetting('userIdPrefix', userIdPrefixInput.trim().toUpperCase())
-        setUserIdPrefix(userIdPrefixInput.trim().toUpperCase())
-      }
+      await updateSetting('userIdPrefix', userIdPrefixInput.trim().toUpperCase())
+      setUserIdPrefix(userIdPrefixInput.trim().toUpperCase())
       setSettingsOpen(false)
       showToast('Settings saved successfully.')
       await load(query)
@@ -206,14 +194,14 @@ export default function AdminCustomers() {
             type="button"
             className="button button-secondary"
             onClick={openSettings}
-            title="Referral prefix settings"
+            title="User ID prefix settings"
             style={{ display: 'flex', alignItems: 'center', gap: 6 }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3" />
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
             </svg>
-            Referral Prefix: <strong>{prefix}</strong> · User ID: <strong>{userIdPrefix}</strong>
+            User ID Prefix: <strong>{userIdPrefix}</strong>
           </button>
         </div>
         <br></br> 
@@ -287,29 +275,16 @@ export default function AdminCustomers() {
           </table>
         </div>
 
-        {/* ── Referral Prefix Settings Modal ── */}
+        {/* ── User ID Prefix Settings Modal ── */}
         {settingsOpen && (
           <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setSettingsOpen(false) }}>
             <div className="modal-card">
               <div className="modal-header">
-                <h3>Admin Settings</h3>
+                <h3>User ID Prefix Settings</h3>
                 <button className="modal-close" onClick={() => setSettingsOpen(false)}>✕</button>
               </div>
               <div className="modal-body">
                 <div className="form-grid">
-                  <label>
-                    Referral ID Prefix
-                    <input
-                      value={prefixInput}
-                      onChange={(e) => setPrefixInput(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
-                      maxLength={10}
-                      placeholder="e.g. REF"
-                      style={{ textTransform: 'uppercase' }}
-                    />
-                    <small style={{ color: 'var(--muted)', fontSize: '0.78rem' }}>
-                      Shown as referral display ID. Example: {prefixInput.trim().toUpperCase() || 'REF'}1
-                    </small>
-                  </label>
                   <label>
                     User ID Prefix
                     <input

@@ -9,12 +9,15 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const initializeAuth = async () => {
-      const token = window.localStorage.getItem('authToken')
+      const adminToken = window.localStorage.getItem('adminAuthToken')
+      const userToken = window.localStorage.getItem('authToken')
+      const token = adminToken || userToken
       if (!token) { setLoading(false); return }
       try {
         const data = await fetchMe()
         setUser(data)
       } catch {
+        window.localStorage.removeItem('adminAuthToken')
         window.localStorage.removeItem('authToken')
       } finally {
         setLoading(false)
@@ -34,16 +37,20 @@ export const AuthProvider = ({ children }) => {
   // Admin sign-in
   const signInAdmin = async (credentials) => {
     const response = await apiLoginAdmin(credentials)
-    window.localStorage.setItem('authToken', response.token)
+    window.localStorage.setItem('adminAuthToken', response.token)
     setUser(response.user)
     return response
   }
 
   const signOut = () => {
     const type = user?.type
-    window.localStorage.removeItem('authToken')
+    if (type === 'admin') {
+      window.localStorage.removeItem('adminAuthToken')
+    } else {
+      window.localStorage.removeItem('authToken')
+    }
     setUser(null)
-    window.location.href = type === 'admin' ? '/admin-login' : '/login'
+    window.location.href = type === 'admin' ? '/admin/login' : '/login'
   }
 
   return (

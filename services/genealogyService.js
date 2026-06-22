@@ -76,7 +76,7 @@ export const clearLevelCache = () => {
 /**
  * Enrich a user record for genealogy table display.
  */
-export const enrichGenealogyMember = (user, lookup, prefix) => {
+export const enrichGenealogyMember = (user, lookup) => {
   const base = enrichUserStats(user)
   const referrer = user.refid ? lookup.get(user.refid) : null
   const placement = user.placeid ? lookup.get(user.placeid) : null
@@ -172,7 +172,7 @@ const calculateReferralStats = (user, childrenMap, userMap) => {
   }
 }
 
-const toReferralHierarchyMember = (user, level, prefix, childrenMap, userMap) => {
+const toReferralHierarchyMember = (user, level, childrenMap, userMap) => {
   const referrer = user.refid ? userMap.get(user.refid) : null
   const stats = calculateReferralStats(user, childrenMap, userMap)
   const userIdDisplay = user.userId || `#${user.id}`
@@ -202,7 +202,7 @@ const toReferralHierarchyMember = (user, level, prefix, childrenMap, userMap) =>
  * Includes the user's upline from Top ID to self, then the user's complete
  * referral downline. Placement fields are intentionally not used.
  */
-export const buildReferralHierarchyForUser = async (currentUserId, prefix) => {
+export const buildReferralHierarchyForUser = async (currentUserId) => {
   const rows = await User.findAll({
     attributes: [
       'id', 'name', 'userId', 'refid', 'active',
@@ -243,7 +243,7 @@ export const buildReferralHierarchyForUser = async (currentUserId, prefix) => {
   const memberIds = new Set()
 
   const buildDownlineNode = (user, level) => {
-    const member = toReferralHierarchyMember(user, level, prefix, childrenMap, userMap)
+    const member = toReferralHierarchyMember(user, level, childrenMap, userMap)
     memberIds.add(user.id)
     members.push(member)
 
@@ -272,7 +272,7 @@ export const buildReferralHierarchyForUser = async (currentUserId, prefix) => {
       return
     }
 
-    const member = toReferralHierarchyMember(user, level, prefix, childrenMap, userMap)
+    const member = toReferralHierarchyMember(user, level, childrenMap, userMap)
     if (!memberIds.has(user.id)) {
       memberIds.add(user.id)
       members.push(member)
@@ -295,7 +295,7 @@ export const buildReferralHierarchyForUser = async (currentUserId, prefix) => {
   return { members, tree }
 }
 
-export const getPlacementLevelSummary = async (rootId, prefix) => {
+export const getPlacementLevelSummary = async (rootId) => {
   const rows = await User.findAll({
     attributes: GENEALOGY_ATTRS,
     order: [['id', 'ASC']],
@@ -341,7 +341,7 @@ export const getPlacementLevelSummary = async (rootId, prefix) => {
       totalCount: members.length,
       activeCount: members.filter((m) => m.active).length,
       members: members.map((member) => ({
-        ...enrichGenealogyMember(member, lookup, prefix),
+        ...enrichGenealogyMember(member, lookup),
         level: index + 1,
       })),
     }))
@@ -350,14 +350,14 @@ export const getPlacementLevelSummary = async (rootId, prefix) => {
 /**
  * Get enriched root node for Team View.
  */
-export const getTeamViewRoot = async (rootId, prefix) => {
+export const getTeamViewRoot = async (rootId) => {
   const user = await User.findByPk(rootId, { attributes: GENEALOGY_ATTRS })
   if (!user) return null
 
   const level = await getUserLevel(rootId)
 
   const lookup = await buildUserLookup([user.refid, user.placeid].filter(Boolean))
-  const enriched = enrichGenealogyMember(user, lookup, prefix)
+  const enriched = enrichGenealogyMember(user, lookup)
   const childCount = await User.count({ where: { placeid: rootId } })
 
   return { ...enriched, level, hasChildren: childCount > 0 }
@@ -366,7 +366,7 @@ export const getTeamViewRoot = async (rootId, prefix) => {
 /**
  * Build placement binary tree rooted at userId (full tree — admin/debug use).
  */
-export const buildPlacementTree = async (rootId, prefix) => {
+export const buildPlacementTree = async (rootId) => {
   const root = await User.findByPk(rootId, { attributes: GENEALOGY_ATTRS })
   if (!root) return null
 
@@ -391,7 +391,7 @@ export const buildPlacementTree = async (rootId, prefix) => {
     const level = await getUserLevel(user.id)
 
     const lookup = await buildUserLookup([user.refid, user.placeid].filter(Boolean))
-    const enriched = enrichGenealogyMember(user, lookup, prefix)
+    const enriched = enrichGenealogyMember(user, lookup)
 
     return {
       ...enriched,
@@ -408,7 +408,7 @@ export const buildPlacementTree = async (rootId, prefix) => {
 /**
  * Build placement subtree for a node (lazy load for expand/collapse).
  */
-export const getPlacementChildren = async (parentId, prefix) => {
+export const getPlacementChildren = async (parentId) => {
   const children = await User.findAll({
     where: { placeid: parentId },
     attributes: GENEALOGY_ATTRS,
@@ -421,7 +421,7 @@ export const getPlacementChildren = async (parentId, prefix) => {
   const enrichedChildren = await Promise.all(
     children.map(async (child) => {
       const level = await getUserLevel(child.id)
-      const enriched = enrichGenealogyMember(child, lookup, prefix)
+      const enriched = enrichGenealogyMember(child, lookup)
       return {
         ...enriched,
         level,
@@ -444,7 +444,7 @@ export const hasPlacementChildren = async (userId) => {
 /**
  * Get all users at a specific placement level from the tree root.
  */
-export const getPlacementLevelUsers = async (rootId, level, prefix) => {
+export const getPlacementLevelUsers = async (rootId, level) => {
   const rows = await User.findAll({
     attributes: GENEALOGY_ATTRS,
     order: [['id', 'ASC']],
@@ -486,7 +486,7 @@ export const getPlacementLevelUsers = async (rootId, level, prefix) => {
   const lookup = await buildUserLookup(lookupIds)
 
   return result.map((member) => ({
-    ...enrichGenealogyMember(member, lookup, prefix),
+    ...enrichGenealogyMember(member, lookup),
     level,
   }))
 }

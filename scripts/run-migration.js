@@ -212,12 +212,6 @@ async function run() {
     `)
     console.log('  ✓ settings table ready')
 
-    // ── 11. Seed default referral prefix ──────────────────────────────────
-    await sequelize.query(
-      "INSERT IGNORE INTO `settings` (`key`, `value`) VALUES ('referralPrefix', 'REF')"
-    )
-    console.log("  ✓ Default referralPrefix = 'REF' seeded")
-
     console.log('\n✅ Migration complete. You can now start the server with: npm run dev')
   } catch (err) {
     console.error('\n❌ Migration failed:', err.message)

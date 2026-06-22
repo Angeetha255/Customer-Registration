@@ -20,11 +20,6 @@ const router = express.Router()
 const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret'
 const JWT_EXPIRES = '7d'
 
-const getReferralPrefix = async () => {
-  const setting = await Settings.findOne({ where: { key: 'referralPrefix' } })
-  return setting ? setting.value : 'REF'
-}
-
 // ── GET /api/auth/top-id ───────────────────────────────────────────────────
 // Get the current Top ID info (public endpoint to check registration eligibility)
 router.get('/top-id', async (req, res) => {
@@ -53,10 +48,7 @@ router.get('/check-referral/:userId', async (req, res) => {
     const referrer = await User.findOne({ where: { userId: userIdValue }, attributes: ['id', 'name', 'email', 'userId', 'active'] })
     if (!referrer) return res.status(404).json({ message: 'Referrer not found.' })
 
-    const prefix = await getReferralPrefix()
-    const referralId = `${prefix}${referrer.id}`
-
-    res.json({ valid: true, referrer: { ...referrer.toJSON(), referralId } })
+    res.json({ valid: true, referrer: { ...referrer.toJSON(), referralId: referrer.userId } })
   } catch (error) {
     console.error(error)
     res.status(500).json({ message: 'Failed to check referral.' })
@@ -150,14 +142,13 @@ router.post('/register', async (req, res) => {
       await createLevelRecordsForNewUser(user.id, refId)
     }
 
-    const prefix = await getReferralPrefix()
     const saved = await User.findByPk(user.id, { attributes: { exclude: HIDDEN_FIELDS } })
 
     // Send welcome email
     console.log('=== Registration Successful ===')
     console.log('Attempting to send welcome email to:', email)
     try {
-      await sendWelcomeMail(email, name, `${prefix}${user.id}`, userId)
+      await sendWelcomeMail(email, name, user.userId, userId)
       console.log('Welcome email sent successfully')
     } catch (emailError) {
       console.error('Failed to send welcome email:', emailError)
@@ -191,7 +182,6 @@ router.post('/login', async (req, res) => {
     // Token carries type='customer' — no role column involved
     const token = jwt.sign({ type: 'customer', id: user.id }, JWT_SECRET, { expiresIn: JWT_EXPIRES })
 
-    const prefix = await getReferralPrefix()
     const userData = enrichUserStats({
       id: user.id,
       name: user.name,
@@ -259,8 +249,7 @@ router.get('/referrer/:userId', async (req, res) => {
       attributes: ['id', 'name', 'email', 'phone', 'userId'],
     })
     if (!referrer) return res.status(404).json({ message: 'Referrer not found.' })
-    const prefix = await getReferralPrefix()
-    res.json({ ...referrer.toJSON(), referralId: `${prefix}${referrer.id}` })
+    res.json({ ...referrer.toJSON(), referralId: referrer.userId })
   } catch (err) {
     console.error(err)
     res.status(500).json({ message: 'Unable to fetch referrer.' })

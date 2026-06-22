@@ -150,7 +150,7 @@ function AppLayout({ children }) {
   }
 
   // Public routes — never show sidebar or topbar
-  const PUBLIC_ROUTES = ['/', '/register', '/login', '/forgot-password', '/reset-password', '/admin-login']
+  const PUBLIC_ROUTES = ['/', '/register', '/login', '/forgot-password', '/reset-password', '/admin/login']
   const isPublic = PUBLIC_ROUTES.includes(location.pathname)
   const showShell = user && !isPublic
 
@@ -407,7 +407,7 @@ function AppRoutes() {
       <Route path="/genealogy/my-direct" element={<ProtectedRoute><MyDirect /></ProtectedRoute>} />
       <Route path="/genealogy/my-team" element={<ProtectedRoute><MyTeam /></ProtectedRoute>} />
       <Route path="/genealogy/team-view" element={<ProtectedRoute><TeamView /></ProtectedRoute>} />
-      <Route path="/admin-login" element={<AdminLogin />} />
+      <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
       <Route path="/admin/customers" element={<AdminRoute><AdminCustomers /></AdminRoute>} />
       <Route path="*" element={<NotFound />} />

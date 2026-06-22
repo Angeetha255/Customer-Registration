@@ -43,11 +43,6 @@ async function createDefaultAdmin() {
 }
 
 async function seedDefaultSettings() {
-  const existing = await Settings.findOne({ where: { key: 'referralPrefix' } })
-  if (!existing) {
-    await Settings.create({ key: 'referralPrefix', value: 'REF' })
-    console.log('Default referral prefix set to: REF')
-  }
   const existingUserId = await Settings.findOne({ where: { key: 'userIdPrefix' } })
   if (!existingUserId) {
     await Settings.create({ key: 'userIdPrefix', value: 'MEM' })

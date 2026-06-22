@@ -70,15 +70,6 @@ router.get('/level-users/:level', authMiddleware, async (req, res) => {
   }
 })
 
-// Helper: get referral prefix
-const getReferralPrefix = async () => {
-  const setting = await Settings.findOne({ where: { key: 'referralPrefix' } })
-  return setting ? setting.value : 'REF'
-}
-
-// Helper: format a user's referral display id
-const toReferralId = (prefix, userId) => `${prefix}${userId}`
-
 // ─── Settings routes (admin only) ────────────────────────────────────────────
 
 // GET /api/users/settings  — fetch all settings
@@ -164,13 +155,12 @@ router.post('/reset-db', authMiddleware, requireRole('admin'), async (req, res) 
 
     await propagateTeamStats(topUser.id, null)
 
-    const prefix = await getReferralPrefix()
     const savedTopUser = await User.findByPk(topUser.id, { attributes: { exclude: HIDDEN_FIELDS } })
 
     res.status(201).json({
       message: 'Database reset successfully. Top ID created.',
       topUser: savedTopUser,
-      referralId: toReferralId(prefix, topUser.id),
+      referralId: topUser.userId,
     })
   } catch (error) {
     console.error(error)
@@ -204,7 +194,6 @@ router.post('/top-id', authMiddleware, requireRole('admin'), async (req, res) =>
 
     await propagateTeamStats(userId, selectedUser.refid)
 
-    const prefix = await getReferralPrefix()
     res.json({
       message: 'Top ID set successfully.',
       topUser: {
@@ -212,7 +201,7 @@ router.post('/top-id', authMiddleware, requireRole('admin'), async (req, res) =>
         name: selectedUser.name,
         email: selectedUser.email,
         userId: selectedUser.userId,
-        referralId: toReferralId(prefix, selectedUser.id),
+        referralId: selectedUser.userId,
       }
     })
   } catch (error) {
@@ -271,7 +260,6 @@ router.post('/create-first-top-id', authMiddleware, requireRole('admin'), async 
 
     await propagateTeamStats(topUser.id, null)
 
-    const prefix = await getReferralPrefix()
     const savedTopUser = await User.findByPk(topUser.id, { attributes: { exclude: HIDDEN_FIELDS } })
 
     res.status(201).json({
@@ -281,7 +269,7 @@ router.post('/create-first-top-id', authMiddleware, requireRole('admin'), async 
         name: savedTopUser.name,
         email: savedTopUser.email,
         userId: savedTopUser.userId,
-        referralId: toReferralId(prefix, savedTopUser.id),
+        referralId: savedTopUser.userId,
       }
     })
   } catch (error) {
@@ -338,12 +326,11 @@ router.put('/top-id', authMiddleware, requireRole('admin'), async (req, res) => 
 // GET /api/users/genealogy  — get genealogy tree data (admin)
 router.get('/genealogy', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
-    const prefix = await getReferralPrefix()
     const topUserIdSetting = await Settings.findOne({ where: { key: 'topUserId' } })
     let tree = null
     if (topUserIdSetting) {
       const topUserId = parseInt(topUserIdSetting.value, 10)
-      tree = await buildPlacementTree(topUserId, prefix)
+      tree = await buildPlacementTree(topUserId)
     }
     res.json({ tree })
   } catch (error) {
@@ -368,9 +355,7 @@ router.get('/me', authMiddleware, async (req, res) => {
     })
     if (!userRecord) return res.status(404).json({ message: 'User not found.' })
 
-    const prefix = await getReferralPrefix()
     const referralLink = `${process.env.FRONTEND_BASE || ''}/register?ref=${userRecord.id}`
-    const referralId = toReferralId(prefix, userRecord.id)
 
     // Resolve referrer name and display id
     let referrerName = null
@@ -380,8 +365,8 @@ router.get('/me', authMiddleware, async (req, res) => {
       const referrer = await User.findByPk(userRecord.refid, { attributes: ['id', 'name', 'userId'] })
       if (referrer) {
         referrerName = referrer.name
-        referrerDisplayId = referrer.userId || toReferralId(prefix, referrer.id)
-        referrerReferralId = referrer.userId || toReferralId(prefix, referrer.id)
+        referrerDisplayId = referrer.userId || String(referrer.id)
+        referrerReferralId = referrer.userId || String(referrer.id)
       }
     }
 
@@ -392,7 +377,7 @@ router.get('/me', authMiddleware, async (req, res) => {
       const placementParent = await User.findByPk(userRecord.placeid, { attributes: ['id', 'name'] })
       if (placementParent) {
         placementParentName = placementParent.name
-        placementParentDisplayId = toReferralId(prefix, placementParent.id)
+        placementParentDisplayId = placementParent.userId || String(placementParent.id)
       }
     }
 
@@ -481,8 +466,6 @@ router.get('/', authMiddleware, requireRole('admin'), async (req, res) => {
       attributes: { exclude: HIDDEN_FIELDS },
     })
 
-    const prefix = await getReferralPrefix()
-
     // Collect all unique refid ids to batch-fetch referrer names and user IDs
     const referrerIds = [...new Set(users.map((u) => u.refid).filter(Boolean))]
     const referrers = referrerIds.length
@@ -519,7 +502,6 @@ router.get('/stats', authMiddleware, requireRole('admin'), async (req, res) => {
     const { Op } = await import('sequelize')
     const todayRegistrations = await User.count({ where: { regat: { [Op.gte]: startOfDay } } })
 
-    const prefix = await getReferralPrefix()
     const recentCustomers = await User.findAll({
       order: [['regat', 'DESC']],
       limit: 5,
@@ -544,11 +526,11 @@ router.get('/stats', authMiddleware, requireRole('admin'), async (req, res) => {
       todayRegistrations,
       recentCustomers: recentCustomers.map((c) => ({
         ...c.toJSON(),
-        referralId: toReferralId(prefix, c.id),
+        referralId: c.userId,
       })),
       totalReferrals,
       topReferrer: topReferrer
-        ? { ...topReferrer.toJSON(), referralId: toReferralId(prefix, topReferrer.id) }
+        ? { ...topReferrer.toJSON(), referralId: topReferrer.userId }
         : null,
       topUser: topUser
         ? { id: topUser.id, name: topUser.name, userId: topUser.userId }
@@ -575,7 +557,6 @@ router.get('/my-direct', authMiddleware, async (req, res) => {
       return res.status(403).json({ message: 'Customer access only.' })
     }
 
-    const prefix = await getReferralPrefix()
     const direct = await User.findAll({
       where: { refid: req.user.id },
       attributes: GENEALOGY_ATTRS,
@@ -583,7 +564,7 @@ router.get('/my-direct', authMiddleware, async (req, res) => {
     })
 
     const lookup = await buildUserLookup(direct.map((u) => u.refid))
-    const members = direct.map((u) => enrichGenealogyMember(u, lookup, prefix))
+    const members = direct.map((u) => enrichGenealogyMember(u, lookup))
 
     res.json({ members })
   } catch (err) {
@@ -599,7 +580,6 @@ router.get('/my-team', authMiddleware, async (req, res) => {
       return res.status(403).json({ message: 'Customer access only.' })
     }
 
-    const prefix = await getReferralPrefix()
     const { search = '', page = 1, limit = 10, level } = req.query
 
     // If level parameter is provided, return placement-level users instead
@@ -609,7 +589,7 @@ router.get('/my-team', authMiddleware, async (req, res) => {
         return res.status(400).json({ message: 'Invalid level parameter.' })
       }
 
-      const members = await getPlacementLevelUsers(req.user.id, levelNum, prefix)
+      const members = await getPlacementLevelUsers(req.user.id, levelNum)
       const normalizedSearch = String(search).trim().toLowerCase()
       const filtered = normalizedSearch
         ? members.filter((m) =>
@@ -638,7 +618,7 @@ router.get('/my-team', authMiddleware, async (req, res) => {
     const pageSize = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 100)
     const normalizedSearch = String(search).trim().toLowerCase()
 
-    const { members, tree } = await buildReferralHierarchyForUser(req.user.id, prefix)
+    const { members, tree } = await buildReferralHierarchyForUser(req.user.id)
     
     // Calculate placement-based level for each member to match Team View
     const membersWithPlacementLevel = await Promise.all(
@@ -678,9 +658,8 @@ router.get('/team-view', authMiddleware, async (req, res) => {
       return res.status(403).json({ message: 'Customer access only.' })
     }
 
-    const prefix = await getReferralPrefix()
-    const tree = await getTeamViewRoot(req.user.id, prefix)
-    const levelSummary = await getPlacementLevelSummary(req.user.id, prefix)
+    const tree = await getTeamViewRoot(req.user.id)
+    const levelSummary = await getPlacementLevelSummary(req.user.id)
     res.json({ tree, levelSummary })
   } catch (err) {
     console.error(err)
@@ -700,9 +679,8 @@ router.get('/team-view/:userId', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Invalid user ID.' })
     }
 
-    const prefix = await getReferralPrefix()
-    const tree = await getTeamViewRoot(targetUserId, prefix)
-    const levelSummary = await getPlacementLevelSummary(targetUserId, prefix)
+    const tree = await getTeamViewRoot(targetUserId)
+    const levelSummary = await getPlacementLevelSummary(targetUserId)
     res.json({ tree, levelSummary })
   } catch (err) {
     console.error(err)
@@ -720,8 +698,7 @@ router.get('/team-view/children/:parentId', authMiddleware, async (req, res) => 
     const parentId = parseInt(req.params.parentId, 10)
     if (isNaN(parentId)) return res.status(400).json({ message: 'Invalid parent ID.' })
 
-    const prefix = await getReferralPrefix()
-    const children = await getPlacementChildren(parentId, prefix)
+    const children = await getPlacementChildren(parentId)
 
     for (const child of children) {
       child.hasChildren = await hasPlacementChildren(child.id)
@@ -746,7 +723,6 @@ router.get('/team-view/search', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Search query is required.' })
     }
 
-    const prefix = await getReferralPrefix()
     const downlineIds = await getDownlineIds(req.user.id)
     const searchIds = [req.user.id, ...downlineIds]
 
@@ -765,7 +741,7 @@ router.get('/team-view/search', authMiddleware, async (req, res) => {
 
     const lookupIds = matches.flatMap((u) => [u.refid, u.placeid].filter(Boolean))
     const lookup = await buildUserLookup(lookupIds)
-    const results = matches.map((u) => enrichGenealogyMember(u, lookup, prefix))
+    const results = matches.map((u) => enrichGenealogyMember(u, lookup))
 
     res.json({ results })
   } catch (err) {
@@ -797,7 +773,6 @@ router.get('/referred/list', authMiddleware, async (req, res) => {
 router.get('/export', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
     const { format = 'csv' } = req.query
-    const prefix = await getReferralPrefix()
     const customers = await User.findAll({
       attributes: ['id', 'userId', 'name', 'email', 'phone', 'refid', 'regat'],
     })
@@ -876,14 +851,13 @@ router.get('/:id', authMiddleware, requireRole('admin'), async (req, res) => {
     })
     if (!customer) return res.status(404).json({ message: 'Customer not found.' })
 
-    const prefix = await getReferralPrefix()
     let referrerName = null
     let referrerDisplayId = null
     if (customer.refid) {
       const referrer = await User.findByPk(customer.refid, { attributes: ['id', 'name'] })
       if (referrer) {
         referrerName = referrer.name
-        referrerDisplayId = toReferralId(prefix, referrer.id)
+        referrerDisplayId = referrer.userId || String(referrer.id)
       }
     }
 

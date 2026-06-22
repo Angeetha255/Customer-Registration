@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 export default function Sidebar({ open, onToggle }) {
   const { user } = useAuth()
   const [genealogyOpen, setGenealogyOpen] = useState(true)
+  const [companyOpen, setCompanyOpen] = useState(true)
 
   const adminItems = [
     { label: 'Dashboard', path: '/admin' },
@@ -20,6 +21,10 @@ export default function Sidebar({ open, onToggle }) {
     { label: 'My Direct', path: '/genealogy/my-direct' },
     { label: 'My Team', path: '/genealogy/my-team' },
     { label: 'Team View', path: '/genealogy/team-view' },
+  ]
+
+  const companyItems = [
+    { label: 'Settings', path: '/admin/customers' },
   ]
 
   const navItems = user?.type === 'admin' ? adminItems : customerItems
@@ -73,6 +78,34 @@ export default function Sidebar({ open, onToggle }) {
             {genealogyOpen && (
               <div className="nav-sub">
                 {genealogyItems.map((item) => (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    onClick={handleNavClick}
+                    className={({ isActive }) => isActive ? 'nav-link nav-sublink active' : 'nav-link nav-sublink'}
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {user?.type === 'admin' && (
+          <div className="nav-section">
+            <button
+              type="button"
+              className="nav-section-toggle"
+              onClick={() => setCompanyOpen((v) => !v)}
+              aria-expanded={companyOpen}
+            >
+              <span>Company</span>
+              <span className={`nav-chevron ${companyOpen ? 'open' : ''}`}>▾</span>
+            </button>
+            {companyOpen && (
+              <div className="nav-sub">
+                {companyItems.map((item) => (
                   <NavLink
                     key={item.path}
                     to={item.path}

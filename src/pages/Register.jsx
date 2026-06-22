@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { registerCustomer, fetchReferrer, fetchTopId, checkReferral } from '../services/api.js'
+import { useAuth } from '../context/AuthContext.jsx'
 import Modal from '../components/Modal.jsx'
 import Alert from '../components/Alert.jsx'
 import FloatingInput from '../components/FloatingInput.jsx'
 import illustration from '../assets/register-illustration.svg'
 
 export default function Register() {
+  const { signIn } = useAuth()
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '', referralUserId: '' })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -14,6 +16,7 @@ export default function Register() {
   const [modalOpen, setModalOpen] = useState(false)
   const [createdUser, setCreatedUser] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [autoLoggingIn, setAutoLoggingIn] = useState(false)
   const [topIdExists, setTopIdExists] = useState(false)
   const [validReferral, setValidReferral] = useState(false)
   const [referralMode, setReferralMode] = useState('link') // 'link' or 'userid'
@@ -137,6 +140,19 @@ export default function Register() {
     }
   }
 
+  const handleGoToLogin = async () => {
+    setAutoLoggingIn(true)
+    try {
+      await signIn({ email: form.email, password: form.password })
+      navigate('/dashboard')
+    } catch (err) {
+      setModalOpen(false)
+      setError(err.message || 'Auto-login failed. Please login manually.')
+    } finally {
+      setAutoLoggingIn(false)
+    }
+  }
+
   return (
     <main className="register-page">
       <div className="register-split">
@@ -241,6 +257,16 @@ export default function Register() {
         isOpen={modalOpen}
         onClose={() => { setModalOpen(false); navigate('/login') }}
         title="Registration Successful"
+        footer={
+          <button
+            type="button"
+            className="button button-primary"
+            onClick={handleGoToLogin}
+            disabled={autoLoggingIn}
+          >
+            {autoLoggingIn ? 'Logging in…' : 'Go to Login'}
+          </button>
+        }
       >
         <div>
           <p>✅ Registration Successful</p>

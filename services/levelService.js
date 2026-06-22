@@ -9,16 +9,6 @@
 import { sequelize } from '../models/index.js'
 import User from '../models/User.js'
 import Level from '../models/Level.js'
-import Settings from '../models/Settings.js'
-
-// Helper: get referral prefix
-const getReferralPrefix = async () => {
-  const setting = await Settings.findOne({ where: { key: 'referralPrefix' } })
-  return setting ? setting.value : 'REF'
-}
-
-// Helper: format a user's referral display id
-const toReferralId = (prefix, userId) => `${prefix}${userId}`
 
 /**
  * Insert level records for a newly registered user.
@@ -134,8 +124,6 @@ export const getLevelSummary = async (sponsorId) => {
  * Used by the "Team View" page when a level row is expanded.
  */
 export const getLevelUsers = async (sponsorId, level) => {
-  const prefix = await getReferralPrefix()
-  
   const rows = await Level.findAll({
     where: { sponsor: sponsorId, level },
     order: [['id', 'ASC']],

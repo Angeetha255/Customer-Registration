@@ -60,7 +60,7 @@ export default function Landing() {
             <button className="button landing-nav-btn-ghost" onClick={() => navigate('/login')}>
               User Login
             </button>
-            <button className="button landing-nav-btn-solid" onClick={() => navigate('/admin-login')}>
+            <button className="button landing-nav-btn-solid" onClick={() => navigate('/admin/login')}>
               Admin Login
             </button>
           </div>
@@ -98,8 +98,8 @@ export default function Landing() {
             </div>
             <p className="landing-hero-admin-link">
               Are you an admin?{' '}
-              <button className="button-link" onClick={() => navigate('/admin-login')}>
-                Access Admin Panel 
+              <button className="button-link" onClick={() => navigate('/admin/login')}>
+                Access Admin Panel
               </button>
             </p>
           </div>
@@ -172,7 +172,7 @@ export default function Landing() {
                 <li>✓ Export CSV / PDF</li>
               </ul>
               <div className="landing-portal-actions">
-                <button className="button landing-portal-btn-admin" onClick={() => navigate('/admin-login')}>
+                <button className="button landing-portal-btn-admin" onClick={() => navigate('/admin/login')}>
                   Admin Login
                 </button>
               </div>

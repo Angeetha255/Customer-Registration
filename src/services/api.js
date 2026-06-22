@@ -1,6 +1,6 @@
 const API_BASE = import.meta.env.VITE_API_BASE || '/api'
 
-const getToken = () => window.localStorage.getItem('authToken')
+const getToken = () => window.localStorage.getItem('adminAuthToken') || window.localStorage.getItem('authToken')
 const authHeaders = () => ({
   'Content-Type': 'application/json',
   Authorization: `Bearer ${getToken()}`,
