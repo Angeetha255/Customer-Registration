@@ -79,11 +79,15 @@ router.post('/register', async (req, res) => {
     }
 
     const saved = await User.findById(user._id).select('-password -resetPasswordToken -resetPasswordExpires')
+    const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, {
+      expiresIn: JWT_EXPIRES,
+    })
     res.status(201).json({
       message: 'Customer registered successfully.',
       customerId,
       introducerId: user.introducerId,
       referredBy: user.referredBy,
+      token,
       user: saved,
     })
   } catch (error) {

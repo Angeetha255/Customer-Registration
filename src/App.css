@@ -56,3 +56,4 @@ input:disabled {
 .modal-body { padding: 18px 20px; }
 .modal-footer { padding: 12px 20px; text-align: right; border-top:1px solid #f1f5f9; }
 .modal-close { background:transparent; border:0; font-size:20px; cursor:pointer }
+.required-star { color: #e53e3e; margin-left: 2px; }

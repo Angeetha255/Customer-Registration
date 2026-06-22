@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { registerCustomer, fetchIntroducer } from '../services/api.js'
+import { useAuth } from '../context/AuthContext.jsx'
 import Modal from '../components/Modal.jsx'
 import Alert from '../components/Alert.jsx'
 
@@ -12,6 +13,8 @@ export default function Register() {
   const [modalOpen, setModalOpen] = useState(false)
   const [createdUser, setCreatedUser] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [registrationToken, setRegistrationToken] = useState(null)
+  const { signIn, setUser } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -41,6 +44,7 @@ export default function Register() {
       setSuccess(`Registration completed! Your Introducer ID is ${response.introducerId}`)
       // open modal with created user and introducer details
       setCreatedUser(response.user || { name: form.name, email: form.email, phone: form.phone, introducerId: response.introducerId, customerId: response.customerId })
+      if (response.token) setRegistrationToken(response.token)
       setModalOpen(true)
       setForm({ name: '', email: '', phone: '', password: '', confirmPassword: '' })
     } catch (error) {
@@ -69,30 +73,53 @@ export default function Register() {
             </div>
           )}
           <label>
-            Full Name
+            Full Name <span className="required-star">*</span>
             <input name="name" value={form.name} onChange={handleChange} required />
           </label>
           <label>
-            Email Address
+            Email Address <span className="required-star">*</span>
             <input name="email" type="email" value={form.email} onChange={handleChange} required />
           </label>
           <label>
-            Phone Number
+            Phone Number <span className="required-star">*</span>
             <input name="phone" type="tel" value={form.phone} onChange={handleChange} required />
           </label>
           <label>
-            Password
+            Password <span className="required-star">*</span>
             <input name="password" type="password" value={form.password} onChange={handleChange} required minLength={6} />
           </label>
           <label>
-            Confirm Password
+            Confirm Password <span className="required-star">*</span>
             <input name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} required minLength={6} />
           </label>
           <button type="submit" className="button button-primary" disabled={loading}>
             {loading ? 'Registering...' : 'Sign up'}
           </button>
         </form>
-        <Modal isOpen={modalOpen} onClose={() => { setModalOpen(false); navigate('/login') }} title="Registration Successful">
+        <Modal
+          isOpen={modalOpen}
+          onClose={() => { setModalOpen(false); navigate('/login') }}
+          title="Registration Successful"
+          footer={
+            <button
+              type="button"
+              className="button button-primary"
+              onClick={() => {
+                if (registrationToken && createdUser) {
+                  window.localStorage.setItem('authToken', registrationToken)
+                  setUser(createdUser)
+                  setModalOpen(false)
+                  navigate('/dashboard')
+                } else {
+                  setModalOpen(false)
+                  navigate('/login')
+                }
+              }}
+            >
+              Go to Dashboard
+            </button>
+          }
+        >
           <div>
             <p>✅ Registration Successful</p>
             <h4>Your Details</h4>

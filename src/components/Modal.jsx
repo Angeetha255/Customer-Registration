@@ -1,6 +1,6 @@
 import React from 'react'
 
-export default function Modal({ isOpen, onClose, title, children }) {
+export default function Modal({ isOpen, onClose, title, children, footer }) {
   if (!isOpen) return null
   return (
     <div className="modal-backdrop">
@@ -11,7 +11,7 @@ export default function Modal({ isOpen, onClose, title, children }) {
         </div>
         <div className="modal-body">{children}</div>
         <div className="modal-footer">
-          <button type="button" className="button" onClick={onClose}>Close</button>
+          {footer || <button type="button" className="button" onClick={onClose}>Close</button>}
         </div>
       </div>
     </div>
