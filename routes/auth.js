@@ -127,11 +127,6 @@ router.post('/register', async (req, res) => {
       password: hashedPassword,
     })
 
-    //await sendWelcomeMail(user.email, user.name);
-
-    res.status(201).json({
-      success: true
-    });
     // Update referrer's referral count via propagateTeamStats
     await propagateTeamStats(user.id, refId)
 

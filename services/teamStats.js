@@ -4,9 +4,16 @@
  * Maintains per-user stats on the users table:
  *
  *   refcount     = total direct referrals (refid = this user)
- *   refactcount  = active direct referrals
- *   teamcount    = total users in entire referral downline (excludes self)
- *   teamactcount = active users in entire referral downline
+ *   refactcount  = count of active direct referrals
+ *   teamcount    = total users in entire referral downline INCLUDING self
+ *   teamactcount = active users in entire referral downline INCLUDING self
+ *
+ * teamCount rule: count = self + all descendants
+ *   Single user with no downline => teamcount = 1
+ *   User 1 -> User 2 -> User 3:
+ *     User 3 => teamcount = 1 (self only)
+ *     User 2 => teamcount = 2 (self + User 3)
+ *     User 1 => teamcount = 3 (self + User 2 + User 3)
  */
 
 import User from '../models/User.js'
@@ -31,33 +38,35 @@ const getAncestors = async (userId) => {
 }
 
 /**
- * Build a map of refid → [child ids] from all users.
+ * Build a map of refid → [child user objects] from all users.
  */
 const buildChildrenMap = (users) => {
   const childrenMap = {}
   for (const u of users) {
     if (u.refid) {
       if (!childrenMap[u.refid]) childrenMap[u.refid] = []
-      childrenMap[u.refid].push(u.id)
+      childrenMap[u.refid].push(u)
     }
   }
   return childrenMap
 }
 
 /**
- * Count all descendants in the referral tree (excluding self).
+ * Count all nodes in the subtree rooted at userId EXCLUDING self.
+ *
+ * Returns { total, active } where:
+ *   total  = all descendants only (no self)
+ *   active = all active descendants only (no self)
  */
-const countDownline = (userId, childrenMap, userMap) => {
-  const children = childrenMap[userId] || []
+const countSubtree = (userId, childrenMap, userMap) => {
   let total = 0
   let active = 0
-  for (const childId of children) {
-    total += 1
-    const child = userMap.get(childId)
-    if (child?.active) active += 1
-    const sub = countDownline(childId, childrenMap, userMap)
-    total += sub.total
-    active += sub.active
+
+  const children = childrenMap[userId] || []
+  for (const child of children) {
+    const sub = countSubtree(child.id, childrenMap, userMap)
+    total += 1 + sub.total
+    active += (child.active ? 1 : 0) + sub.active
   }
   return { total, active }
 }
@@ -83,7 +92,10 @@ export const updateReferralCount = async (referrerId) => {
 }
 
 /**
- * Rebuild teamcount and teamactcount for ALL users based on referral downline.
+ * Rebuild teamcount and teamactcount for ALL users.
+ *
+ * teamcount    = all referral descendants only (no self)
+ * teamactcount = all active referral descendants only (no self)
  */
 export const rebuildAllUserTeamStats = async () => {
   const users = await User.findAll({
@@ -92,10 +104,10 @@ export const rebuildAllUserTeamStats = async () => {
   })
 
   const childrenMap = buildChildrenMap(users)
-  const userMap = new Map(users.map((u) => [u.id, u]))
+  const userMap = new Map(users.map((u) => [u.id, u.toJSON ? u.toJSON() : u]))
 
   for (const u of users) {
-    const { total, active } = countDownline(u.id, childrenMap, userMap)
+    const { total, active } = countSubtree(u.id, childrenMap, userMap)
     await User.update(
       { teamcount: total, teamactcount: active },
       { where: { id: u.id } }
@@ -122,12 +134,10 @@ export const rebuildAllReferralCounts = async () => {
 
 /**
  * Call after registration, activation change, or deletion.
- * Rebuilds team stats and referral counts for affected users.
- *
- * @param {number}      changedUserId
- * @param {number|null} referrerId     direct referrer of the changed user
+ * Rebuilds team stats for all users (full rebuild is safest and fast enough).
  */
 export const propagateTeamStats = async (changedUserId, referrerId = null) => {
+  // Full rebuild ensures all ancestors have correct counts
   await rebuildAllUserTeamStats()
 
   if (referrerId) {
@@ -143,7 +153,7 @@ export const propagateTeamStats = async (changedUserId, referrerId = null) => {
 }
 
 /**
- * Full rebuild of all stats — use after bulk migrations.
+ * Full rebuild — use after bulk migrations or imports.
  */
 export const rebuildAllStats = async () => {
   await rebuildAllUserTeamStats()

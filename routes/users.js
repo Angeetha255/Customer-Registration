@@ -947,13 +947,19 @@ router.delete('/:id', authMiddleware, requireRole('admin'), async (req, res) => 
     if (!customer) return res.status(404).json({ message: 'Customer not found.' })
 
     const refId = customer.refid
+    const userId = customer.id
+
+    // Clean up level records before deleting the user
+    await deleteLevelRecordsForJoiner(userId)
+    await deleteLevelRecordsForSponsor(userId)
+
     await customer.destroy()
 
-    await propagateTeamStats(customer.id, refId || null)
+    await propagateTeamStats(userId, refId)
 
     res.json({ message: 'Customer deleted.' })
-  } catch (error) {
-    console.error(error)
+  } catch (err) {
+    console.error(err)
     res.status(500).json({ message: 'Unable to delete customer.' })
   }
 })
