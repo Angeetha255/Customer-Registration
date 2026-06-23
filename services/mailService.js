@@ -38,14 +38,14 @@ transporter.verify((error, success) => {
  * Send welcome email to newly registered user
  * @param {string} to - Recipient email address
  * @param {string} name - Recipient name
- * @param {string} referralId - User's referral ID
+
  * @param {string} userId - User's user ID
  */
-export const sendWelcomeMail = async (to, name, referralId, userId) => {
+export const sendWelcomeMail = async (to, name, userId) => {
   console.log('=== sendWelcomeMail Called ===')
   console.log('Recipient email:', to)
   console.log('Recipient name:', name)
-  console.log('Referral ID:', referralId)
+  
   console.log('User ID:', userId)
   console.log('============================')
 
@@ -119,15 +119,7 @@ export const sendWelcomeMail = async (to, name, referralId, userId) => {
                       </tr>
                     </table>
 
-                    <!-- Referral ID Badge -->
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 20px;">
-                      <tr>
-                        <td style="padding: 16px 20px; background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%); border-radius: 8px; border-left: 4px solid #667eea;">
-                          <p style="margin: 0 0 8px 0; color: #718096; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Referral ID</p>
-                          <p style="margin: 0; display: inline-block; padding: 8px 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; font-size: 16px; font-weight: 700; border-radius: 6px; letter-spacing: 0.5px;">${referralId}</p>
-                        </td>
-                      </tr>
-                    </table>
+                   
 
                     <!-- User ID Badge -->
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
