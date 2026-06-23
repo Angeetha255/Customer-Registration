@@ -184,3 +184,35 @@ export const searchTeamView = (q) =>
   send(`/users/team-view/search?q=${encodeURIComponent(q)}`, { headers: userHeaders() })
 
 export const loginWithApi = login
+
+// Business Directory endpoints
+export const createBusiness = (data) =>
+  send('/business', {
+    method: 'POST',
+    headers: userHeaders(),
+    body: JSON.stringify(data),
+  })
+
+export const createProduct = (formData) =>
+  fetch(`${API_BASE}/business/products`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${getUserToken()}`,
+    },
+    body: formData,
+  }).then(async (res) => {
+    const body = await res.json().catch(() => null)
+    if (!res.ok) {
+      throw new Error(body?.message || res.statusText)
+    }
+    return body
+  })
+
+export const fetchBusinesses = () =>
+  send('/business', { headers: userHeaders() })
+
+export const fetchBusiness = (id) =>
+  send(`/business/${id}`, { headers: userHeaders() })
+
+export const fetchBusinessProducts = (businessId) =>
+  send(`/business/${businessId}/products`, { headers: userHeaders() })

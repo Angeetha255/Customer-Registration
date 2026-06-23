@@ -4,9 +4,12 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import authRoutes from './routes/auth.js'
 import userRoutes from './routes/users.js'
+import businessRoutes from './routes/business.js'
 import Admin from './models/Admin.js'
 import User from './models/User.js'   // must be imported so sequelize.sync() creates the users table
 import Settings from './models/Settings.js'
+import Business from './models/Business.js'
+import Product from './models/Product.js'
 import bcrypt from 'bcrypt'
 import { sequelize } from './models/index.js'
 
@@ -20,6 +23,8 @@ app.use(express.json())
 
 app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)
+app.use('/api/business', businessRoutes)
+app.use('/uploads', express.static('uploads'))
 
 app.get('/', (_req, res) => {
   res.send({ message: 'User Registration and Management API is running.' })

@@ -30,6 +30,7 @@ export default function Sidebar({ open, onToggle }) {
   const customerItems = [
     { label: 'Dashboard', path: '/dashboard' },
     { label: 'Profile', path: '/profile' },
+    { label: 'Business Directory', path: '/business-directory' },
     { label: 'Genealogy', isSection: true, items: genealogyItems },
   ]
 

@@ -15,6 +15,7 @@ import AdminLogin from './pages/AdminLogin.jsx'
 import AdminDashboard from './pages/AdminDashboard.jsx'
 import AdminCustomers from './pages/AdminCustomers.jsx'
 import Settings from './pages/Settings.jsx'
+import BusinessDirectory from './pages/BusinessDirectory.jsx'
 import MyDirect from './pages/MyDirect.jsx'
 import MyTeam from './pages/MyTeam.jsx'
 import TeamView from './pages/TeamView.jsx'
@@ -412,6 +413,7 @@ function AppRoutes() {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/dashboard" element={<ProtectedRoute><CustomerDashboard /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route path="/business-directory" element={<ProtectedRoute><BusinessDirectory /></ProtectedRoute>} />
       <Route path="/genealogy/my-direct" element={<ProtectedRoute><MyDirect /></ProtectedRoute>} />
       <Route path="/genealogy/my-team" element={<ProtectedRoute><MyTeam /></ProtectedRoute>} />
       <Route path="/genealogy/team-view" element={<ProtectedRoute><TeamView /></ProtectedRoute>} />
