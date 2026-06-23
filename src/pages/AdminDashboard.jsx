@@ -196,13 +196,9 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* ── Top ID & Reset DB Section ── */}
-      <div className="ad-grid">
-        {/* Update Top ID form moved to modal */}
-      </div>
-
+      
       {/* ── Recent customers table ── */}
-      <div className="ad-table-card">
+      {/* <div className="ad-table-card">
         <div className="ad-table-header">
           <div>
             <h2 className="ad-table-title">Recent Customers</h2>
@@ -251,14 +247,15 @@ export default function AdminDashboard() {
             </tbody>
           </table>
         </div>
-
+{/* 
         <div className="pagination-row">
           <button className="button button-secondary" disabled={recentPage <= 1} onClick={() => setRecentPage((p) => p - 1)}>Previous</button>
           <span>Page {recentPage} / {Math.ceil((stats.recentCustomers.length || 1) / recentPageSize) || 1}</span>
           <button className="button button-secondary" disabled={recentPage >= Math.ceil((stats.recentCustomers.length || 1) / recentPageSize)} onClick={() => setRecentPage((p) => p + 1)}>Next</button>
-        </div>
-      </div>
+        </div> */}
+      {/* </div>*/}
 
     </main>
   )
+
 }

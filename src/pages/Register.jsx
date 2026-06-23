@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { registerCustomer, fetchReferrer, fetchTopId, checkReferral } from '../services/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -88,6 +88,26 @@ export default function Register() {
       setForm({ ...form, [name]: value })
     }
   }
+
+  // Auto-validate referrer User ID after user stops typing
+  const debounceRef = useRef(null)
+  useEffect(() => {
+    if (referralMode !== 'userid') return
+    const value = form.referralUserId.trim()
+    if (!value) {
+      setUserIdError('')
+      setValidReferral(false)
+      setReferrer(null)
+      return
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      validateReferralUserId()
+    }, 600)
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [form.referralUserId, referralMode])
 
   const validateReferralUserId = async () => {
     const userIdValue = form.referralUserId.trim()
@@ -214,7 +234,7 @@ export default function Register() {
                         <span>User ID: {referrer.userId || `MEM${referrer.id}`}</span>
                       </div>
                     </div>
-                    <div className="form-group">
+                    {/* <div className="form-group">
                       <label style={{ fontSize: '0.9rem', fontWeight: 500, marginBottom: 4, display: 'block' }}>Referrer User ID</label>
                       <input
                         type="text"
@@ -224,42 +244,32 @@ export default function Register() {
                         className="form-input"
                         style={{ backgroundColor: 'var(--input-bg-readonly, #f5f5f5)' }}
                       />
-                    </div>
+                    </div> */}
                   </>
                 ) : (
-                  <div className="form-group">
-                    <label style={{ fontSize: '0.9rem', fontWeight: 500, marginBottom: 4, display: 'block' }}>Referrer User ID *</label>
-                    <div style={{ display: 'flex', gap: 8 }}>
+                    <div className="form-group">
+                      <label style={{ fontSize: '0.9rem', fontWeight: 500, marginBottom: 4, display: 'block' }}>Referrer User ID *</label>
                       <input
                         type="text"
                         name="referralUserId"
                         value={form.referralUserId}
                         onChange={handleChange}
+                        onBlur={validateReferralUserId}
                         required
-                      placeholder="Enter Referral User ID *"
+                        placeholder="Enter Referral User ID *"
                         className="form-input"
-                        style={{ flex: 1 }}
                       />
-                      <button
-                        type="button"
-                        className="button button-secondary"
-                        onClick={validateReferralUserId}
-                        disabled={validatingUserId || !form.referralUserId.trim()}
-                      >
-                        {validatingUserId ? 'Validating...' : 'Validate'}
-                      </button>
-                    </div>
-                    {userIdError && <p style={{ color: 'red', fontSize: '0.85rem', marginTop: 4 }}>{userIdError}</p>}
-                    {referrer && referralMode === 'userid' && (
-                      <div className="introducer-badge" style={{ marginTop: 8 }}>
-                        <span className="feature-icon">✓</span>
-                        <div>
-                          <strong>Referred by {referrer.name}</strong>
-                          <span>User ID: {referrer.userId || `MEM${referrer.id}`}</span>
+                      {userIdError && <p style={{ color: 'red', fontSize: '0.85rem', marginTop: 4 }}>{userIdError}</p>}
+                      {referrer && referralMode === 'userid' && (
+                        <div className="introducer-badge" style={{ marginTop: 8 }}>
+                          <span className="feature-icon">✓</span>
+                          <div>
+                            <strong>Referred by {referrer.name}</strong>
+                            <span>User ID: {referrer.userId || `MEM${referrer.id}`}</span>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
                 )}
                 <FloatingInput label="Full Name *"        name="name"            value={form.name}            onChange={handleChange} required />
                 <FloatingInput label="Email Address *"    name="email"           type="email" value={form.email}    onChange={handleChange} required />

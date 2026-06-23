@@ -144,12 +144,12 @@ export default function AdminCustomers() {
       />
 
       <section className="page-panel card no-border-panel">
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div>
+        
+          <div className="title">
             <h1>User Management</h1>
-            <br></br>
+           
             {/* <p className="subtitle">Search, sort, edit and export customer records.</p> */}
-          </div>
+         
         </div>
         <br></br>
 
@@ -164,10 +164,10 @@ export default function AdminCustomers() {
               />
               <button className="button button-secondary" type="submit">Search</button>
             </form>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+            
               <button type="button" className="button button-muted" onClick={() => handleExport('csv')}>Export CSV</button>
               <button type="button" className="button button-muted" onClick={() => handleExport('pdf')}>Export PDF</button>
-            </div>
+         
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
 
               <select

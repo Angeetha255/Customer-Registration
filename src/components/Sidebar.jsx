@@ -9,17 +9,16 @@ export default function Sidebar({ open, onToggle }) {
   // Use the correct user based on current route to support simultaneous admin+customer sessions
   const isAdminRoute = location.pathname.startsWith('/admin')
   const user = isAdminRoute ? adminUser : customerUser
-  const [genealogyOpen, setGenealogyOpen] = useState(true)
-  const [companyOpen, setCompanyOpen] = useState(true)
+  const [openSections, setOpenSections] = useState({ Company: true, Genealogy: true })
+
+  const companyItems = [
+    { label: 'Settings', path: '/admin/settings' },
+  ]
 
   const adminItems = [
     { label: 'Dashboard', path: '/admin' },
     { label: 'Users', path: '/admin/customers' },
-  ]
-
-  const customerItems = [
-    { label: 'Dashboard', path: '/dashboard' },
-    { label: 'Profile', path: '/profile' },
+    { label: 'Company', isSection: true, items: companyItems },
   ]
 
   const genealogyItems = [
@@ -28,8 +27,10 @@ export default function Sidebar({ open, onToggle }) {
     { label: 'Team View', path: '/genealogy/team-view' },
   ]
 
-  const companyItems = [
-    { label: 'Settings', path: '/admin/settings' },
+  const customerItems = [
+    { label: 'Dashboard', path: '/dashboard' },
+    { label: 'Profile', path: '/profile' },
+    { label: 'Genealogy', isSection: true, items: genealogyItems },
   ]
 
   const navItems = user?.type === 'admin' ? adminItems : customerItems
@@ -57,73 +58,51 @@ export default function Sidebar({ open, onToggle }) {
       </div>
 
       <nav>
-        {navItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            end
-            onClick={handleNavClick}
-            className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
-          >
-            {item.label}
-          </NavLink>
-        ))}
-
-        {user?.type !== 'admin' && (
-          <div className="nav-section">
-            <button
-              type="button"
-              className="nav-section-toggle"
-              onClick={() => setGenealogyOpen((v) => !v)}
-              aria-expanded={genealogyOpen}
-            >
-              <span>Genealogy</span>
-              <span className={`nav-chevron ${genealogyOpen ? 'open' : ''}`}>▾</span>
-            </button>
-            {genealogyOpen && (
-              <div className="nav-sub">
-                {genealogyItems.map((item) => (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    onClick={handleNavClick}
-                    className={({ isActive }) => isActive ? 'nav-link nav-sublink active' : 'nav-link nav-sublink'}
-                  >
-                    {item.label}
-                  </NavLink>
-                ))}
+        {navItems.map((item) => {
+          if (item.isSection) {
+            const isOpen = openSections[item.label] || false
+            return (
+              <div className="nav-section" key={item.label}>
+                <button
+                  type="button"
+                  className="nav-section-toggle"
+                  onClick={() => setOpenSections((v) => ({ ...v, [item.label]: !(v[item.label] || false) }))}
+                  aria-expanded={isOpen}
+                >
+                  <span>{item.label}</span>
+                  <span className={`nav-chevron ${isOpen ? 'open' : ''}`}>▾</span>
+                </button>
+                {isOpen && (
+                  <div className="nav-sub">
+                    {item.items.map((subItem) => (
+                      <NavLink
+                        key={subItem.path}
+                        to={subItem.path}
+                        onClick={handleNavClick}
+                        className={({ isActive }) => isActive ? 'nav-link nav-sublink active' : 'nav-link nav-sublink'}
+                      >
+                        {subItem.label}
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        )}
+            )
+          }
 
-        {user?.type === 'admin' && (
-          <div className="nav-section">
-            <button
-              type="button"
-              className="nav-section-toggle"
-              onClick={() => setCompanyOpen((v) => !v)}
-              aria-expanded={companyOpen}
+          return (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              end
+              onClick={handleNavClick}
+              className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
             >
-              <span>Company</span>
-              <span className={`nav-chevron ${companyOpen ? 'open' : ''}`}>▾</span>
-            </button>
-            {companyOpen && (
-              <div className="nav-sub">
-                {companyItems.map((item) => (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    onClick={handleNavClick}
-                    className={({ isActive }) => isActive ? 'nav-link nav-sublink active' : 'nav-link nav-sublink'}
-                  >
-                    {item.label}
-                  </NavLink>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+              {item.label}
+            </NavLink>
+          )
+        })}
+
       </nav>
 
       <div className="sidebar-bottom-space" />
