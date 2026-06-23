@@ -151,36 +151,37 @@ export default function AdminCustomers() {
             {/* <p className="subtitle">Search, sort, edit and export customer records.</p> */}
           </div>
         </div>
-        <br></br> 
+        <br></br>
 
         <Alert type="danger" message={error} />
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+            <form className="search-row" onSubmit={handleSearch} style={{ marginBottom: 0, maxWidth: 600, flex: 1 }}>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name, email, or phone"
+              />
+              <button className="button button-secondary" type="submit">Search</button>
+            </form>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+              <button type="button" className="button button-muted" onClick={() => handleExport('csv')}>Export CSV</button>
+              <button type="button" className="button button-muted" onClick={() => handleExport('pdf')}>Export PDF</button>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
-          <form className="search-row" onSubmit={handleSearch} style={{ marginBottom: 0, maxWidth: 400 }}>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, email, or phone"
-            />
-            <button className="button button-secondary" type="submit">Search</button>
-          </form>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: '0.9rem', color: 'var(--muted)' }}>Show</span>
-            <select
-              value={query.limit}
-              onChange={(e) => setQuery((q) => ({ ...q, limit: Number(e.target.value), page: 1 }))}
-              style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)' }}
-            >
-              {PAGE_SIZE_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-            
+              <select
+                value={query.limit}
+                onChange={(e) => setQuery((q) => ({ ...q, limit: Number(e.target.value), page: 1 }))}
+                style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', minHeight: 36 }}
+              >
+                {PAGE_SIZE_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+
+            </div>
           </div>
-        </div>
-        <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-          <button type="button" className="button button-muted" onClick={() => handleExport('csv')}>Export CSV</button>
-          <button type="button" className="button button-muted" onClick={() => handleExport('pdf')}>Export PDF</button>
         </div>
 
         <div className="table-scroll">
@@ -192,7 +193,7 @@ export default function AdminCustomers() {
                 <th>Name</th>
                 <th>Email</th>
                 <th>Phone</th>
-                
+
                 <th>Referred By</th>
                 <th>Referrer User ID</th>
                 <th>Registered</th>
@@ -211,7 +212,7 @@ export default function AdminCustomers() {
                   <td>{customer.name}</td>
                   <td>{customer.email}</td>
                   <td>{customer.phone}</td>
-                 
+
                   <td>{customer.referrerName || '—'}</td>
                   <td>{customer.referrerUserId || '—'}</td>
                   <td>

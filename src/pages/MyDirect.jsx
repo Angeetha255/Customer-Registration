@@ -52,7 +52,7 @@ export default function MyDirect() {
       </div>
 
       <div className="ad-table-card">
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 12, gap: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', margin: 12, gap: 8 }}>
           
           <select
             value={ pageSize}
