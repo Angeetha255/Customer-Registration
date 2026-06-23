@@ -14,6 +14,7 @@ import Profile from './pages/Profile.jsx'
 import AdminLogin from './pages/AdminLogin.jsx'
 import AdminDashboard from './pages/AdminDashboard.jsx'
 import AdminCustomers from './pages/AdminCustomers.jsx'
+import Settings from './pages/Settings.jsx'
 import MyDirect from './pages/MyDirect.jsx'
 import MyTeam from './pages/MyTeam.jsx'
 import TeamView from './pages/TeamView.jsx'
@@ -410,6 +411,7 @@ function AppRoutes() {
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
       <Route path="/admin/customers" element={<AdminRoute><AdminCustomers /></AdminRoute>} />
+      <Route path="/admin/settings" element={<AdminRoute><Settings /></AdminRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   )

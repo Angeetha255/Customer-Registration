@@ -20,7 +20,6 @@ export default function AdminLogin() {
     setError('')
     setLoading(true)
     try {
-      // signInAdmin calls /api/auth/admin/login — Admin table only, no role column
       await signInAdmin(credentials)
       navigate('/admin')
     } catch (err) {

@@ -29,7 +29,7 @@ const features = [
       </svg>
     ),
     title: 'Secure Access',
-    desc: 'JWT-based authentication with separate portals for admins and customers.',
+    desc: 'JWT-based authentication with separate portals for admin and customers.',
   },
   {
     icon: (

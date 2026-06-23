@@ -26,20 +26,24 @@ app.get('/', (_req, res) => {
 })
 
 async function createDefaultAdmin() {
-  const existingAdmin = await Admin.findOne({ where: { email: process.env.ADMIN_EMAIL || 'admin@example.com' } })
-  if (existingAdmin) return
+  try {
+    const existingAdmin = await Admin.findOne({ where: { email: process.env.ADMIN_EMAIL || 'admin@example.com' } })
+    if (existingAdmin) return
 
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com'
-  const adminPassword = process.env.ADMIN_PASSWORD || 'Admin123!'
-  const hashedPassword = await bcrypt.hash(adminPassword, 10)
-  await Admin.create({
-    name: 'Admin User',
-    email: adminEmail,
-    phone: process.env.ADMIN_PHONE || '0000000000',
-    password: hashedPassword,
-    regat: new Date(),
-  })
-  console.log(`Default admin created: ${adminEmail}`)
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com'
+    const adminPassword = process.env.ADMIN_PASSWORD || 'Admin123!'
+    const hashedPassword = await bcrypt.hash(adminPassword, 10)
+    await Admin.create({
+      name: 'Admin User',
+      email: adminEmail,
+      phone: process.env.ADMIN_PHONE || '0000000000',
+      password: hashedPassword,
+      active: true,
+    })
+    console.log(`Default admin created: ${adminEmail}`)
+  } catch (error) {
+    console.error('Failed to create default admin:', error)
+  }
 }
 
 async function seedDefaultSettings() {

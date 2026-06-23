@@ -203,6 +203,7 @@ router.post('/login', async (req, res) => {
   }
 })
 
+
 // ── POST /api/auth/admin/login  (admin only — separate endpoint) ─────────────
 router.post('/admin/login', async (req, res) => {
   try {
@@ -291,7 +292,9 @@ router.post('/reset-password', async (req, res) => {
         where: { pwdtoken: token, pwdexp: { [Op.gt]: new Date() } },
       })
     }
-    if (!user) return res.status(400).json({ message: 'Invalid or expired reset token.' })
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired reset token.' })
+    }
     user.password = await bcrypt.hash(password, 10)
     user.pwdtoken = null
     user.pwdexp = null

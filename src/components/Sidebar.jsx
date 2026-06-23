@@ -24,7 +24,7 @@ export default function Sidebar({ open, onToggle }) {
   ]
 
   const companyItems = [
-    { label: 'Settings', path: '/admin/customers' },
+    { label: 'Settings', path: '/admin/settings' },
   ]
 
   const navItems = user?.type === 'admin' ? adminItems : customerItems

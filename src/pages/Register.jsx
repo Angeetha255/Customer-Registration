@@ -24,6 +24,7 @@ export default function Register() {
   const [userIdError, setUserIdError] = useState('')
   // Saved before form is cleared — used for auto-login after registration
   const [savedCredentials, setSavedCredentials] = useState(null)
+  const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -136,6 +137,7 @@ export default function Register() {
       setCreatedUser(response.user || { name: form.name, email: form.email, phone: form.phone })
       // Save credentials before clearing form so auto-login can use them
       setSavedCredentials({ email: form.email, password: form.password })
+      setShowPassword(false)
       setModalOpen(true)
       setForm({ name: '', email: '', phone: '', password: '', confirmPassword: '', referralUserId: '' })
     } catch (err) {
@@ -284,9 +286,28 @@ export default function Register() {
           <h4>Your Details</h4>
           {createdUser && (
             <div>
-              <div><strong>Name:</strong> {createdUser.name}</div>
+              <div><strong>User ID:</strong> {createdUser.userId || `MEM${createdUser.id}`}</div>
               <div><strong>Email:</strong> {createdUser.email}</div>
-              <div><strong>Phone:</strong> {createdUser.phone}</div>
+              <div>
+                <strong>Password:</strong>{' '}
+                {showPassword ? savedCredentials?.password : '••••••'}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--accent-strong)',
+                    cursor: 'pointer',
+                    marginLeft: 8,
+                    fontSize: '0.85rem',
+                    textDecoration: 'underline',
+                    padding: 0,
+                  }}
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
             </div>
           )}
           {referrer && (

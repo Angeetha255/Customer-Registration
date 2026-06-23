@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
 import { fetchLevelUsers } from '../services/api.js'
 
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
+
 export default function MyTeam() {
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
   useEffect(() => {
     loadTeamMembers()
@@ -34,6 +38,9 @@ export default function MyTeam() {
     }
   }
 
+  const totalPages = Math.max(Math.ceil(members.length / pageSize), 1)
+  const pagedMembers = members.slice((page - 1) * pageSize, page * pageSize)
+
   if (loading) {
     return (
       <main className="page-shell layout-with-sidebar">
@@ -52,6 +59,19 @@ export default function MyTeam() {
       {error && <div className="alert alert-danger"><p>{error}</p></div>}
 
       <div className="ad-table-card">
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 12, gap: 8 }}>
+          
+          <select
+            value={pageSize}
+            onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }}
+            style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)' }}
+          >
+            {PAGE_SIZE_OPTIONS.map((opt) => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
+          
+        </div>
         <div className="table-scroll">
           <table>
             <thead>
@@ -72,7 +92,7 @@ export default function MyTeam() {
                   </td>
                 </tr>
               ) : (
-                members.map((member, index) => (
+                pagedMembers.map((member, index) => (
                   <tr key={member.id}>
                     <td>{index + 1}</td>
                     <td><span className="ad-cid-badge">{member.userIdDisplay}</span> {member.joinerName || ''}</td>
@@ -85,6 +105,12 @@ export default function MyTeam() {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="pagination-row">
+          <button className="button button-secondary" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</button>
+          <span>Page {page} / {totalPages}</span>
+          <button className="button button-secondary" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>Next</button>
         </div>
       </div>
     </main>

@@ -18,7 +18,7 @@ const Admin = sequelize.define(
     pwdexp: { type: DataTypes.DATE, allowNull: true },
   },
   {
-    tableName: 'admins',
+    tableName: 'admin',
   }
 )
 

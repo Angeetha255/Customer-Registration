@@ -201,10 +201,11 @@ export default function TeamView() {
       {selectedLevel && (
         <div className="ad-table-card">
           <div className="table-header">
-            <h3>Level {selectedLevel} Users</h3>
+           
             <button
               type="button"
               className="button button-secondary button-small"
+              style={{ background: 'transparent' }}
               onClick={() => setSelectedLevel(null)}
             >
               Back to Summary

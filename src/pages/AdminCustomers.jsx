@@ -4,12 +4,11 @@ import {
   exportCustomers,
   fetchAdminCustomers,
   updateCustomer,
-  fetchSettings,
-  updateSetting,
 } from '../services/api.js'
 import Alert from '../components/Alert.jsx'
 import Toast from '../components/Toast.jsx'
 
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
 const initialQuery = { page: 1, limit: 10, sort: 'id' }
 
 export default function AdminCustomers() {
@@ -19,12 +18,6 @@ export default function AdminCustomers() {
   const [search, setSearch] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
-
-  // Settings panel
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [userIdPrefix, setUserIdPrefix] = useState('MEM')
-  const [userIdPrefixInput, setUserIdPrefixInput] = useState('MEM')
-  const [savingPrefix, setSavingPrefix] = useState(false)
 
   const [toast, setToast] = useState({ message: '', type: 'success' })
   const showToast = useCallback((msg, type = 'success') => setToast({ message: msg, type }), [])
@@ -45,41 +38,9 @@ export default function AdminCustomers() {
 
   useEffect(() => { load(query) }, [query])
 
-  // Load current prefix on mount
-  useEffect(() => {
-    fetchSettings()
-      .then((s) => {
-        const u = s.userIdPrefix || 'MEM'
-        setUserIdPrefix(u)
-        setUserIdPrefixInput(u)
-      })
-      .catch(() => { })
-  }, [])
-
   const handleSearch = (event) => {
     event.preventDefault()
     setQuery({ ...query, search, page: 1 })
-  }
-
-  const openSettings = () => {
-    setUserIdPrefixInput(userIdPrefix)
-    setSettingsOpen(true)
-  }
-
-  const savePrefix = async () => {
-    if (!userIdPrefixInput.trim()) return
-    setSavingPrefix(true)
-    try {
-      await updateSetting('userIdPrefix', userIdPrefixInput.trim().toUpperCase())
-      setUserIdPrefix(userIdPrefixInput.trim().toUpperCase())
-      setSettingsOpen(false)
-      showToast('Settings saved successfully.')
-      await load(query)
-    } catch (err) {
-      showToast(err.message, 'danger')
-    } finally {
-      setSavingPrefix(false)
-    }
   }
 
   // Edit modal state
@@ -189,35 +150,38 @@ export default function AdminCustomers() {
             <br></br>
             {/* <p className="subtitle">Search, sort, edit and export customer records.</p> */}
           </div>
-          {/* Settings button */}
-          <button
-            type="button"
-            className="button button-secondary"
-            onClick={openSettings}
-            title="User ID prefix settings"
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-            User ID Prefix: <strong>{userIdPrefix}</strong>
-          </button>
         </div>
         <br></br> 
 
         <Alert type="danger" message={error} />
 
-        <form className="search-row" onSubmit={handleSearch}>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, email, or phone"
-          />
-          <button className="button button-secondary" type="submit">Search</button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+          <form className="search-row" onSubmit={handleSearch} style={{ marginBottom: 0, maxWidth: 400 }}>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, email, or phone"
+            />
+            <button className="button button-secondary" type="submit">Search</button>
+          </form>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: '0.9rem', color: 'var(--muted)' }}>Show</span>
+            <select
+              value={query.limit}
+              onChange={(e) => setQuery((q) => ({ ...q, limit: Number(e.target.value), page: 1 }))}
+              style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)' }}
+            >
+              {PAGE_SIZE_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+            
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
           <button type="button" className="button button-muted" onClick={() => handleExport('csv')}>Export CSV</button>
           <button type="button" className="button button-muted" onClick={() => handleExport('pdf')}>Export PDF</button>
-        </form>
+        </div>
 
         <div className="table-scroll">
           <table className="customers-table">
@@ -274,41 +238,6 @@ export default function AdminCustomers() {
             </tbody>
           </table>
         </div>
-
-        {/* ── User ID Prefix Settings Modal ── */}
-        {settingsOpen && (
-          <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setSettingsOpen(false) }}>
-            <div className="modal-card">
-              <div className="modal-header">
-                <h3>User ID Prefix Settings</h3>
-                <button className="modal-close" onClick={() => setSettingsOpen(false)}>✕</button>
-              </div>
-              <div className="modal-body">
-                <div className="form-grid">
-                  <label>
-                    User ID Prefix
-                    <input
-                      value={userIdPrefixInput}
-                      onChange={(e) => setUserIdPrefixInput(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
-                      maxLength={10}
-                      placeholder="e.g. MEM"
-                      style={{ textTransform: 'uppercase' }}
-                    />
-                    <small style={{ color: 'var(--muted)', fontSize: '0.78rem' }}>
-                      New users get IDs like {userIdPrefixInput.trim().toUpperCase() || 'MEM'}12345. Does not change existing user IDs.
-                    </small>
-                  </label>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button className="button button-muted" onClick={() => setSettingsOpen(false)}>Cancel</button>
-                <button className="button button-primary" onClick={savePrefix} disabled={savingPrefix}>
-                  {savingPrefix ? 'Saving…' : 'Save Settings'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* ── Edit Customer Modal ── */}
         {editOpen && (

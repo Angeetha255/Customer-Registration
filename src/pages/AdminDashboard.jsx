@@ -76,6 +76,8 @@ const fmtDate = (d) => {
   return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`
 }
 
+
+
 export default function AdminDashboard() {
   const { user } = useAuth()
   const [stats, setStats] = useState(null)
@@ -88,6 +90,8 @@ export default function AdminDashboard() {
     topUserPhone: '',
     topUserPassword: '',
   })
+  const [recentPage, setRecentPage] = useState(1)
+  const [recentPageSize, setRecentPageSize] = useState(10)
   const navigate = useNavigate()
 
   const refreshDashboard = async () => {
@@ -208,6 +212,7 @@ export default function AdminDashboard() {
           </button>
         </div>
 
+        
         <div className="table-scroll">
           <table>
             <thead>
@@ -222,24 +227,35 @@ export default function AdminDashboard() {
             <tbody>
               {stats.recentCustomers.length === 0 ? (
                 <tr><td colSpan="5" style={{textAlign:'center',color:'var(--muted)',padding:'24px'}}>No customers yet.</td></tr>
-              ) : stats.recentCustomers.map((c, i) => (
-                <tr key={c.id} style={{ animationDelay: `${i * 50}ms` }} className="ad-table-row">
-                  <td>
-                    <span className="ad-cid-badge">{c.id}</span>
-                  </td>
-                  <td>
-                    <div className="ad-name-cell">
-                      <div className="ad-name-avatar">{c.name?.[0]?.toUpperCase()}</div>
-                      <span>{c.name}</span>
-                    </div>
-                  </td>
-                  <td>{c.email}</td>
-                  <td>{c.phone}</td>
-                  <td>{fmtDate(c.regat || c.createdAt)}</td>
-                </tr>
-              ))}
+              ) : (() => {
+                const total = stats.recentCustomers.length
+                const start = (recentPage - 1) * recentPageSize
+                const paged = stats.recentCustomers.slice(start, start + recentPageSize)
+                return paged.map((c, i) => (
+                  <tr key={c.id} style={{ animationDelay: `${i * 50}ms` }} className="ad-table-row">
+                    <td>
+                      <span className="ad-cid-badge">{c.id}</span>
+                    </td>
+                    <td>
+                      <div className="ad-name-cell">
+                        <div className="ad-name-avatar">{c.name?.[0]?.toUpperCase()}</div>
+                        <span>{c.name}</span>
+                      </div>
+                    </td>
+                    <td>{c.email}</td>
+                    <td>{c.phone}</td>
+                    <td>{fmtDate(c.regat || c.createdAt)}</td>
+                  </tr>
+                ))
+              })()}
             </tbody>
           </table>
+        </div>
+
+        <div className="pagination-row">
+          <button className="button button-secondary" disabled={recentPage <= 1} onClick={() => setRecentPage((p) => p - 1)}>Previous</button>
+          <span>Page {recentPage} / {Math.ceil((stats.recentCustomers.length || 1) / recentPageSize) || 1}</span>
+          <button className="button button-secondary" disabled={recentPage >= Math.ceil((stats.recentCustomers.length || 1) / recentPageSize)} onClick={() => setRecentPage((p) => p + 1)}>Next</button>
         </div>
       </div>
 

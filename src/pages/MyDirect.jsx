@@ -7,10 +7,14 @@ const GENEALOGY_ATTRS = [
   'refcount', 'refactcount', 'teamcount', 'teamactcount',
 ]
 
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
+
 export default function MyDirect() {
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
   useEffect(() => {
     fetchMyDirect()
@@ -18,6 +22,9 @@ export default function MyDirect() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
   }, [])
+
+  const totalPages = Math.max(Math.ceil(members.length / pageSize), 1)
+  const pagedMembers = members.slice((page - 1) * pageSize, page * pageSize)
 
   // Placeholder: level is now returned by the API via enrichGenealogyMember / getUserLevel
 
@@ -45,6 +52,19 @@ export default function MyDirect() {
       </div>
 
       <div className="ad-table-card">
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 12, gap: 8 }}>
+          
+          <select
+            value={ pageSize}
+            onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }}
+            style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)' }}
+          >
+            {PAGE_SIZE_OPTIONS.map((opt) => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
+          
+        </div>
         <div className="table-scroll">
           <table>
             <thead>
@@ -70,7 +90,7 @@ export default function MyDirect() {
                     No direct referrals yet.
                   </td>
                 </tr>
-              ) : members.map((m) => (
+              ) : pagedMembers.map((m) => (
                 <tr key={m.id}>
                   <td><span className="ad-cid-badge">{m.userIdDisplay}</span></td>
                   <td>{m.name || '-'}</td>
@@ -84,6 +104,12 @@ export default function MyDirect() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        <div className="pagination-row">
+          <button className="button button-secondary" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</button>
+          <span>Page {page} / {totalPages}</span>
+          <button className="button button-secondary" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>Next</button>
         </div>
       </div>
     </main>
