@@ -12,7 +12,7 @@ export default function Sidebar({ open, onToggle }) {
   const [openSections, setOpenSections] = useState({ Company: true, Genealogy: true })
 
   const companyItems = [
-    { label: 'Settings', path: '/admin/settings' },
+    { label: 'Set prefix', path: '/admin/settings' },
   ]
 
   const adminItems = [

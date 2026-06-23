@@ -25,7 +25,7 @@ import './index.css'
 import './App.css'
 
 function AppLayout({ children }) {
-  const { adminUser, customerUser, signOut } = useAuth()
+  const { adminUser, customerUser, signOut, getUser } = useAuth()
   const location = useLocation()
   
   // Use the correct user based on current route to support simultaneous admin+customer sessions
@@ -235,7 +235,7 @@ function AppLayout({ children }) {
                       className="button button-link"
                       onClick={() => { 
                         setUserMenuOpen(false); 
-                        signOut(adminUser ? 'admin' : 'customer') 
+                        signOut(isAdminRoute ? 'admin' : 'customer') 
                       }}
                     >
                       Logout

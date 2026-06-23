@@ -1,8 +1,10 @@
 const API_BASE = import.meta.env.VITE_API_BASE || '/api'
 
+import { SESSION_TYPES, getToken } from '../utils/sessionIsolation.js'
+
 // Separate token getters for admin and customer
-const getAdminToken = () => window.localStorage.getItem('adminToken')
-const getUserToken = () => window.localStorage.getItem('userToken')
+const getAdminToken = () => getToken(SESSION_TYPES.ADMIN)
+const getUserToken = () => getToken(SESSION_TYPES.CUSTOMER)
 
 // Admin headers — uses adminToken only
 const adminHeaders = () => ({

@@ -7,3 +7,6 @@ export default function ProtectedRoute({ children }) {
   if (!customerUser || customerUser.type !== 'customer') return <Navigate to="/login" replace />
   return children
 }
+
+// Re-export as CustomerRoute for clarity
+export { ProtectedRoute as CustomerRoute }
