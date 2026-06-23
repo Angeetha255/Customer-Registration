@@ -25,8 +25,12 @@ import './index.css'
 import './App.css'
 
 function AppLayout({ children }) {
-  const { user, signOut } = useAuth()
+  const { adminUser, customerUser, signOut } = useAuth()
   const location = useLocation()
+  
+  // Use the correct user based on current route to support simultaneous admin+customer sessions
+  const isAdminRoute = location.pathname.startsWith('/admin')
+  const user = isAdminRoute ? adminUser : customerUser
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(
     typeof window !== 'undefined' ? window.innerWidth > 900 : true
@@ -229,7 +233,10 @@ function AppLayout({ children }) {
                     )}
                     <button
                       className="button button-link"
-                      onClick={() => { setUserMenuOpen(false); signOut() }}
+                      onClick={() => { 
+                        setUserMenuOpen(false); 
+                        signOut(adminUser ? 'admin' : 'customer') 
+                      }}
                     >
                       Logout
                     </button>

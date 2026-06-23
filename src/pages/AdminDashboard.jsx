@@ -79,7 +79,7 @@ const fmtDate = (d) => {
 
 
 export default function AdminDashboard() {
-  const { user } = useAuth()
+  const { adminUser } = useAuth()
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')

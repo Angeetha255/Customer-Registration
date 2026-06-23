@@ -53,7 +53,7 @@ function StatCard({ icon, label, value, colorIdx = 0 }) {
 }
 
 export default function CustomerDashboard() {
-  const { user } = useAuth()
+  const { customerUser } = useAuth()
   const [profile, setProfile] = useState(null)
   const [referred, setReferred] = useState([])
   const [copied, setCopied] = useState(false)
@@ -61,8 +61,8 @@ export default function CustomerDashboard() {
   useEffect(() => {
     fetchMe()
       .then((data) => setProfile(data))
-      .catch(() => setProfile(user))
-  }, [user])
+      .catch(() => setProfile(customerUser))
+  }, [customerUser])
 
   useEffect(() => {
     fetchReferredCustomers()
@@ -70,9 +70,9 @@ export default function CustomerDashboard() {
       .catch(() => setReferred([]))
   }, [])
 
-  if (!user) return <div className="page-panel">Loading dashboard...</div>
+  if (!customerUser) return <div className="page-panel">Loading dashboard...</div>
 
-  const display = profile || user
+  const display = profile || customerUser
   const referralLink = display.id ? `${window.location.origin}/register?ref=${display.id}` : null
 
   const handleCopy = () => {

@@ -23,11 +23,11 @@ function AvatarIcon() {
 }
 
 export default function Profile() {
-  const { user, setUser } = useAuth()
+  const { customerUser, setCustomerUser } = useAuth()
   const location = useLocation()
   const fromUserIcon = location.state?.fromUserIcon === true
 
-  const [form, setForm] = useState({ name: user?.name || '', phone: user?.phone || '', email: user?.email || '' })
+  const [form, setForm] = useState({ name: customerUser?.name || '', phone: customerUser?.phone || '', email: customerUser?.email || '' })
   const [referred, setReferred] = useState([])
   const [copied, setCopied] = useState(false)
   const [toast, setToast] = useState({ message: '', type: 'success' })
@@ -38,8 +38,8 @@ export default function Profile() {
   const [profileData, setProfileData] = useState(null)
 
   useEffect(() => {
-    setForm({ name: user?.name || '', phone: user?.phone || '', email: user?.email || '' })
-  }, [user])
+    setForm({ name: customerUser?.name || '', phone: customerUser?.phone || '', email: customerUser?.email || '' })
+  }, [customerUser])
 
   // Fetch the enriched /me on mount to get referrerName, referrerDisplayId, referralId
   useEffect(() => {
@@ -54,11 +54,11 @@ export default function Profile() {
       .catch(() => setReferred([]))
   }, [])
 
-  // Merge: profileData overrides user for display fields
-  const profile = profileData || user
+  // Merge: profileData overrides customerUser for display fields
+  const profile = profileData || customerUser
 
   const openEdit = () => {
-    setForm({ name: user?.name || '', phone: user?.phone || '', email: user?.email || '' })
+    setForm({ name: customerUser?.name || '', phone: customerUser?.phone || '', email: customerUser?.email || '' })
     setError('')
     setEditOpen(true)
   }
@@ -90,7 +90,7 @@ export default function Profile() {
       }
       const { user: updated } = await updateProfile(form)
       if (updated) {
-        setUser(updated)
+        setCustomerUser(updated)
         // Re-fetch enriched profile so referralId/referrerName etc. stay current
         fetchMe().then((data) => setProfileData(data)).catch(() => {})
       }
@@ -113,7 +113,7 @@ export default function Profile() {
   }
 
   // Referral link uses the user's own numeric id
-  const referralUrl = user?.id ? `${window.location.origin}/register?ref=${user.id}` : null
+  const referralUrl = customerUser?.id ? `${window.location.origin}/register?ref=${customerUser.id}` : null
 
   const handleCopy = () => {
     if (!referralUrl) return

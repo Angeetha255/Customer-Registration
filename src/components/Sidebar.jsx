@@ -1,9 +1,14 @@
 import { useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 
 export default function Sidebar({ open, onToggle }) {
-  const { user } = useAuth()
+  const { adminUser, customerUser } = useAuth()
+  const location = useLocation()
+  
+  // Use the correct user based on current route to support simultaneous admin+customer sessions
+  const isAdminRoute = location.pathname.startsWith('/admin')
+  const user = isAdminRoute ? adminUser : customerUser
   const [genealogyOpen, setGenealogyOpen] = useState(true)
   const [companyOpen, setCompanyOpen] = useState(true)
 

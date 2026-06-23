@@ -1,11 +1,22 @@
 const API_BASE = import.meta.env.VITE_API_BASE || '/api'
 
-const getToken = () => window.localStorage.getItem('adminAuthToken') || window.localStorage.getItem('authToken')
-const authHeaders = () => ({
+// Separate token getters for admin and customer
+const getAdminToken = () => window.localStorage.getItem('adminToken')
+const getUserToken = () => window.localStorage.getItem('userToken')
+
+// Admin headers — uses adminToken only
+const adminHeaders = () => ({
   'Content-Type': 'application/json',
-  Authorization: `Bearer ${getToken()}`,
+  Authorization: `Bearer ${getAdminToken()}`,
 })
 
+// Customer headers — uses userToken only
+const userHeaders = () => ({
+  'Content-Type': 'application/json',
+  Authorization: `Bearer ${getUserToken()}`,
+})
+
+// Generic send with explicit headers
 const send = async (path, options = {}) => {
   const response = await fetch(`${API_BASE}${path}`, options)
   const body = await response.json().catch(() => null)
@@ -61,106 +72,113 @@ export const resetPassword = (data) =>
     body: JSON.stringify(data),
   })
 
+// Customer: fetch current logged-in customer
 export const fetchMe = () =>
-  send('/users/me', { headers: authHeaders() })
+  send('/users/me', { headers: userHeaders() })
 
+// Admin: fetch current logged-in admin
+export const fetchMeAdmin = () =>
+  send('/users/me', { headers: adminHeaders() })
+
+// Customer profile
 export const updateProfile = (data) =>
   send('/users/me', {
     method: 'PUT',
-    headers: authHeaders(),
+    headers: userHeaders(),
     body: JSON.stringify(data),
   })
 
+// Admin-only endpoints — use adminHeaders
 export const fetchAdminStats = () =>
-  send('/users/stats', { headers: authHeaders() })
+  send('/users/stats', { headers: adminHeaders() })
 
 export const fetchAdminCustomers = (params) => {
   const query = new URLSearchParams(params).toString()
-  return send(`/users?${query}`, { headers: authHeaders() })
+  return send(`/users?${query}`, { headers: adminHeaders() })
 }
 
 export const deleteCustomer = (id) =>
-  send(`/users/${id}`, { method: 'DELETE', headers: authHeaders() })
+  send(`/users/${id}`, { method: 'DELETE', headers: adminHeaders() })
 
 export const updateCustomer = (id, data) =>
   send(`/users/${id}`, {
     method: 'PUT',
-    headers: authHeaders(),
+    headers: adminHeaders(),
     body: JSON.stringify(data),
   })
 
 export const exportCustomers = (format = 'csv') =>
-  fetch(`${API_BASE}/users/export?format=${format}`, { headers: authHeaders() })
+  fetch(`${API_BASE}/users/export?format=${format}`, { headers: adminHeaders() })
 
 export const fetchReferredCustomers = () =>
-  send('/users/referred/list', { headers: authHeaders() })
+  send('/users/referred/list', { headers: userHeaders() })
 
 // Admin settings
 export const fetchSettings = () =>
-  send('/users/settings', { headers: authHeaders() })
+  send('/users/settings', { headers: adminHeaders() })
 
 export const updateSetting = (key, value) =>
   send('/users/settings', {
     method: 'PUT',
-    headers: authHeaders(),
+    headers: adminHeaders(),
     body: JSON.stringify({ key, value }),
   })
 
-// New: Reset database and set Top ID
+// Admin: Reset database and set Top ID
 export const resetDatabase = (data) =>
   send('/users/reset-db', {
     method: 'POST',
-    headers: authHeaders(),
+    headers: adminHeaders(),
     body: JSON.stringify(data),
   })
 
-// New: Create first Top ID (when no users exist)
+// Admin: Create first Top ID (when no users exist)
 export const createFirstTopId = (data) =>
   send('/users/create-first-top-id', {
     method: 'POST',
-    headers: authHeaders(),
+    headers: adminHeaders(),
     body: JSON.stringify(data),
   })
 
-// New: Set Top ID from existing user
+// Admin: Set Top ID from existing user
 export const setTopId = (userId) =>
   send('/users/top-id', {
     method: 'POST',
-    headers: authHeaders(),
+    headers: adminHeaders(),
     body: JSON.stringify({ userId }),
   })
 
-// New: Update Top ID details
+// Admin: Update Top ID details
 export const updateTopId = (data) =>
   send('/users/top-id', {
     method: 'PUT',
-    headers: authHeaders(),
+    headers: adminHeaders(),
     body: JSON.stringify(data),
   })
 
-// Level-based team view
+// Level-based team view (admin can view any user, customer views own)
 export const fetchLevelSummary = (userId) =>
-  send(userId ? `/users/level-summary?userId=${encodeURIComponent(userId)}` : '/users/level-summary', { headers: authHeaders() })
+  send(userId ? `/users/level-summary?userId=${encodeURIComponent(userId)}` : '/users/level-summary', { headers: userHeaders() })
 
 export const fetchLevelUsers = (level, userId) =>
-  send(userId ? `/users/level-users/${encodeURIComponent(level)}?userId=${encodeURIComponent(userId)}` : `/users/level-users/${encodeURIComponent(level)}`, { headers: authHeaders() })
+  send(userId ? `/users/level-users/${encodeURIComponent(level)}?userId=${encodeURIComponent(userId)}` : `/users/level-users/${encodeURIComponent(level)}`, { headers: userHeaders() })
 
-// Genealogy pages
+// Genealogy pages (customer endpoints)
 export const fetchMyDirect = () =>
-  send('/users/my-direct', { headers: authHeaders() })
+  send('/users/my-direct', { headers: userHeaders() })
 
 export const fetchMyTeam = (params = {}) => {
   const query = new URLSearchParams(params).toString()
-  return send(`/users/my-team${query ? `?${query}` : ''}`, { headers: authHeaders() })
+  return send(`/users/my-team${query ? `?${query}` : ''}`, { headers: userHeaders() })
 }
 
 export const fetchTeamView = (userId) =>
-  send(userId ? `/users/team-view/${userId}` : '/users/team-view', { headers: authHeaders() })
+  send(userId ? `/users/team-view/${userId}` : '/users/team-view', { headers: userHeaders() })
 
 export const fetchTeamViewChildren = (parentId) =>
-  send(`/users/team-view/children/${parentId}`, { headers: authHeaders() })
+  send(`/users/team-view/children/${parentId}`, { headers: userHeaders() })
 
 export const searchTeamView = (q) =>
-  send(`/users/team-view/search?q=${encodeURIComponent(q)}`, { headers: authHeaders() })
+  send(`/users/team-view/search?q=${encodeURIComponent(q)}`, { headers: userHeaders() })
 
 export const loginWithApi = login

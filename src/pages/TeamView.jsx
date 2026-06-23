@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { fetchLevelSummary, fetchLevelUsers, fetchMe } from '../services/api.js'
 
 export default function TeamView() {
-  const { user } = useAuth()
+  const { customerUser } = useAuth()
   const [summary, setSummary] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
