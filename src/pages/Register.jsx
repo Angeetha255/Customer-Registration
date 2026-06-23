@@ -37,27 +37,31 @@ export default function Register() {
         
         const params = new URLSearchParams(location.search)
         const ref = params.get('ref')
-        if (ref && /^\d+$/.test(ref)) {
+        if (ref) {
           try {
             const referralData = await checkReferral(ref)
             if (referralData?.valid) {
               setReferrer(referralData.referrer)
               setValidReferral(true)
               setReferralMode('link')
+              setForm(prev => ({ ...prev, referralUserId: referralData.referrer.userId || `MEM${referralData.referrer.id}` }))
             } else {
               setValidReferral(false)
               setReferrer(null)
               setReferralMode('userid')
+              setForm(prev => ({ ...prev, referralUserId: '' }))
             }
           } catch (e) {
             setValidReferral(false)
             setReferrer(null)
             setReferralMode('userid')
+            setForm(prev => ({ ...prev, referralUserId: '' }))
           }
         } else {
           setValidReferral(false)
           setReferrer(null)
           setReferralMode('userid')
+          setForm(prev => ({ ...prev, referralUserId: '' }))
         }
       } catch (e) {
         console.error('Init failed:', e)
@@ -75,9 +79,11 @@ export default function Register() {
     } else if (name === 'referralUserId') {
       setForm({ ...form, referralUserId: value })
       setUserIdError('')
-      // Reset validation state when the field is edited
-      setValidReferral(false)
-      setReferrer(null)
+      // Reset validation state when the field is edited (only in userid mode)
+      if (referralMode === 'userid') {
+        setValidReferral(false)
+        setReferrer(null)
+      }
     } else {
       setForm({ ...form, [name]: value })
     }
@@ -199,18 +205,30 @@ export default function Register() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="form-grid register-form">
-                {referrer && referralMode === 'link' && (
-                  <div className="introducer-badge">
-                    <span className="feature-icon">✦</span>
-                    <div>
-                      <strong>Referred by {referrer.name}</strong>
-                      <span>User ID: {referrer.userId || `MEM${referrer.id}`}</span>
+                {referralMode === 'link' && referrer ? (
+                  <>
+                    <div className="introducer-badge">
+                      <span className="feature-icon">✦</span>
+                      <div>
+                        <strong>Referred by {referrer.name}</strong>
+                        <span>User ID: {referrer.userId || `MEM${referrer.id}`}</span>
+                      </div>
                     </div>
-                  </div>
-                )}
-                {referralMode === 'userid' && (
+                    <div className="form-group">
+                      <label style={{ fontSize: '0.9rem', fontWeight: 500, marginBottom: 4, display: 'block' }}>Referrer User ID</label>
+                      <input
+                        type="text"
+                        name="referralUserId"
+                        value={form.referralUserId}
+                        readOnly
+                        className="form-input"
+                        style={{ backgroundColor: 'var(--input-bg-readonly, #f5f5f5)' }}
+                      />
+                    </div>
+                  </>
+                ) : (
                   <div className="form-group">
-                   
+                    <label style={{ fontSize: '0.9rem', fontWeight: 500, marginBottom: 4, display: 'block' }}>Referrer User ID *</label>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <input
                         type="text"

@@ -112,8 +112,8 @@ export default function Profile() {
     return `${dd}/${mm}/${yyyy}`
   }
 
-  // Referral link uses the user's own numeric id
-  const referralUrl = customerUser?.id ? `${window.location.origin}/register?ref=${customerUser.id}` : null
+  // Referral link uses the user's own User ID
+  const referralUrl = customerUser?.userId ? `${window.location.origin}/register?ref=${customerUser.userId}` : null
 
   const handleCopy = () => {
     if (!referralUrl) return

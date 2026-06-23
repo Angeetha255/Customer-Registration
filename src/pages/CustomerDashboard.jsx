@@ -73,7 +73,7 @@ export default function CustomerDashboard() {
   if (!customerUser) return <div className="page-panel">Loading dashboard...</div>
 
   const display = profile || customerUser
-  const referralLink = display.id ? `${window.location.origin}/register?ref=${display.id}` : null
+  const referralLink = display.userId ? `${window.location.origin}/register?ref=${display.userId}` : null
 
   const handleCopy = () => {
     if (!referralLink) return
