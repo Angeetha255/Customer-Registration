@@ -1,0 +1,94 @@
+import { useState } from 'react'
+import { NavLink } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext.jsx'
+
+export default function Sidebar({ open, onToggle }) {
+  const { user } = useAuth()
+  const [genealogyOpen, setGenealogyOpen] = useState(true)
+
+  const adminItems = [
+    { label: 'Dashboard', path: '/admin' },
+    { label: 'Users', path: '/admin/customers' },
+  ]
+
+  const customerItems = [
+    { label: 'Dashboard', path: '/dashboard' },
+    { label: 'Profile', path: '/profile' },
+  ]
+
+  const genealogyItems = [
+    { label: 'My Direct', path: '/genealogy/my-direct' },
+    { label: 'My Team', path: '/genealogy/my-team' },
+    { label: 'Team View', path: '/genealogy/team-view' },
+  ]
+
+  const navItems = user?.type === 'admin' ? adminItems : customerItems
+
+  const handleNavClick = () => {
+    if (window.innerWidth <= 900) {
+      onToggle && onToggle()
+    }
+  }
+
+  return (
+    <aside className={`sidebar ${open ? 'sidebar-open' : ''}`}>
+      <div className="sidebar-header">
+        <span className="sidebar-logo">CM</span>
+        <button
+          className="sidebar-toggle"
+          onClick={onToggle}
+          aria-label="Close sidebar"
+          aria-expanded={open}
+        >
+          <span className="bar" />
+          <span className="bar" />
+          <span className="bar" />
+        </button>
+      </div>
+
+      <nav>
+        {navItems.map((item) => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            end
+            onClick={handleNavClick}
+            className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
+          >
+            {item.label}
+          </NavLink>
+        ))}
+
+        {user?.type !== 'admin' && (
+          <div className="nav-section">
+            <button
+              type="button"
+              className="nav-section-toggle"
+              onClick={() => setGenealogyOpen((v) => !v)}
+              aria-expanded={genealogyOpen}
+            >
+              <span>Genealogy</span>
+              <span className={`nav-chevron ${genealogyOpen ? 'open' : ''}`}>▾</span>
+            </button>
+            {genealogyOpen && (
+              <div className="nav-sub">
+                {genealogyItems.map((item) => (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    onClick={handleNavClick}
+                    className={({ isActive }) => isActive ? 'nav-link nav-sublink active' : 'nav-link nav-sublink'}
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </nav>
+
+      <div className="sidebar-bottom-space" />
+    </aside>
+  )
+}
