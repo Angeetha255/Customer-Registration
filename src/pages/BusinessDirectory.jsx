@@ -45,6 +45,8 @@ export default function BusinessDirectory() {
     ]
   })
 
+  const [showMapPicker, setShowMapPicker] = useState(false)
+
   // Fetch master data on component mount
   useEffect(() => {
     const fetchMasterData = async () => {
@@ -312,6 +314,19 @@ export default function BusinessDirectory() {
     setProductForm(prev => ({ ...prev, productImages: files }))
   }
 
+  const handleOpenMapPicker = () => {
+    setShowMapPicker(true)
+  }
+
+  const handleCloseMapPicker = () => {
+    setShowMapPicker(false)
+  }
+
+  const handleLocationSelect = (location) => {
+    setBusinessForm(prev => ({ ...prev, mapLocation: location }))
+    setShowMapPicker(false)
+  }
+
   const handleProductSubmit = async (e) => {
     e.preventDefault()
     setError('')
@@ -479,22 +494,104 @@ export default function BusinessDirectory() {
           />
 
           <div className="full-width">
-            <FloatingInput
-              label="Map Location URL"
-              name="mapLocation"
-              value={businessForm.mapLocation}
-              onChange={handleBusinessChange}
-              placeholder="Paste Google Maps URL"
-            />
+            <label className="map-location-label">Map Location</label>
+            <div className="map-location-wrapper">
+              <input
+                type="text"
+                name="mapLocation"
+                value={businessForm.mapLocation}
+                onChange={handleBusinessChange}
+                placeholder="Click to select location on map"
+                className="map-location-input"
+                readOnly
+                onClick={handleOpenMapPicker}
+              />
+              <button
+                type="button"
+                className="map-picker-button"
+                onClick={handleOpenMapPicker}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                  <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+                Pick Location
+              </button>
+            </div>
+            {businessForm.mapLocation && (
+              <div className="map-location-preview">
+                <a href={businessForm.mapLocation} target="_blank" rel="noopener noreferrer" className="map-preview-link">
+                  View selected location on Google Maps →
+                </a>
+              </div>
+            )}
           </div>
 
-          <FloatingInput
-            label="Country"
-            name="country"
-            value={businessForm.country}
-            onChange={handleBusinessChange}
-            disabled
-          />
+          {showMapPicker && (
+            <div className="map-picker-modal">
+              <div className="map-picker-overlay" onClick={handleCloseMapPicker}></div>
+              <div className="map-picker-content">
+                <div className="map-picker-header">
+                  <h3>Select Location</h3>
+                  <button type="button" className="map-picker-close" onClick={handleCloseMapPicker}>✕</button>
+                </div>
+                <div className="map-picker-body">
+                  <p className="map-picker-instruction">
+                    Search for your location on Google Maps, then copy the URL and paste it below:
+                  </p>
+                  <input
+                    type="text"
+                    placeholder="Paste Google Maps URL here..."
+                    className="map-url-input"
+                    id="mapUrlInput"
+                  />
+                  <div className="map-picker-actions">
+                    <button
+                      type="button"
+                      className="button button-secondary"
+                      onClick={handleCloseMapPicker}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="button button-primary"
+                      onClick={() => {
+                        const input = document.getElementById('mapUrlInput')
+                        if (input && input.value) {
+                          handleLocationSelect(input.value)
+                        }
+                      }}
+                    >
+                      Confirm Location
+                    </button>
+                  </div>
+                  <a
+                    href="https://maps.google.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="open-maps-link"
+                  >
+                    Open Google Maps →
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="country-field-wrapper">
+            <label htmlFor="country" className="country-label">Country</label>
+            <select
+              id="country"
+              name="country"
+              value={businessForm.country}
+              onChange={handleBusinessChange}
+              disabled
+              className="country-select"
+            >
+              <option value="India">India</option>
+            </select>
+          </div>
 
           <FloatingInput
             
@@ -565,11 +662,11 @@ export default function BusinessDirectory() {
             {businessForm.businessHoursGroups.map((group, groupIndex) => (
               <div key={group.id} className="business-hours-group">
                 <div className="business-hours-group-header">
-                  <span>Group {groupIndex + 1}</span>
+                  <span className="schedule-title">Schedule {groupIndex + 1}</span>
                   {businessForm.businessHoursGroups.length > 1 && (
                     <button
                       type="button"
-                      className="button button-danger button-small"
+                      className="button button-danger button-small remove-schedule-btn"
                       onClick={() => removeBusinessHoursGroup(group.id)}
                     >
                       Remove
@@ -612,10 +709,10 @@ export default function BusinessDirectory() {
             ))}
             <button
               type="button"
-              className="button button-secondary button-small"
+              className="button button-secondary button-small add-schedule-btn"
               onClick={addBusinessHoursGroup}
             >
-              + Add Time Group
+              + Add Schedule
             </button>
           </div>
 
