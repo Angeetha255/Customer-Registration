@@ -1,4 +1,4 @@
-import { sequelize, DataTypes } from './index.js'
+import { sequelize, DataTypes } from './sequelize.js'
 
 const Counter = sequelize.define(
   'Counter',
@@ -13,6 +13,7 @@ const Counter = sequelize.define(
   },
   {
     tableName: 'counters',
+    timestamps: false,
   }
 )
 

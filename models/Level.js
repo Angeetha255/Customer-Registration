@@ -1,4 +1,4 @@
-import { sequelize, DataTypes } from './index.js'
+import { sequelize, DataTypes } from './sequelize.js'
 
 const Level = sequelize.define(
   'Level',
@@ -28,6 +28,7 @@ const Level = sequelize.define(
   },
   {
     tableName: 'levels',
+    timestamps: false,
     indexes: [
       {
         fields: ['sponsor', 'level'],

@@ -50,12 +50,14 @@ export default function ResetPassword() {
           <input type="hidden" name="token" value={form.token} onChange={handleChange} />
           <FloatingInput label="New Password" name="password" type="password" value={form.password} onChange={handleChange} required minLength={6} showToggle />
           <FloatingInput label="Confirm Password" name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} required minLength={6} showToggle />
+          <div className='rstbtn'>
           <button type="submit" className="button button-primary" disabled={loading}>
             {loading ? 'Resetting...' : 'Reset password'}
           </button>
           <button type="button" className="button button-muted" onClick={() => navigate('/login')}>
             Cancel
           </button>
+          </div>
         </form>
       </section>
     </main>

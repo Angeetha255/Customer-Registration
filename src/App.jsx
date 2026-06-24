@@ -156,7 +156,7 @@ function AppLayout({ children }) {
   }
 
   // Public routes — never show sidebar or topbar
-  const PUBLIC_ROUTES = ['/', '/register', '/login', '/forgot-password', '/reset-password', '/admin/login']
+  const PUBLIC_ROUTES = ['/', '/user-register', '/user-login', '/forgot-password', '/reset-password', '/admin/login']
   const isPublic = PUBLIC_ROUTES.includes(location.pathname)
   const showShell = user && !isPublic
 
@@ -407,8 +407,11 @@ function AppRoutes() {
   return (
     <Routes future={{ v7_relativeSplatPath: true }}>
       <Route path="/" element={<Landing />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/login" element={<Login />} />
+      {/* Redirect old routes to new routes */}
+      <Route path="/register" element={<Navigate to="/user-register" replace />} />
+      <Route path="/login" element={<Navigate to="/user-login" replace />} />
+      <Route path="/user-register" element={<Register />} />
+      <Route path="/user-login" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/dashboard" element={<ProtectedRoute><CustomerDashboard /></ProtectedRoute>} />

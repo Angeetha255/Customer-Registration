@@ -1,4 +1,4 @@
-import { sequelize, DataTypes } from './index.js'
+import { sequelize, DataTypes } from './sequelize.js'
 
 const Settings = sequelize.define(
   'Settings',
@@ -13,6 +13,7 @@ const Settings = sequelize.define(
   },
   {
     tableName: 'settings',
+    timestamps: false,
   }
 )
 

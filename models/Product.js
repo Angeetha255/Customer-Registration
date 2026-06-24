@@ -1,4 +1,4 @@
-import { sequelize, DataTypes } from './index.js'
+import { sequelize, DataTypes } from './sequelize.js'
 
 const Product = sequelize.define(
   'Product',
@@ -16,6 +16,7 @@ const Product = sequelize.define(
     },
     coverImage: { type: DataTypes.STRING, allowNull: true },
     productImages: { type: DataTypes.JSON, allowNull: true },
+    gallery: { type: DataTypes.JSON, allowNull: true },
     productName: { type: DataTypes.STRING, allowNull: false },
     displayPrice: { type: DataTypes.BOOLEAN, defaultValue: false },
     productPrice: { type: DataTypes.DECIMAL(10, 2), allowNull: true },
@@ -28,6 +29,7 @@ const Product = sequelize.define(
   },
   {
     tableName: 'products',
+    timestamps: false,
   }
 )
 

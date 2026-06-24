@@ -1,4 +1,4 @@
-import { sequelize, DataTypes } from './index.js'
+import { sequelize, DataTypes } from './sequelize.js'
 
 const User = sequelize.define(
   'User',
@@ -37,6 +37,7 @@ const User = sequelize.define(
   },
   {
     tableName: 'users',
+    timestamps: false,
   }
 )
 

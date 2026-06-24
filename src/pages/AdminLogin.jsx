@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import Alert from '../components/Alert.jsx'
+import bgImage from '../assets/bg-image.png';
+
+
 import FloatingInput from '../components/FloatingInput.jsx'
 
 export default function AdminLogin() {
@@ -30,7 +33,9 @@ export default function AdminLogin() {
   }
 
   return (
-    <main className="admin-login-page">
+    <main className="admin-login-page"  style={{
+    backgroundImage: `url(${bgImage})`
+  }}>
       <div className="admin-login-bg-blob alb1" />
       <div className="admin-login-bg-blob alb2" />
 

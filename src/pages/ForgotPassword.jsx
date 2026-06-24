@@ -40,12 +40,14 @@ export default function ForgotPassword() {
             Email Address
             <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
           </label>
+          <div className='rstbtn'>
           <button className="button button-primary" type="submit" disabled={loading}>
             {loading ? 'Sending...' : 'Request reset'}
           </button>
           <button type="button" className="button button-muted" onClick={() => navigate('/login')}>
             Cancel
           </button>
+          </div>
         </form>
       </section>
     </main>

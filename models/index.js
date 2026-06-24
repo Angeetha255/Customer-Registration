@@ -1,34 +1,52 @@
-// import { Sequelize, DataTypes } from 'sequelize'
-// import dotenv from 'dotenv'
-
-// dotenv.config()
-
-// const MYSQL_URI = process.env.MYSQL_URI || process.env.DATABASE_URL || 'mysql://root:password@127.0.0.1:3306/customer_management'
-
-// const sequelize = new Sequelize(MYSQL_URI, {
-//   logging: false,
-//   define: {
-//     timestamps: false,
-//   },
-// })
-
-// export { sequelize, DataTypes }
 import { Sequelize, DataTypes } from 'sequelize'
-import 'dotenv/config' // 
+import sequelize from './sequelize.js'
 
-const sequelize = new Sequelize(
-  process.env.DB_NAME || 'customer_management', 
-  process.env.DB_USER || 'root',
-  process.env.DB_PASSWORD || '', 
-  {
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 3306,
-    dialect: 'mysql',
-    logging: false,
-    define: {
-      timestamps: false,
-    },
-  }
-)
+// Import models
+import User from './User.js'
+import Admin from './Admin.js'
+import Business from './Business.js'
+import Product from './Product.js'
+import Level from './Level.js'
+import Counter from './Counter.js'
+import Settings from './Settings.js'
+import State from './State.js'
+import District from './District.js'
+import Area from './Area.js'
+import Category from './Category.js'
+import Subcategory from './Subcategory.js'
 
-export { sequelize, DataTypes }
+const db = {
+  sequelize,
+  Sequelize,
+  DataTypes,
+  User,
+  Admin,
+  Business,
+  Product,
+  Level,
+  Counter,
+  Settings,
+  State,
+  District,
+  Area,
+  Category,
+  Subcategory,
+}
+
+// Define relationships only after all models are loaded
+if (State && District) {
+  State.hasMany(District, { foreignKey: 'stateId', as: 'districts' })
+  District.belongsTo(State, { foreignKey: 'stateId', as: 'state' })
+}
+
+if (District && Area) {
+  District.hasMany(Area, { foreignKey: 'districtId', as: 'areas' })
+  Area.belongsTo(District, { foreignKey: 'districtId', as: 'district' })
+}
+
+if (Category && Subcategory) {
+  Category.hasMany(Subcategory, { foreignKey: 'categoryId', as: 'subcategories' })
+  Subcategory.belongsTo(Category, { foreignKey: 'categoryId', as: 'category' })
+}
+
+export default db

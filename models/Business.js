@@ -1,4 +1,4 @@
-import { sequelize, DataTypes } from './index.js'
+import { sequelize, DataTypes } from './sequelize.js'
 
 const Business = sequelize.define(
   'Business',
@@ -23,6 +23,8 @@ const Business = sequelize.define(
     mainCategory: { type: DataTypes.STRING, allowNull: false },
     subCategory: { type: DataTypes.STRING, allowNull: true },
     businessHours: { type: DataTypes.JSON, allowNull: true },
+    numberOfEmployees: { type: DataTypes.INTEGER, allowNull: true },
+    yearlyTurnover: { type: DataTypes.STRING, allowNull: true },
     createdBy: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: true,
@@ -32,6 +34,7 @@ const Business = sequelize.define(
   },
   {
     tableName: 'business',
+    timestamps: false,
   }
 )
 

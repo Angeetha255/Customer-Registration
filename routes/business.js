@@ -51,7 +51,9 @@ router.post('/', authMiddleware, async (req, res) => {
       pincode,
       mainCategory,
       subCategory,
-      businessHours
+      businessHours,
+      numberOfEmployees,
+      yearlyTurnover
     } = req.body
 
     // Validation
@@ -87,6 +89,8 @@ router.post('/', authMiddleware, async (req, res) => {
       mainCategory,
       subCategory,
       businessHours,
+      numberOfEmployees: numberOfEmployees ? parseInt(numberOfEmployees) : null,
+      yearlyTurnover: yearlyTurnover || null,
       createdBy: req.user.id
     })
 
@@ -100,7 +104,8 @@ router.post('/', authMiddleware, async (req, res) => {
 // POST /api/business/products - Create a new product
 router.post('/products', authMiddleware, upload.fields([
   { name: 'coverImage', maxCount: 1 },
-  { name: 'productImages', maxCount: 10 }
+  { name: 'productImages', maxCount: 10 },
+  { name: 'gallery', maxCount: 20 }
 ]), async (req, res) => {
   try {
     const { businessId, productName, displayPrice, productPrice } = req.body
@@ -118,11 +123,13 @@ router.post('/products', authMiddleware, upload.fields([
 
     const coverImagePath = req.files?.coverImage?.[0]?.filename || null
     const productImagePaths = req.files?.productImages?.map(file => file.filename) || []
+    const galleryPaths = req.files?.gallery?.map(file => file.filename) || []
 
     const product = await Product.create({
       businessId,
       coverImage: coverImagePath,
       productImages: productImagePaths,
+      gallery: galleryPaths,
       productName,
       displayPrice: displayPrice === 'true' || displayPrice === true,
       productPrice: displayPrice ? productPrice : null,

@@ -1,77 +1,8 @@
 import { useState, useEffect } from 'react'
-import { createBusiness, createProduct, fetchBusinesses } from '../services/api.js'
+import { createBusiness, createProduct, fetchBusinesses, fetchBusinessProducts, fetchStates, fetchDistricts, fetchAreas, fetchCategories, fetchSubcategories } from '../services/api.js'
 import Toast from '../components/Toast.jsx'
-
-// Indian states data
-const INDIAN_STATES = [
-  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
-  'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand',
-  'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur',
-  'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
-  'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura',
-  'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Delhi', 'Puducherry'
-]
-
-// Districts data (simplified - in production, this would be a comprehensive API or database)
-const STATE_DISTRICTS = {
-  'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli', 'Salem', 'Erode', 'Tirunelveli', 'Vellore', 'Thoothukudi', 'Dindigul'],
-  'Karnataka': ['Bengaluru', 'Mysuru', 'Hubballi-Dharwad', 'Kalaburagi', 'Mangaluru', 'Belagavi', 'Davanagere', 'Ballari', 'Vijayapura', 'Shivamogga'],
-  'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Thane', 'Pimpri-Chinchwad', 'Nashik', 'Kalyan-Dombivli', 'Vasai-Virar', 'Aurangabad', 'Navi Mumbai'],
-  'Delhi': ['Central Delhi', 'East Delhi', 'New Delhi', 'North Delhi', 'North East Delhi', 'North West Delhi', 'South Delhi', 'South East Delhi', 'South West Delhi', 'West Delhi'],
-  'Kerala': ['Thiruvananthapuram', 'Kochi', 'Kozhikode', 'Kollam', 'Thrissur', 'Palakkad', 'Alappuzha', 'Malappuram', 'Kannur', 'Kottayam'],
-  'Gujarat': ['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Bhavnagar', 'Jamnagar', 'Junagadh', 'Gandhinagar', 'Anand', 'Bhuj'],
-  'Rajasthan': ['Jaipur', 'Jodhpur', 'Udaipur', 'Kota', 'Bikaner', 'Ajmer', 'Sikar', 'Alwar', 'Bharatpur', 'Bhilwara'],
-  'Uttar Pradesh': ['Lucknow', 'Kanpur', 'Agra', 'Varanasi', 'Meerut', 'Allahabad', 'Ghaziabad', 'Bareilly', 'Aligarh', 'Moradabad'],
-  'West Bengal': ['Kolkata', 'Howrah', 'Durgapur', 'Asansol', 'Siliguri', 'Bardhaman', 'Malda', 'Baharampur', 'Kharagpur', 'Shantipur'],
-  'Telangana': ['Hyderabad', 'Warangal', 'Nizamabad', 'Karimnagar', 'Ramagundam', 'Khammam', 'Mahbubnagar', 'Nalgonda', 'Adilabad', 'Suryapet']
-}
-
-// Areas data (simplified - in production, this would be comprehensive)
-const DISTRICT_AREAS = {
-  'Chennai': ['T. Nagar', 'Anna Nagar', 'Adyar', 'Velachery', 'Mylapore', 'Royapettah', 'Nungambakkam', 'Chromepet', 'Perambur', 'Ambattur'],
-  'Bengaluru': ['Indiranagar', 'Koramangala', 'HSR Layout', 'Jayanagar', 'Whitefield', 'Electronic City', 'BTM Layout', 'Malleshwaram', 'Yelahanka', 'Bannerghatta'],
-  'Mumbai': ['Andheri', 'Bandra', 'Colaba', 'Dadar', 'Juhu', 'Lower Parel', 'Malad', 'Powai', 'Thane', 'Vashi'],
-  'Delhi': ['Connaught Place', 'Karol Bagh', 'Lajpat Nagar', 'Saket', 'Vasant Kunj', 'Dwarka', 'Rohini', 'Mayur Vihar', 'Preet Vihar', 'Greater Kailash'],
-  'Hyderabad': ['Banjara Hills', 'Jubilee Hills', 'Madhapur', 'Gachibowli', 'Secunderabad', 'Kukatpally', 'Manikonda', 'Uppal', 'Malkajgiri', 'Kondapur']
-}
-
-// Main categories
-const MAIN_CATEGORIES = [
-  'Restaurants & Food',
-  'Retail & Shopping',
-  'Healthcare & Medical',
-  'Education & Training',
-  'Automotive',
-  'Real Estate',
-  'Professional Services',
-  'Entertainment & Media',
-  'Travel & Tourism',
-  'Technology & IT',
-  'Beauty & Wellness',
-  'Home Services',
-  'Sports & Fitness',
-  'Financial Services',
-  'Other'
-]
-
-// Sub categories based on main category
-const SUB_CATEGORIES = {
-  'Restaurants & Food': ['Fine Dining', 'Fast Food', 'Cafes', 'Bakeries', 'Food Delivery', 'Catering Services'],
-  'Retail & Shopping': ['Clothing & Apparel', 'Electronics', 'Grocery', 'Jewelry', 'Furniture', 'Books & Stationery'],
-  'Healthcare & Medical': ['Hospitals', 'Clinics', 'Pharmacies', 'Dental Care', 'Ayurveda', 'Diagnostic Centers'],
-  'Education & Training': ['Schools', 'Colleges', 'Coaching Centers', 'Vocational Training', 'Online Education', 'Libraries'],
-  'Automotive': ['Car Dealers', 'Bike Dealers', 'Service Centers', 'Spare Parts', 'Car Rental', 'Driving Schools'],
-  'Real Estate': ['Property Dealers', 'Construction', 'Interior Design', 'Architects', 'Property Management'],
-  'Professional Services': ['Legal Services', 'Accounting', 'Consulting', 'Marketing', 'Event Management'],
-  'Entertainment & Media': ['Cinemas', 'Theaters', 'Music', 'Gaming', 'Media Production'],
-  'Travel & Tourism': ['Travel Agencies', 'Hotels', 'Resorts', 'Tour Operators', 'Transportation'],
-  'Technology & IT': ['Software Development', 'Hardware', 'Networking', 'Web Services', 'Mobile Apps'],
-  'Beauty & Wellness': ['Salons', 'Spas', 'Gyms', 'Yoga Centers', 'Beauty Products'],
-  'Home Services': ['Plumbing', 'Electrical', 'Cleaning', 'Pest Control', 'AC Repair'],
-  'Sports & Fitness': ['Sports Clubs', 'Fitness Centers', 'Sports Equipment', 'Coaching'],
-  'Financial Services': ['Banks', 'Insurance', 'Investment', 'Loans', 'Tax Services'],
-  'Other': ['General Services', 'Miscellaneous']
-}
+import FloatingInput from '../components/FloatingInput.jsx'
+const API_BASE = import.meta.env.VITE_API_BASE || '/api'
 
 // Days of the week
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -82,6 +13,14 @@ export default function BusinessDirectory() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [businesses, setBusinesses] = useState([])
+
+  // Master data states
+  const [states, setStates] = useState([])
+  const [districts, setDistricts] = useState([])
+  const [areas, setAreas] = useState([])
+  const [categories, setCategories] = useState([])
+  const [subcategories, setSubcategories] = useState([])
+  const [loadingMasterData, setLoadingMasterData] = useState(false)
 
   // Business form state
   const [businessForm, setBusinessForm] = useState({
@@ -99,10 +38,92 @@ export default function BusinessDirectory() {
     pincode: '',
     mainCategory: '',
     subCategory: '',
+    numberOfEmployees: '',
+    yearlyTurnover: '',
     businessHoursGroups: [
       { id: 1, days: [], openTime: '', closeTime: '' }
     ]
   })
+
+  // Fetch master data on component mount
+  useEffect(() => {
+    const fetchMasterData = async () => {
+      setLoadingMasterData(true)
+      try {
+        const [statesRes, categoriesRes] = await Promise.all([
+          fetchStates(),
+          fetchCategories()
+        ])
+        setStates(statesRes.states || [])
+        setCategories(categoriesRes.categories || [])
+      } catch (err) {
+        console.error('Failed to fetch master data:', err)
+      } finally {
+        setLoadingMasterData(false)
+      }
+    }
+    fetchMasterData()
+  }, [])
+
+  // Fetch districts when state changes
+  useEffect(() => {
+    const loadDistricts = async () => {
+      if (!businessForm.state) {
+        setDistricts([])
+        return
+      }
+      try {
+        const state = states.find(s => s.stateName === businessForm.state)
+        if (state) {
+          const res = await fetchDistricts(state.id)
+          setDistricts(res.districts || [])
+        }
+      } catch (err) {
+        console.error('Failed to fetch districts:', err)
+      }
+    }
+    loadDistricts()
+  }, [businessForm.state, states])
+
+  // Fetch areas when district changes
+  useEffect(() => {
+    const loadAreas = async () => {
+      if (!businessForm.district) {
+        setAreas([])
+        return
+      }
+      try {
+        const district = districts.find(d => d.districtName === businessForm.district)
+        if (district) {
+          const res = await fetchAreas(district.id)
+          setAreas(res.areas || [])
+        }
+      } catch (err) {
+        console.error('Failed to fetch areas:', err)
+      }
+    }
+    loadAreas()
+  }, [businessForm.district, districts])
+
+  // Fetch subcategories when category changes
+  useEffect(() => {
+    const loadSubcategories = async () => {
+      if (!businessForm.mainCategory) {
+        setSubcategories([])
+        return
+      }
+      try {
+        const category = categories.find(c => c.categoryName === businessForm.mainCategory)
+        if (category) {
+          const res = await fetchSubcategories(category.id)
+          setSubcategories(res.subcategories || [])
+        }
+      } catch (err) {
+        console.error('Failed to fetch subcategories:', err)
+      }
+    }
+    loadSubcategories()
+  }, [businessForm.mainCategory, categories])
 
   // Product form state
   const [productForm, setProductForm] = useState({
@@ -252,6 +273,8 @@ export default function BusinessDirectory() {
         pincode: '',
         mainCategory: '',
         subCategory: '',
+        numberOfEmployees: '',
+        yearlyTurnover: '',
         businessHoursGroups: [
           { id: 1, days: [], openTime: '', closeTime: '' }
         ]
@@ -347,9 +370,9 @@ export default function BusinessDirectory() {
     }
   }
 
-  const availableDistricts = STATE_DISTRICTS[businessForm.state] || []
-  const availableAreas = DISTRICT_AREAS[businessForm.district] || []
-  const availableSubCategories = SUB_CATEGORIES[businessForm.mainCategory] || []
+  const availableDistricts = districts.map(d => d.districtName)
+  const availableAreas = areas.map(a => a.areaName)
+  const availableSubCategories = subcategories.map(s => s.subcategoryName)
 
   return (
     <div className="page-container">
@@ -375,202 +398,167 @@ export default function BusinessDirectory() {
       {error && <div className="alert alert-danger"><p>{error}</p></div>}
 
       {activeTab === 'business' && (
+        <div>
         <form onSubmit={handleBusinessSubmit} className="form-grid business-directory-form">
-          <label>
-            Business Name *
-            <input
-              type="text"
-              name="businessName"
-              value={businessForm.businessName}
-              onChange={handleBusinessChange}
-              required
-            />
-          </label>
+          <FloatingInput
+            label="Business Name *"
+            name="businessName"
+            value={businessForm.businessName}
+            onChange={handleBusinessChange}
+            required
+          />
 
-          <label>
-            Email *
-            <input
-              type="email"
-              name="email"
-              value={businessForm.email}
-              onChange={handleBusinessChange}
-              required
-            />
-          </label>
+          <FloatingInput
+            label="Email *"
+            name="email"
+            type="email"
+            value={businessForm.email}
+            onChange={handleBusinessChange}
+            required
+          />
 
-          <label>
-            Mobile Number *
-            <input
-              type="tel"
-              name="mobileNumber"
-              value={businessForm.mobileNumber}
-              onChange={(e) => {
-                const digits = e.target.value.replace(/\D/g, '').slice(0, 10)
-                setBusinessForm(prev => ({ ...prev, mobileNumber: digits }))
-              }}
-              maxLength={10}
-              required
-            />
-          </label>
+          <FloatingInput
+            label="Mobile Number *"
+            name="mobileNumber"
+            type="tel"
+            value={businessForm.mobileNumber}
+            onChange={(e) => {
+              const digits = e.target.value.replace(/\D/g, '').slice(0, 10)
+              setBusinessForm(prev => ({ ...prev, mobileNumber: digits }))
+            }}
+            required
+            inputProps={{ inputMode: 'numeric', maxLength: 10 }}
+          />
 
-          <label>
-            Website
-            <input
-              type="url"
-              name="website"
-              value={businessForm.website}
-              onChange={handleBusinessChange}
-            />
-          </label>
+          <FloatingInput
+            label="Website"
+            name="website"
+            type="url"
+            value={businessForm.website}
+            onChange={handleBusinessChange}
+          />
 
-          <label className="full-width">
-            Description
-            <textarea
+          <div className="full-width">
+            <FloatingInput
+              label="Description"
               name="description"
               value={businessForm.description}
               onChange={handleBusinessChange}
+              multiline
               rows={3}
             />
-          </label>
+          </div>
 
-          <label>
-            Year of Establishment
-            <input
-              type="number"
-              name="yearOfEstablishment"
-              value={businessForm.yearOfEstablishment}
-              onChange={handleBusinessChange}
-              min="1900"
-              max={new Date().getFullYear()}
-            />
-          </label>
+          <FloatingInput
+            label="Year of Establishment"
+            name="yearOfEstablishment"
+            type="number"
+            value={businessForm.yearOfEstablishment}
+            onChange={handleBusinessChange}
+            min="1900"
+            max={new Date().getFullYear()}
+          />
 
-          <label className="full-width">
-            Map Location
-            <div className="map-card">
-              <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d125339.47253884688!2d76.87387674999999!3d11.016844499999999!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ba907b0754a3c75%3A0x6e6b3e7e7e7e7e7e!2sTiruppur%2C%20Tamil%20Nadu!5e0!3m2!1sen!2sin!4v1234567890"
-                width="100%"
-                height="300"
-                style={{ border: 0 }}
-                allowFullScreen=""
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="Google Maps"
-              />
-            </div>
-            <input
-              type="text"
+          <FloatingInput
+            label="Number of Employees"
+            name="numberOfEmployees"
+            type="number"
+            value={businessForm.numberOfEmployees}
+            onChange={handleBusinessChange}
+            min="0"
+            placeholder="Total employees"
+          />
+
+          <FloatingInput
+            label="Yearly Turnover (₹)"
+            name="yearlyTurnover"
+            type="text"
+            value={businessForm.yearlyTurnover}
+            onChange={handleBusinessChange}
+            placeholder="e.g., 50L, 2Cr, 1.5Cr"
+          />
+
+          <div className="full-width">
+            <FloatingInput
+              label="Map Location URL"
               name="mapLocation"
               value={businessForm.mapLocation}
               onChange={handleBusinessChange}
-              placeholder="Click on map to set location or enter coordinates"
-              className="map-input"
+              placeholder="Paste Google Maps URL"
             />
-          </label>
+          </div>
 
-          <label>
-            Country
-            <input
-              type="text"
-              name="country"
-              value={businessForm.country}
-              onChange={handleBusinessChange}
-              disabled
-            />
-          </label>
+          <FloatingInput
+            label="Country"
+            name="country"
+            value={businessForm.country}
+            onChange={handleBusinessChange}
+            disabled
+          />
 
-          <label>
-            State *
-            <select
-              name="state"
-              value={businessForm.state}
-              onChange={handleBusinessChange}
-              required
-            >
-              <option value="">Select State</option>
-              {INDIAN_STATES.map(state => (
-                <option key={state} value={state}>{state}</option>
-              ))}
-            </select>
-          </label>
+          <FloatingInput
+            
+            name="state"
+            value={businessForm.state}
+            onChange={handleBusinessChange}
+            required
+            type="select"
+            options={[{ value: '', label: 'Select State *' }, ...states.map(s => ({ value: s.stateName, label: s.stateName }))]}
+          />
 
-          <label>
-            District/City *
-            <select
-              name="district"
-              value={businessForm.district}
-              onChange={handleBusinessChange}
-              required
-              disabled={!businessForm.state}
-            >
-              <option value="">Select District</option>
-              {availableDistricts.map(district => (
-                <option key={district} value={district}>{district}</option>
-              ))}
-            </select>
-          </label>
+          <FloatingInput
+            
+            name="district"
+            value={businessForm.district}
+            onChange={handleBusinessChange}
+            required
+            disabled={!businessForm.state || districts.length === 0}
+            type="select"
+            options={[{ value: '', label: 'Select District *' }, ...availableDistricts.map(d => ({ value: d, label: d }))]}
+          />
 
-          <label>
-            Area *
-            <select
-              name="area"
-              value={businessForm.area}
-              onChange={handleBusinessChange}
-              required
-              disabled={!businessForm.district}
-            >
-              <option value="">Select Area</option>
-              {availableAreas.map(area => (
-                <option key={area} value={area}>{area}</option>
-              ))}
-            </select>
-          </label>
+          <FloatingInput
+            
+            name="area"
+            value={businessForm.area}
+            onChange={handleBusinessChange}
+            required
+            disabled={!businessForm.district || areas.length === 0}
+            type="select"
+            options={[{ value: '', label: 'Select Area *' }, ...availableAreas.map(a => ({ value: a, label: a }))]}
+          />
 
-          <label>
-            Pincode *
-            <input
-              type="text"
-              name="pincode"
-              value={businessForm.pincode}
-              onChange={(e) => {
-                const digits = e.target.value.replace(/\D/g, '').slice(0, 6)
-                setBusinessForm(prev => ({ ...prev, pincode: digits }))
-              }}
-              maxLength={6}
-              required
-            />
-          </label>
+          <FloatingInput
+            label="Pincode *"
+            name="pincode"
+            value={businessForm.pincode}
+            onChange={(e) => {
+              const digits = e.target.value.replace(/\D/g, '').slice(0, 6)
+              setBusinessForm(prev => ({ ...prev, pincode: digits }))
+            }}
+            required
+            inputProps={{ inputMode: 'numeric', maxLength: 6 }}
+          />
 
-          <label>
-            Main Category *
-            <select
-              name="mainCategory"
-              value={businessForm.mainCategory}
-              onChange={handleBusinessChange}
-              required
-            >
-              <option value="">Select Category</option>
-              {MAIN_CATEGORIES.map(category => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
-          </label>
+          <FloatingInput
+            
+            name="mainCategory"
+            value={businessForm.mainCategory}
+            onChange={handleBusinessChange}
+            required
+            type="select"
+            options={[{ value: '', label: 'Select Category *' }, ...categories.map(c => ({ value: c.categoryName, label: c.categoryName }))]}
+          />
 
-          <label>
-            Sub Category
-            <select
-              name="subCategory"
-              value={businessForm.subCategory}
-              onChange={handleBusinessChange}
-              disabled={!businessForm.mainCategory}
-            >
-              <option value="">Select Sub Category</option>
-              {availableSubCategories.map(subCategory => (
-                <option key={subCategory} value={subCategory}>{subCategory}</option>
-              ))}
-            </select>
-          </label>
+          <FloatingInput
+            
+            name="subCategory"
+            value={businessForm.subCategory}
+            onChange={handleBusinessChange}
+            disabled={!businessForm.mainCategory || subcategories.length === 0}
+            type="select"
+            options={[{ value: '', label: 'Select Sub Category' }, ...availableSubCategories.map(s => ({ value: s, label: s }))]}
+          />
 
           <div className="full-width business-hours-section">
             <h3>Business Hours</h3>
@@ -636,47 +624,100 @@ export default function BusinessDirectory() {
               {loading ? 'Saving...' : 'Save Business'}
             </button>
           </div>
-        </form>
+        </form></div>
       )}
 
       {activeTab === 'product' && (
+        <div>
         <form onSubmit={handleProductSubmit} className="form-grid business-directory-form">
-          <label className="full-width">
-            Select Business *
-            <select
-              name="businessId"
-              value={productForm.businessId}
-              onChange={handleProductChange}
-              required
-            >
-              <option value="">Select a Business</option>
-              {businesses.map(business => (
-                <option key={business.id} value={business.id}>{business.businessName}</option>
-              ))}
-            </select>
-          </label>
+          <FloatingInput
+            
+            name="businessId"
+            value={productForm.businessId}
+            onChange={handleProductChange}
+            required
+            type="select"
+            options={[{ value: '', label: 'Select a Business *' }, ...businesses.map(b => ({ value: b.id, label: b.businessName }))]}
+          />
+          <FloatingInput
+            label="Product Name *"
+            name="productName"
+            value={productForm.productName}
+            onChange={handleProductChange}
+            required
+          />
 
-          <label className="full-width">
-            Cover Image
-            <input
+          <div className="full-width">
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: '600', color: 'var(--text)' }}>
+              Do you want to display the product price?
+            </label>
+            <div className="radio-group">
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem' }}>
+                <input
+                  type="radio"
+                  name="displayPrice"
+                  checked={productForm.displayPrice === false}
+                  onChange={() => setProductForm(prev => ({ ...prev, displayPrice: false }))}
+                />
+                No
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem' }}>
+                <input
+                  type="radio"
+                  name="displayPrice"
+                  checked={productForm.displayPrice === true}
+                  onChange={() => setProductForm(prev => ({ ...prev, displayPrice: true }))}
+                />
+                Yes
+              </label>
+              
+            </div>
+          </div>
+
+          {productForm.displayPrice && (
+            <FloatingInput
+              label="Product Price *"
+              name="productPrice"
+              type="number"
+              value={productForm.productPrice}
+              onChange={handleProductChange}
+              step="0.01"
+              min="0"
+              required
+            />
+          )}
+
+          <div className="form-actions full-width">
+            <button type="submit" className="button button-primary" disabled={loading}>
+              {loading ? 'Saving...' : 'Save Product'}
+            </button>
+          </div>
+          
+
+          <div className="full-width">
+            <FloatingInput
+              label="Cover Image"
+              name="coverImage"
               type="file"
-              accept="image/*"
+              value=""
               onChange={handleCoverImageChange}
+              inputProps={{ accept: 'image/*' }}
             />
             {productForm.coverImage && (
               <div className="image-preview">
                 <img src={URL.createObjectURL(productForm.coverImage)} alt="Cover preview" />
               </div>
             )}
-          </label>
+          </div>
 
-          <label className="full-width">
-            Product Images (Multiple)
-            <input
+          <div className="full-width">
+            <FloatingInput
+              label="Product Images"
+              name="productImages"
               type="file"
-              accept="image/*"
-              multiple
+              value=""
               onChange={handleProductImagesChange}
+              inputProps={{ accept: 'image/*', multiple: true }}
             />
             {productForm.productImages.length > 0 && (
               <div className="image-preview">
@@ -685,66 +726,10 @@ export default function BusinessDirectory() {
                 ))}
               </div>
             )}
-          </label>
-
-          <label className="full-width">
-            Product Name *
-            <input
-              type="text"
-              name="productName"
-              value={productForm.productName}
-              onChange={handleProductChange}
-              required
-            />
-          </label>
-
-          <label className="full-width">
-            Do you want to display the product price?
-            <div className="radio-group">
-              <label>
-                <input
-                  type="radio"
-                  name="displayPrice"
-                  value="true"
-                  checked={productForm.displayPrice === true}
-                  onChange={() => setProductForm(prev => ({ ...prev, displayPrice: true }))}
-                />
-                Yes
-              </label>
-              <label>
-                <input
-                  type="radio"
-                  name="displayPrice"
-                  value="false"
-                  checked={productForm.displayPrice === false}
-                  onChange={() => setProductForm(prev => ({ ...prev, displayPrice: false }))}
-                />
-                No
-              </label>
-            </div>
-          </label>
-
-          {productForm.displayPrice && (
-            <label className="full-width">
-              Product Price *
-              <input
-                type="number"
-                name="productPrice"
-                value={productForm.productPrice}
-                onChange={handleProductChange}
-                step="0.01"
-                min="0"
-                required
-              />
-            </label>
-          )}
-
-          <div className="form-actions full-width">
-            <button type="submit" className="button button-primary" disabled={loading}>
-              {loading ? 'Saving...' : 'Save Product'}
-            </button>
           </div>
-        </form>
+
+          
+        </form></div>
       )}
 
       <Toast

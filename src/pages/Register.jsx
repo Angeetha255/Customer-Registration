@@ -5,7 +5,6 @@ import { useAuth } from '../context/AuthContext.jsx'
 import Modal from '../components/Modal.jsx'
 import Alert from '../components/Alert.jsx'
 import FloatingInput from '../components/FloatingInput.jsx'
-import illustration from '../assets/register-illustration.svg'
 
 export default function Register() {
   const { signIn } = useAuth()
@@ -34,7 +33,7 @@ export default function Register() {
       try {
         const topData = await fetchTopId()
         setTopIdExists(!!topData?.topUserId)
-        
+
         const params = new URLSearchParams(location.search)
         const ref = params.get('ref')
         if (ref) {
@@ -194,23 +193,6 @@ export default function Register() {
   return (
     <main className="register-page">
       <div className="register-split">
-
-        {/* ── Left: branding panel ── */}
-        <div className="register-brand">
-          <div className="register-brand-inner">
-            <div className="register-brand-welcome">
-              <p className="register-brand-welcome-title">Welcome!</p>
-              <p className="register-brand-welcome-sub">
-                Join our platform and manage your customers, referrals, and growth all in one place.
-              </p>
-            </div>
-            <div className="register-brand-illustration">
-              <img src={illustration} alt="Platform illustration" />
-            </div>
-          </div>
-        </div>
-
-        {/* ── Right: form panel ── */}
         <div className="register-form-panel">
           <div className="register-form-inner">
             <h1>Create an account</h1>
@@ -225,62 +207,113 @@ export default function Register() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="form-grid register-form">
-                {referralMode === 'link' && referrer ? (
-                  <>
-                    <div className="introducer-badge">
-                      <span className="feature-icon">✦</span>
-                      <div>
-                        <strong>Referred by {referrer.name}</strong>
-                        <span>User ID: {referrer.userId || `MEM${referrer.id}`}</span>
-                      </div>
-                    </div>
-                    {/* <div className="form-group">
-                      <label style={{ fontSize: '0.9rem', fontWeight: 500, marginBottom: 4, display: 'block' }}>Referrer User ID</label>
-                      <input
-                        type="text"
-                        name="referralUserId"
-                        value={form.referralUserId}
-                        readOnly
-                        className="form-input"
-                        style={{ backgroundColor: 'var(--input-bg-readonly, #f5f5f5)' }}
-                      />
-                    </div> */}
-                  </>
-                ) : (
-                    <div className="form-group">
-                      <label style={{ fontSize: '0.9rem', fontWeight: 500, marginBottom: 4, display: 'block' }}>Referrer User ID *</label>
-                      <input
-                        type="text"
-                        name="referralUserId"
-                        value={form.referralUserId}
-                        onChange={handleChange}
-                        onBlur={validateReferralUserId}
-                        required
-                        placeholder="Enter Referral User ID *"
-                        className="form-input"
-                      />
-                      {userIdError && <p style={{ color: 'red', fontSize: '0.85rem', marginTop: 4 }}>{userIdError}</p>}
-                      {referrer && referralMode === 'userid' && (
-                        <div className="introducer-badge" style={{ marginTop: 8 }}>
-                          <span className="feature-icon">✓</span>
-                          <div>
-                            <strong>Referred by {referrer.name}</strong>
-                            <span>User ID: {referrer.userId || `MEM${referrer.id}`}</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                )}
-                <FloatingInput label="Full Name *"        name="name"            value={form.name}            onChange={handleChange} required />
-                <FloatingInput label="Email Address *"    name="email"           type="email" value={form.email}    onChange={handleChange} required />
-                <FloatingInput label="Phone Number *"     name="phone"           type="tel"   value={form.phone}    onChange={handleChange} required inputProps={{ inputMode: 'numeric', maxLength: 10 }} />
-                <FloatingInput label="Password *"         name="password"        type="password" value={form.password}    onChange={handleChange} required minLength={6} showToggle />
-                <FloatingInput label="Confirm Password *" name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} required minLength={6} showToggle />
 
-                <button type="submit" className="button button-primary register-submit"
-                  disabled={loading || (referralMode === 'userid' && !validReferral)}>
+                {referralMode === 'link' && referrer ? (
+                  <div className="introducer-badge">
+                    <span className="feature-icon">✦</span>
+                    <div>
+                      <strong>Referred by {referrer.name}</strong>
+                      <span>User ID: {referrer.userId || `MEM${referrer.id}`}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="form-group referral-full-width">
+                    <label
+                      style={{
+                        fontSize: '0.9rem',
+                        fontWeight: 500,
+                        marginBottom: 4,
+                        display: 'block'
+                      }}
+                    >
+                      Referrer User ID *
+                    </label>
+
+                    <input
+                      type="text"
+                      name="referralUserId"
+                      value={form.referralUserId}
+                      onChange={handleChange}
+                      onBlur={validateReferralUserId}
+                      required
+                      placeholder="Enter Referral User ID *"
+                      className="form-input"
+                    />
+
+                    {userIdError && (
+                      <p style={{ color: 'red', fontSize: '0.85rem', marginTop: 4 }}>
+                        {userIdError}
+                      </p>
+                    )}
+
+                    {referrer && referralMode === 'userid' && (
+                      <div className="introducer-badge" style={{ marginTop: 8 }}>
+                        <span className="feature-icon">✓</span>
+                        <div>
+                          <strong>Referred by {referrer.name}</strong>
+                          <span>User ID: {referrer.userId || `MEM${referrer.id}`}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div className='rint'>
+
+                <FloatingInput
+                  label="Full Name *"
+                  name="name"
+                  value={form.name}
+                  onChange={handleChange}
+                  required
+                />
+
+                <FloatingInput
+                  label="Email Address *"
+                  name="email"
+                  type="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  required
+                />
+
+                <FloatingInput
+                  label="Phone Number *"
+                  name="phone"
+                  type="tel"
+                  value={form.phone}
+                  onChange={handleChange}
+                  required
+                />
+
+                <FloatingInput
+                  label="Password *"
+                  name="password"
+                  type="password"
+                  value={form.password}
+                  onChange={handleChange}
+                  required
+                  showToggle
+                />
+
+                <FloatingInput
+                  label="Confirm Password *"
+                  name="confirmPassword"
+                  type="password"
+                  value={form.confirmPassword}
+                  onChange={handleChange}
+                  required
+                  showToggle
+                />
+
+                <button
+                  type="submit"
+                  className="button button-primary register-submit"
+                  disabled={loading || (referralMode === 'userid' && !validReferral)}
+                >
                   {loading ? 'Creating account…' : 'Create Account'}
                 </button>
+                </div>
+
               </form>
             )}
 

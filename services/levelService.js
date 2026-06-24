@@ -6,7 +6,7 @@
  * team-level data. Names are fetched from users table via joins.
  */
 
-import { sequelize } from '../models/index.js'
+import { sequelize } from '../models/sequelize.js'
 import User from '../models/User.js'
 import Level from '../models/Level.js'
 

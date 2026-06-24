@@ -216,3 +216,120 @@ export const fetchBusiness = (id) =>
 
 export const fetchBusinessProducts = (businessId) =>
   send(`/business/${businessId}/products`, { headers: userHeaders() })
+
+// Master Data API endpoints
+export const fetchStates = () =>
+  send('/master-data/states', { headers: userHeaders() })
+
+export const fetchDistricts = (stateId) =>
+  send(`/master-data/districts?stateId=${stateId}`, { headers: userHeaders() })
+
+export const fetchAreas = (districtId) =>
+  send(`/master-data/areas?districtId=${districtId}`, { headers: userHeaders() })
+
+export const fetchCategories = () =>
+  send('/master-data/categories', { headers: userHeaders() })
+
+export const fetchSubcategories = (categoryId) =>
+  send(`/master-data/subcategories?categoryId=${categoryId}`, { headers: userHeaders() })
+
+// Admin Master Data CRUD operations
+export const createState = (stateName) =>
+  send('/master-data/states', {
+    method: 'POST',
+    headers: adminHeaders(),
+    body: JSON.stringify({ stateName }),
+  })
+
+export const updateState = (id, data) =>
+  send(`/master-data/states/${id}`, {
+    method: 'PUT',
+    headers: adminHeaders(),
+    body: JSON.stringify(data),
+  })
+
+export const deleteState = (id) =>
+  send(`/master-data/states/${id}`, {
+    method: 'DELETE',
+    headers: adminHeaders(),
+  })
+
+export const createDistrict = (stateId, districtName) =>
+  send('/master-data/districts', {
+    method: 'POST',
+    headers: adminHeaders(),
+    body: JSON.stringify({ stateId, districtName }),
+  })
+
+export const updateDistrict = (id, data) =>
+  send(`/master-data/districts/${id}`, {
+    method: 'PUT',
+    headers: adminHeaders(),
+    body: JSON.stringify(data),
+  })
+
+export const deleteDistrict = (id) =>
+  send(`/master-data/districts/${id}`, {
+    method: 'DELETE',
+    headers: adminHeaders(),
+  })
+
+export const createArea = (districtId, areaName) =>
+  send('/master-data/areas', {
+    method: 'POST',
+    headers: adminHeaders(),
+    body: JSON.stringify({ districtId, areaName }),
+  })
+
+export const updateArea = (id, data) =>
+  send(`/master-data/areas/${id}`, {
+    method: 'PUT',
+    headers: adminHeaders(),
+    body: JSON.stringify(data),
+  })
+
+export const deleteArea = (id) =>
+  send(`/master-data/areas/${id}`, {
+    method: 'DELETE',
+    headers: adminHeaders(),
+  })
+
+export const createCategory = (categoryName) =>
+  send('/master-data/categories', {
+    method: 'POST',
+    headers: adminHeaders(),
+    body: JSON.stringify({ categoryName }),
+  })
+
+export const updateCategory = (id, data) =>
+  send(`/master-data/categories/${id}`, {
+    method: 'PUT',
+    headers: adminHeaders(),
+    body: JSON.stringify(data),
+  })
+
+export const deleteCategory = (id) =>
+  send(`/master-data/categories/${id}`, {
+    method: 'DELETE',
+    headers: adminHeaders(),
+  })
+
+export const createSubcategory = (categoryId, subcategoryName) =>
+  send('/master-data/subcategories', {
+    method: 'POST',
+    headers: adminHeaders(),
+    body: JSON.stringify({ categoryId, subcategoryName }),
+  })
+
+export const updateSubcategory = (id, data) =>
+  send(`/master-data/subcategories/${id}`, {
+    method: 'PUT',
+    headers: adminHeaders(),
+    body: JSON.stringify(data),
+  })
+
+export const deleteSubcategory = (id) =>
+  send(`/master-data/subcategories/${id}`, {
+    method: 'DELETE',
+    headers: adminHeaders(),
+  })
