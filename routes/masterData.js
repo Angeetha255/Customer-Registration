@@ -138,7 +138,7 @@ router.get('/states/all', authMiddleware, async (req, res) => {
 
     const { count, rows } = await State.findAndCountAll({
       where,
-      order: [['stateName', 'ASC']],
+      order: [['id', 'ASC']],
       limit: parseInt(limit),
       offset: parseInt(offset)
     })

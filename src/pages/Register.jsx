@@ -160,6 +160,10 @@ export default function Register() {
       const response = await registerCustomer(payload)
       setSuccess('Registration completed!')
       setCreatedUser(response.user || { name: form.name, email: form.email, phone: form.phone })
+      // Store referral info from backend (authoritative source)
+      if (response.referralInfo) {
+        setReferrer({ name: response.referralInfo.referrerName, userId: response.referralInfo.referrerUserId })
+      }
       // Save credentials before clearing form so auto-login can use them
       setSavedCredentials({ email: form.email, password: form.password })
       setShowPassword(false)

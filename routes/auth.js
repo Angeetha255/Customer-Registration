@@ -142,6 +142,20 @@ router.post('/register', async (req, res) => {
 
     const saved = await User.findByPk(user.id, { attributes: { exclude: HIDDEN_FIELDS } })
 
+    // Fetch referrer info if a referral was used
+    let referralInfo = null
+    if (refId) {
+      const referrerUser = await User.findByPk(refId, {
+        attributes: ['id', 'name', 'userId'],
+      })
+      if (referrerUser) {
+        referralInfo = {
+          referrerName: referrerUser.name,
+          referrerUserId: referrerUser.userId,
+        }
+      }
+    }
+
     // Send welcome email
     console.log('=== Registration Successful ===')
     console.log('Attempting to send welcome email to:', email)
@@ -157,6 +171,7 @@ router.post('/register', async (req, res) => {
       message: 'Customer registered successfully.',
       userId,
       user: enrichUserStats(saved.toJSON()),
+      referralInfo,
     })
   } catch (error) {
     console.error(error)
