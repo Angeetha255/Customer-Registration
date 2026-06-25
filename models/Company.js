@@ -10,6 +10,7 @@ const Company = sequelize.define(
     },
     businessName: { type: DataTypes.STRING, allowNull: false },
     email: { type: DataTypes.STRING, allowNull: false },
+    mobileNumber: { type: DataTypes.STRING, allowNull: true },
     ownerName: { type: DataTypes.STRING, allowNull: true },
     website: { type: DataTypes.STRING, allowNull: true },
     description: { type: DataTypes.TEXT, allowNull: true },

@@ -22,12 +22,14 @@ export default function BusinessDirectory() {
   const [districts, setDistricts] = useState([])
   const [areas, setAreas] = useState([])
   const [categories, setCategories] = useState([])
+  const [subcategories, setSubcategories] = useState([])
   const [loadingMasterData, setLoadingMasterData] = useState(false)
 
   // Company form state
   const [companyForm, setCompanyForm] = useState({
     businessName: '',
     email: '',
+    mobileNumber: '',
     ownerName: '',
     website: '',
     description: '',
@@ -41,6 +43,7 @@ export default function BusinessDirectory() {
   const [businessDirectoryForm, setBusinessDirectoryForm] = useState({
     companyId: '',
     category: '',
+    subcategory: '',
     country: '',
     state: '',
     district: '',
@@ -123,6 +126,26 @@ export default function BusinessDirectory() {
     }
     loadAreas()
   }, [businessDirectoryForm.district, districts])
+
+  // Fetch subcategories when category changes
+  useEffect(() => {
+    const loadSubcategories = async () => {
+      if (!businessDirectoryForm.category) {
+        setSubcategories([])
+        return
+      }
+      try {
+        const category = categories.find(c => c.categoryName === businessDirectoryForm.category)
+        if (category) {
+          const res = await fetchSubcategories(category.id)
+          setSubcategories(res.subcategories || [])
+        }
+      } catch (err) {
+        console.error('Failed to fetch subcategories:', err)
+      }
+    }
+    loadSubcategories()
+  }, [businessDirectoryForm.category, categories])
 
   // Fetch companies, business directories, and products on component mount
   useEffect(() => {
@@ -217,6 +240,7 @@ export default function BusinessDirectory() {
       setCompanyForm({
         businessName: '',
         email: '',
+        mobileNumber: '',
         ownerName: '',
         website: '',
         description: '',
@@ -286,6 +310,7 @@ export default function BusinessDirectory() {
       setBusinessDirectoryForm({
         companyId: '',
         category: '',
+        subcategory: '',
         country: '',
         state: '',
         district: '',
@@ -439,6 +464,25 @@ export default function BusinessDirectory() {
           />
 
           <FloatingInput
+            label="Business Owner"
+            name="ownerName"
+            value={companyForm.ownerName}
+            onChange={handleCompanyChange}
+          />
+
+           <FloatingInput
+            label="Mobile Number"
+            name="mobileNumber"
+            type="tel"
+            value={companyForm.mobileNumber}
+            onChange={(e) => {
+              const digits = e.target.value.replace(/\D/g, '').slice(0, 10)
+              setCompanyForm(prev => ({ ...prev, mobileNumber: digits }))
+            }}
+            inputProps={{ inputMode: 'numeric', maxLength: 10 }}
+          />
+
+          <FloatingInput
             label="Email *"
             name="email"
             type="email"
@@ -447,12 +491,9 @@ export default function BusinessDirectory() {
             required
           />
 
-          <FloatingInput
-            label="Owner Name"
-            name="ownerName"
-            value={companyForm.ownerName}
-            onChange={handleCompanyChange}
-          />
+         
+
+          
 
           <FloatingInput
             label="Website"
@@ -472,6 +513,12 @@ export default function BusinessDirectory() {
               rows={3}
             />
           </div>
+          <FloatingInput
+            label="GST Number"
+            name="gstNumber"
+            value={companyForm.gstNumber}
+            onChange={handleCompanyChange}
+          />
 
           <FloatingInput
             label="Year of Establishment"
@@ -483,12 +530,7 @@ export default function BusinessDirectory() {
             max={new Date().getFullYear()}
           />
 
-          <FloatingInput
-            label="GST Number"
-            name="gstNumber"
-            value={companyForm.gstNumber}
-            onChange={handleCompanyChange}
-          />
+          
 
           <FloatingInput
             label="Number of Employees"
@@ -526,7 +568,7 @@ export default function BusinessDirectory() {
             value={businessDirectoryForm.companyId}
             onChange={handleBusinessDirectoryChange}
             type="select"
-            options={[{ value: '', label: 'Select Company (Optional)' }, ...companies.map(c => ({ value: c.id, label: c.businessName }))]}
+            options={[{ value: '', label: 'Select Company ' }, ...companies.map(c => ({ value: c.id, label: c.businessName }))]}
           />
 
           <FloatingInput
@@ -537,6 +579,16 @@ export default function BusinessDirectory() {
             required
             type="select"
             options={[{ value: '', label: 'Select Category *' }, ...categories.map(c => ({ value: c.categoryName, label: c.categoryName }))]}
+          />
+
+          <FloatingInput
+            label="Subcategory"
+            name="subcategory"
+            value={businessDirectoryForm.subcategory}
+            onChange={handleBusinessDirectoryChange}
+            disabled={!businessDirectoryForm.category || subcategories.length === 0}
+            type="select"
+            options={[{ value: '', label: 'Select Subcategory' }, ...subcategories.map(s => ({ value: s.subcategoryName, label: s.subcategoryName }))]}
           />
 
           <FloatingInput
@@ -669,7 +721,7 @@ export default function BusinessDirectory() {
             value={productForm.companyId}
             onChange={handleProductChange}
             type="select"
-            options={[{ value: '', label: 'Select Company (Optional)' }, ...companies.map(c => ({ value: c.id, label: c.businessName }))]}
+            options={[{ value: '', label: 'Select Company ' }, ...companies.map(c => ({ value: c.id, label: c.businessName }))]}
           />
           <FloatingInput
             label="Product Name *"

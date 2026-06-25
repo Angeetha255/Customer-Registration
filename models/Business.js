@@ -15,6 +15,7 @@ const Business = sequelize.define(
       onDelete: 'SET NULL',
     },
     category: { type: DataTypes.STRING, allowNull: false },
+    subcategory: { type: DataTypes.STRING, allowNull: true },
     country: { type: DataTypes.STRING, defaultValue: 'India' },
     state: { type: DataTypes.STRING, allowNull: false },
     district: { type: DataTypes.STRING, allowNull: false },

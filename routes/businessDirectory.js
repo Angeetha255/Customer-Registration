@@ -10,6 +10,7 @@ router.post('/', authMiddleware, async (req, res) => {
     const {
       companyId,
       category,
+      subcategory,
       country,
       state,
       district,
@@ -30,6 +31,7 @@ router.post('/', authMiddleware, async (req, res) => {
     const business = await Business.create({
       companyId: companyId || null,
       category,
+      subcategory: subcategory || null,
       country: country || 'India',
       state,
       district,
@@ -52,6 +54,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     const {
       companyId,
       category,
+      subcategory,
       country,
       state,
       district,
@@ -80,6 +83,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     await business.update({
       companyId: companyId || null,
       category,
+      subcategory: subcategory || null,
       country: country || 'India',
       state,
       district,

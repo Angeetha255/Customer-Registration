@@ -10,6 +10,7 @@ router.post('/', authMiddleware, async (req, res) => {
     const {
       businessName,
       email,
+      mobileNumber,
       ownerName,
       website,
       description,
@@ -28,9 +29,14 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Invalid email format' })
     }
 
+    if (mobileNumber && !/^[0-9]{10}$/.test(mobileNumber)) {
+      return res.status(400).json({ message: 'Mobile number must be 10 digits' })
+    }
+
     const company = await Company.create({
       businessName,
       email,
+      mobileNumber: mobileNumber || null,
       ownerName: ownerName || null,
       website: website || null,
       description: description || null,
@@ -54,6 +60,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     const {
       businessName,
       email,
+      mobileNumber,
       ownerName,
       website,
       description,
@@ -72,6 +79,10 @@ router.put('/:id', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Invalid email format' })
     }
 
+    if (mobileNumber && !/^[0-9]{10}$/.test(mobileNumber)) {
+      return res.status(400).json({ message: 'Mobile number must be 10 digits' })
+    }
+
     const company = await Company.findOne({
       where: { id: req.params.id, createdBy: req.user.id }
     })
@@ -83,6 +94,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     await company.update({
       businessName,
       email,
+      mobileNumber: mobileNumber || null,
       ownerName: ownerName || null,
       website: website || null,
       description: description || null,
