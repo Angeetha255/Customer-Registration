@@ -9,6 +9,7 @@ import Product from './Product.js'
 import Level from './Level.js'
 import Counter from './Counter.js'
 import Settings from './Settings.js'
+import Country from './Country.js'
 import State from './State.js'
 import District from './District.js'
 import Area from './Area.js'
@@ -26,6 +27,7 @@ const db = {
   Level,
   Counter,
   Settings,
+  Country,
   State,
   District,
   Area,

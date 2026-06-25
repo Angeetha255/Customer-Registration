@@ -9,15 +9,25 @@ export default function Sidebar({ open, onToggle }) {
   // Use the correct user based on current route to support simultaneous admin+customer sessions
   const isAdminRoute = location.pathname.startsWith('/admin')
   const user = isAdminRoute ? adminUser : customerUser
-  const [openSections, setOpenSections] = useState({ Company: true, Genealogy: true })
+  const [openSections, setOpenSections] = useState({ Company: true, Genealogy: true, Masters: true })
 
   const companyItems = [
     { label: 'Set prefix', path: '/admin/settings' },
   ]
 
+  const mastersItems = [
+    { label: 'Countries', path: '/admin/masters/countries' },
+    { label: 'States', path: '/admin/masters/states' },
+    { label: 'Districts', path: '/admin/masters/districts' },
+    { label: 'Areas', path: '/admin/masters/areas' },
+    { label: 'Categories', path: '/admin/masters/categories' },
+    { label: 'SubCategories', path: '/admin/masters/subcategories' },
+  ]
+
   const adminItems = [
     { label: 'Dashboard', path: '/admin' },
     { label: 'Users', path: '/admin/customers' },
+    { label: 'Masters', isSection: true, items: mastersItems },
     { label: 'Company', isSection: true, items: companyItems },
   ]
 

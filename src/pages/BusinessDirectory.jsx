@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { createBusiness, createProduct, fetchBusinesses, fetchBusinessProducts, fetchStates, fetchDistricts, fetchAreas, fetchCategories, fetchSubcategories } from '../services/api.js'
+import { createBusiness, createProduct, fetchBusinesses, fetchBusinessProducts, fetchCountries, fetchStates, fetchDistricts, fetchAreas, fetchCategories, fetchSubcategories } from '../services/api.js'
 import Toast from '../components/Toast.jsx'
 import FloatingInput from '../components/FloatingInput.jsx'
 const API_BASE = import.meta.env.VITE_API_BASE || '/api'
@@ -15,6 +15,7 @@ export default function BusinessDirectory() {
   const [businesses, setBusinesses] = useState([])
 
   // Master data states
+  const [countries, setCountries] = useState([])
   const [states, setStates] = useState([])
   const [districts, setDistricts] = useState([])
   const [areas, setAreas] = useState([])
@@ -31,7 +32,7 @@ export default function BusinessDirectory() {
     description: '',
     yearOfEstablishment: '',
     mapLocation: '',
-    country: 'India',
+    country: '',
     state: '',
     district: '',
     area: '',
@@ -52,10 +53,12 @@ export default function BusinessDirectory() {
     const fetchMasterData = async () => {
       setLoadingMasterData(true)
       try {
-        const [statesRes, categoriesRes] = await Promise.all([
+        const [countriesRes, statesRes, categoriesRes] = await Promise.all([
+          fetchCountries(),
           fetchStates(),
           fetchCategories()
         ])
+        setCountries(countriesRes.countries || [])
         setStates(statesRes.states || [])
         setCategories(categoriesRes.categories || [])
       } catch (err) {
@@ -268,7 +271,7 @@ export default function BusinessDirectory() {
         description: '',
         yearOfEstablishment: '',
         mapLocation: '',
-        country: 'India',
+        country: '',
         state: '',
         district: '',
         area: '',
@@ -579,19 +582,15 @@ export default function BusinessDirectory() {
             </div>
           )}
 
-          <div className="country-field-wrapper">
-            <label htmlFor="country" className="country-label">Country</label>
-            <select
-              id="country"
-              name="country"
-              value={businessForm.country}
-              onChange={handleBusinessChange}
-              disabled
-              className="country-select"
-            >
-              <option value="India">India</option>
-            </select>
-          </div>
+          <FloatingInput
+            label="Country *"
+            name="country"
+            value={businessForm.country}
+            onChange={handleBusinessChange}
+            required
+            type="select"
+            options={[{ value: '', label: 'Select Country *' }, ...countries.map(c => ({ value: c.countryName, label: c.countryName }))]}
+          />
 
           <FloatingInput
             
@@ -769,7 +768,7 @@ export default function BusinessDirectory() {
               </label>
               
             </div>
-          </div>
+          </div><br></br>
 
           {productForm.displayPrice && (
             <FloatingInput

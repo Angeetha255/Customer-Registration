@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE || '/api'
+export const API_BASE = import.meta.env.VITE_API_BASE || '/api'
 
 import { SESSION_TYPES, getToken } from '../utils/sessionIsolation.js'
 
@@ -218,6 +218,9 @@ export const fetchBusinessProducts = (businessId) =>
   send(`/business/${businessId}/products`, { headers: userHeaders() })
 
 // Master Data API endpoints
+export const fetchCountries = () =>
+  send('/master-data/countries', { headers: userHeaders() })
+
 export const fetchStates = () =>
   send('/master-data/states', { headers: userHeaders() })
 

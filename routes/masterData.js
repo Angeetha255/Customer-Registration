@@ -2,10 +2,112 @@ import express from 'express'
 import { authMiddleware } from '../middleware/auth.js'
 import db from '../models/index.js'
 import { sequelize, DataTypes } from '../models/sequelize.js'
+import { Op } from 'sequelize'
 
-const { State, District, Area, Category, Subcategory } = db
+const { Country, State, District, Area, Category, Subcategory } = db
 
 const router = express.Router()
+
+// ==================== COUNTRIES ====================
+
+// Get all countries
+router.get('/countries', authMiddleware, async (req, res) => {
+  try {
+    const countries = await Country.findAll({
+      where: { status: 'active' },
+      order: [['countryName', 'ASC']]
+    })
+    res.json({ countries })
+  } catch (err) {
+    console.error('Error fetching countries:', err)
+    res.status(500).json({ message: 'Failed to fetch countries' })
+  }
+})
+
+// Get all countries with pagination (for admin)
+router.get('/countries/all', authMiddleware, async (req, res) => {
+  try {
+    const { page = 1, limit = 10, search = '' } = req.query
+    const offset = (page - 1) * limit
+
+    const where = {}
+    if (search) {
+      where.countryName = { [Op.like]: `%${search}%` }
+    }
+
+    const { count, rows } = await Country.findAndCountAll({
+      where,
+      order: [['countryName', 'ASC']],
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    })
+
+    res.json({
+      countries: rows,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / limit)
+      }
+    })
+  } catch (err) {
+    console.error('Error fetching countries:', err)
+    res.status(500).json({ message: 'Failed to fetch countries' })
+  }
+})
+
+// Create country (admin only)
+router.post('/countries', authMiddleware, async (req, res) => {
+  try {
+    const { countryName } = req.body
+    if (!countryName) {
+      return res.status(400).json({ message: 'Country name is required' })
+    }
+    const country = await Country.create({ countryName, status: 'active' })
+    res.status(201).json({ message: 'Country created successfully', country })
+  } catch (err) {
+    console.error('Error creating country:', err)
+    if (err.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({ message: 'Country already exists' })
+    }
+    res.status(500).json({ message: 'Failed to create country' })
+  }
+})
+
+// Update country (admin only)
+router.put('/countries/:id', authMiddleware, async (req, res) => {
+  try {
+    const { countryName, status } = req.body
+    const country = await Country.findByPk(req.params.id)
+    if (!country) {
+      return res.status(404).json({ message: 'Country not found' })
+    }
+    await country.update({ countryName, status })
+    res.json({ message: 'Country updated successfully', country })
+  } catch (err) {
+    console.error('Error updating country:', err)
+    if (err.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({ message: 'Country already exists' })
+    }
+    res.status(500).json({ message: 'Failed to update country' })
+  }
+})
+
+// Delete country (admin only)
+router.delete('/countries/:id', authMiddleware, async (req, res) => {
+  try {
+    const country = await Country.findByPk(req.params.id)
+    if (!country) {
+      return res.status(404).json({ message: 'Country not found' })
+    }
+    await country.destroy()
+    res.json({ message: 'Country deleted successfully' })
+  } catch (err) {
+    console.error('Error deleting country:', err)
+    res.status(500).json({ message: 'Failed to delete country' })
+  }
+})
 
 // ==================== STATES ====================
 
@@ -17,6 +119,39 @@ router.get('/states', authMiddleware, async (req, res) => {
       order: [['stateName', 'ASC']]
     })
     res.json({ states })
+  } catch (err) {
+    console.error('Error fetching states:', err)
+    res.status(500).json({ message: 'Failed to fetch states' })
+  }
+})
+
+// Get all states with pagination (for admin)
+router.get('/states/all', authMiddleware, async (req, res) => {
+  try {
+    const { page = 1, limit = 10, search = '' } = req.query
+    const offset = (page - 1) * limit
+
+    const where = {}
+    if (search) {
+      where.stateName = { [Op.like]: `%${search}%` }
+    }
+
+    const { count, rows } = await State.findAndCountAll({
+      where,
+      order: [['stateName', 'ASC']],
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    })
+
+    res.json({
+      states: rows,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / limit)
+      }
+    })
   } catch (err) {
     console.error('Error fetching states:', err)
     res.status(500).json({ message: 'Failed to fetch states' })
@@ -88,6 +223,40 @@ router.get('/districts', authMiddleware, async (req, res) => {
   }
 })
 
+// Get all districts with pagination (for admin)
+router.get('/districts/all', authMiddleware, async (req, res) => {
+  try {
+    const { page = 1, limit = 10, search = '' } = req.query
+    const offset = (page - 1) * limit
+
+    const where = {}
+    if (search) {
+      where.districtName = { [Op.like]: `%${search}%` }
+    }
+
+    const { count, rows } = await District.findAndCountAll({
+      where,
+      include: [{ model: State, as: 'state', attributes: ['id', 'stateName'] }],
+      order: [['districtName', 'ASC']],
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    })
+
+    res.json({
+      districts: rows,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / limit)
+      }
+    })
+  } catch (err) {
+    console.error('Error fetching districts:', err)
+    res.status(500).json({ message: 'Failed to fetch districts' })
+  }
+})
+
 // Create district (admin only)
 router.post('/districts', authMiddleware, async (req, res) => {
   try {
@@ -147,6 +316,42 @@ router.get('/areas', authMiddleware, async (req, res) => {
       order: [['areaName', 'ASC']]
     })
     res.json({ areas })
+  } catch (err) {
+    console.error('Error fetching areas:', err)
+    res.status(500).json({ message: 'Failed to fetch areas' })
+  }
+})
+
+// Get all areas with pagination (for admin)
+router.get('/areas/all', authMiddleware, async (req, res) => {
+  try {
+    const { page = 1, limit = 10, search = '' } = req.query
+    const offset = (page - 1) * limit
+
+    const where = {}
+    if (search) {
+      where.areaName = { [Op.like]: `%${search}%` }
+    }
+
+    const { count, rows } = await Area.findAndCountAll({
+      where,
+      include: [
+        { model: District, as: 'district', attributes: ['id', 'districtName'], include: [{ model: State, as: 'state', attributes: ['id', 'stateName'] }] }
+      ],
+      order: [['areaName', 'ASC']],
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    })
+
+    res.json({
+      areas: rows,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / limit)
+      }
+    })
   } catch (err) {
     console.error('Error fetching areas:', err)
     res.status(500).json({ message: 'Failed to fetch areas' })
@@ -215,6 +420,39 @@ router.get('/categories', authMiddleware, async (req, res) => {
   }
 })
 
+// Get all categories with pagination (for admin)
+router.get('/categories/all', authMiddleware, async (req, res) => {
+  try {
+    const { page = 1, limit = 10, search = '' } = req.query
+    const offset = (page - 1) * limit
+
+    const where = {}
+    if (search) {
+      where.categoryName = { [Op.like]: `%${search}%` }
+    }
+
+    const { count, rows } = await Category.findAndCountAll({
+      where,
+      order: [['categoryName', 'ASC']],
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    })
+
+    res.json({
+      categories: rows,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / limit)
+      }
+    })
+  } catch (err) {
+    console.error('Error fetching categories:', err)
+    res.status(500).json({ message: 'Failed to fetch categories' })
+  }
+})
+
 // Create category (admin only)
 router.post('/categories', authMiddleware, async (req, res) => {
   try {
@@ -274,6 +512,40 @@ router.get('/subcategories', authMiddleware, async (req, res) => {
       order: [['subcategoryName', 'ASC']]
     })
     res.json({ subcategories })
+  } catch (err) {
+    console.error('Error fetching subcategories:', err)
+    res.status(500).json({ message: 'Failed to fetch subcategories' })
+  }
+})
+
+// Get all subcategories with pagination (for admin)
+router.get('/subcategories/all', authMiddleware, async (req, res) => {
+  try {
+    const { page = 1, limit = 10, search = '' } = req.query
+    const offset = (page - 1) * limit
+
+    const where = {}
+    if (search) {
+      where.subcategoryName = { [Op.like]: `%${search}%` }
+    }
+
+    const { count, rows } = await Subcategory.findAndCountAll({
+      where,
+      include: [{ model: Category, as: 'category', attributes: ['id', 'categoryName'] }],
+      order: [['subcategoryName', 'ASC']],
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    })
+
+    res.json({
+      subcategories: rows,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / limit)
+      }
+    })
   } catch (err) {
     console.error('Error fetching subcategories:', err)
     res.status(500).json({ message: 'Failed to fetch subcategories' })
