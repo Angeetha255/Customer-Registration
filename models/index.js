@@ -4,6 +4,7 @@ import sequelize from './sequelize.js'
 // Import models
 import User from './User.js'
 import Admin from './Admin.js'
+import Company from './Company.js'
 import Business from './Business.js'
 import Product from './Product.js'
 import Level from './Level.js'
@@ -22,6 +23,7 @@ const db = {
   DataTypes,
   User,
   Admin,
+  Company,
   Business,
   Product,
   Level,
@@ -49,6 +51,17 @@ if (District && Area) {
 if (Category && Subcategory) {
   Category.hasMany(Subcategory, { foreignKey: 'categoryId', as: 'subcategories' })
   Subcategory.belongsTo(Category, { foreignKey: 'categoryId', as: 'category' })
+}
+
+// Company, Business, and Product relationships
+if (Company && Business) {
+  Company.hasMany(Business, { foreignKey: 'companyId', as: 'businesses' })
+  Business.belongsTo(Company, { foreignKey: 'companyId', as: 'company' })
+}
+
+if (Company && Product) {
+  Company.hasMany(Product, { foreignKey: 'companyId', as: 'products' })
+  Product.belongsTo(Company, { foreignKey: 'companyId', as: 'company' })
 }
 
 export default db

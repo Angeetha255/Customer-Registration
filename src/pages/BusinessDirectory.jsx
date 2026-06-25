@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { createBusiness, createProduct, fetchBusinesses, fetchBusinessProducts, fetchCountries, fetchStates, fetchDistricts, fetchAreas, fetchCategories, fetchSubcategories } from '../services/api.js'
+import { createCompany, updateCompany, fetchCompanies, createBusinessDirectory, updateBusinessDirectory, fetchBusinessDirectories, createProductNew, updateProduct, fetchProducts, fetchCountries, fetchStates, fetchDistricts, fetchAreas, fetchCategories, fetchSubcategories } from '../services/api.js'
 import Toast from '../components/Toast.jsx'
 import FloatingInput from '../components/FloatingInput.jsx'
 const API_BASE = import.meta.env.VITE_API_BASE || '/api'
@@ -8,11 +8,13 @@ const API_BASE = import.meta.env.VITE_API_BASE || '/api'
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 export default function BusinessDirectory() {
-  const [activeTab, setActiveTab] = useState('business')
+  const [activeTab, setActiveTab] = useState('company')
   const [toast, setToast] = useState({ message: '', type: 'success' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [businesses, setBusinesses] = useState([])
+  const [companies, setCompanies] = useState([])
+  const [businessDirectories, setBusinessDirectories] = useState([])
+  const [products, setProducts] = useState([])
 
   // Master data states
   const [countries, setCountries] = useState([])
@@ -20,33 +22,45 @@ export default function BusinessDirectory() {
   const [districts, setDistricts] = useState([])
   const [areas, setAreas] = useState([])
   const [categories, setCategories] = useState([])
-  const [subcategories, setSubcategories] = useState([])
   const [loadingMasterData, setLoadingMasterData] = useState(false)
 
-  // Business form state
-  const [businessForm, setBusinessForm] = useState({
+  // Company form state
+  const [companyForm, setCompanyForm] = useState({
     businessName: '',
     email: '',
-    mobileNumber: '',
+    ownerName: '',
     website: '',
     description: '',
     yearOfEstablishment: '',
-    mapLocation: '',
+    gstNumber: '',
+    yearlyTurnover: '',
+    numberOfEmployees: ''
+  })
+
+  // Business Directory form state
+  const [businessDirectoryForm, setBusinessDirectoryForm] = useState({
+    companyId: '',
+    category: '',
     country: '',
     state: '',
     district: '',
     area: '',
     pincode: '',
-    mainCategory: '',
-    subCategory: '',
-    numberOfEmployees: '',
-    yearlyTurnover: '',
     businessHoursGroups: [
       { id: 1, days: [], openTime: '', closeTime: '' }
     ]
   })
 
-  const [showMapPicker, setShowMapPicker] = useState(false)
+  // Product form state
+  const [productForm, setProductForm] = useState({
+    companyId: '',
+    coverImage: null,
+    productImages: [],
+    gallery: [],
+    productName: '',
+    displayPrice: false,
+    productPrice: ''
+  })
 
   // Fetch master data on component mount
   useEffect(() => {
@@ -73,12 +87,12 @@ export default function BusinessDirectory() {
   // Fetch districts when state changes
   useEffect(() => {
     const loadDistricts = async () => {
-      if (!businessForm.state) {
+      if (!businessDirectoryForm.state) {
         setDistricts([])
         return
       }
       try {
-        const state = states.find(s => s.stateName === businessForm.state)
+        const state = states.find(s => s.stateName === businessDirectoryForm.state)
         if (state) {
           const res = await fetchDistricts(state.id)
           setDistricts(res.districts || [])
@@ -88,17 +102,17 @@ export default function BusinessDirectory() {
       }
     }
     loadDistricts()
-  }, [businessForm.state, states])
+  }, [businessDirectoryForm.state, states])
 
   // Fetch areas when district changes
   useEffect(() => {
     const loadAreas = async () => {
-      if (!businessForm.district) {
+      if (!businessDirectoryForm.district) {
         setAreas([])
         return
       }
       try {
-        const district = districts.find(d => d.districtName === businessForm.district)
+        const district = districts.find(d => d.districtName === businessDirectoryForm.district)
         if (district) {
           const res = await fetchAreas(district.id)
           setAreas(res.areas || [])
@@ -108,51 +122,35 @@ export default function BusinessDirectory() {
       }
     }
     loadAreas()
-  }, [businessForm.district, districts])
+  }, [businessDirectoryForm.district, districts])
 
-  // Fetch subcategories when category changes
+  // Fetch companies, business directories, and products on component mount
   useEffect(() => {
-    const loadSubcategories = async () => {
-      if (!businessForm.mainCategory) {
-        setSubcategories([])
-        return
-      }
-      try {
-        const category = categories.find(c => c.categoryName === businessForm.mainCategory)
-        if (category) {
-          const res = await fetchSubcategories(category.id)
-          setSubcategories(res.subcategories || [])
-        }
-      } catch (err) {
-        console.error('Failed to fetch subcategories:', err)
-      }
-    }
-    loadSubcategories()
-  }, [businessForm.mainCategory, categories])
-
-  // Product form state
-  const [productForm, setProductForm] = useState({
-    businessId: '',
-    coverImage: null,
-    productImages: [],
-    productName: '',
-    displayPrice: false,
-    productPrice: ''
-  })
-
-  useEffect(() => {
-    fetchBusinesses()
-      .then((data) => setBusinesses(data.businesses || []))
-      .catch(() => setBusinesses([]))
+    fetchCompanies()
+      .then((data) => setCompanies(data.companies || []))
+      .catch(() => setCompanies([]))
+    
+    fetchBusinessDirectories()
+      .then((data) => setBusinessDirectories(data.businessDirectories || []))
+      .catch(() => setBusinessDirectories([]))
+    
+    fetchProducts()
+      .then((data) => setProducts(data.products || []))
+      .catch(() => setProducts([]))
   }, [])
 
-  const handleBusinessChange = (e) => {
+  const handleCompanyChange = (e) => {
     const { name, value } = e.target
-    setBusinessForm(prev => ({ ...prev, [name]: value }))
+    setCompanyForm(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleBusinessHoursChange = (groupId, field, value) => {
-    setBusinessForm(prev => ({
+  const handleBusinessDirectoryChange = (e) => {
+    const { name, value } = e.target
+    setBusinessDirectoryForm(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleBusinessDirectoryHoursChange = (groupId, field, value) => {
+    setBusinessDirectoryForm(prev => ({
       ...prev,
       businessHoursGroups: prev.businessHoursGroups.map(group =>
         group.id === groupId ? { ...group, [field]: value } : group
@@ -161,7 +159,7 @@ export default function BusinessDirectory() {
   }
 
   const toggleDayInGroup = (groupId, day) => {
-    setBusinessForm(prev => ({
+    setBusinessDirectoryForm(prev => ({
       ...prev,
       businessHoursGroups: prev.businessHoursGroups.map(group =>
         group.id === groupId
@@ -177,7 +175,7 @@ export default function BusinessDirectory() {
   }
 
   const addBusinessHoursGroup = () => {
-    setBusinessForm(prev => ({
+    setBusinessDirectoryForm(prev => ({
       ...prev,
       businessHoursGroups: [
         ...prev.businessHoursGroups,
@@ -187,51 +185,73 @@ export default function BusinessDirectory() {
   }
 
   const removeBusinessHoursGroup = (groupId) => {
-    setBusinessForm(prev => ({
+    setBusinessDirectoryForm(prev => ({
       ...prev,
       businessHoursGroups: prev.businessHoursGroups.filter(group => group.id !== groupId)
     }))
   }
 
-  const handleBusinessSubmit = async (e) => {
+  const handleCompanySubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
     try {
       // Validation
-      if (!businessForm.businessName || !businessForm.email || !businessForm.mobileNumber) {
-        setError('Business Name, Email, and Mobile Number are required')
+      if (!companyForm.businessName || !companyForm.email) {
+        setError('Business Name and Email are required')
         setLoading(false)
         return
       }
 
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(businessForm.email)) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(companyForm.email)) {
         setError('Invalid email format')
         setLoading(false)
         return
       }
 
-      if (!/^[0-9]{10}$/.test(businessForm.mobileNumber)) {
-        setError('Mobile number must be 10 digits')
+      const response = await createCompany(companyForm)
+      setToast({ message: response.message || 'Company created successfully', type: 'success' })
+      
+      // Reset form
+      setCompanyForm({
+        businessName: '',
+        email: '',
+        ownerName: '',
+        website: '',
+        description: '',
+        yearOfEstablishment: '',
+        gstNumber: '',
+        yearlyTurnover: '',
+        numberOfEmployees: ''
+      })
+
+      // Refresh companies list
+      fetchCompanies()
+        .then((data) => setCompanies(data.companies || []))
+        .catch(() => setCompanies([]))
+    } catch (err) {
+      setError(err.message || 'Failed to create company')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleBusinessDirectorySubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+
+    try {
+      // Validation
+      if (!businessDirectoryForm.category || !businessDirectoryForm.state || !businessDirectoryForm.district || !businessDirectoryForm.area || !businessDirectoryForm.pincode) {
+        setError('Category, State, District, Area, and Pincode are required')
         setLoading(false)
         return
       }
 
-      if (!businessForm.state || !businessForm.district || !businessForm.area || !businessForm.pincode) {
-        setError('State, District, Area, and Pincode are required')
-        setLoading(false)
-        return
-      }
-
-      if (!/^[0-9]{6}$/.test(businessForm.pincode)) {
+      if (!/^[0-9]{6}$/.test(businessDirectoryForm.pincode)) {
         setError('Pincode must be 6 digits')
-        setLoading(false)
-        return
-      }
-
-      if (!businessForm.mainCategory) {
-        setError('Main Category is required')
         setLoading(false)
         return
       }
@@ -242,7 +262,7 @@ export default function BusinessDirectory() {
         return acc
       }, {})
 
-      businessForm.businessHoursGroups.forEach(group => {
+      businessDirectoryForm.businessHoursGroups.forEach(group => {
         group.days.forEach(day => {
           if (businessHours[day]) {
             businessHours[day] = {
@@ -254,43 +274,34 @@ export default function BusinessDirectory() {
         })
       })
 
-      const businessDataForAPI = {
-        ...businessForm,
+      const businessDirectoryDataForAPI = {
+        ...businessDirectoryForm,
         businessHours
       }
 
-      const response = await createBusiness(businessDataForAPI)
-      setToast({ message: response.message || 'Business created successfully', type: 'success' })
+      const response = await createBusinessDirectory(businessDirectoryDataForAPI)
+      setToast({ message: response.message || 'Business Directory created successfully', type: 'success' })
       
       // Reset form
-      setBusinessForm({
-        businessName: '',
-        email: '',
-        mobileNumber: '',
-        website: '',
-        description: '',
-        yearOfEstablishment: '',
-        mapLocation: '',
+      setBusinessDirectoryForm({
+        companyId: '',
+        category: '',
         country: '',
         state: '',
         district: '',
         area: '',
         pincode: '',
-        mainCategory: '',
-        subCategory: '',
-        numberOfEmployees: '',
-        yearlyTurnover: '',
         businessHoursGroups: [
           { id: 1, days: [], openTime: '', closeTime: '' }
         ]
       })
 
-      // Refresh businesses list
-      fetchBusinesses()
-        .then((data) => setBusinesses(data.businesses || []))
-        .catch(() => setBusinesses([]))
+      // Refresh business directories list
+      fetchBusinessDirectories()
+        .then((data) => setBusinessDirectories(data.businessDirectories || []))
+        .catch(() => setBusinessDirectories([]))
     } catch (err) {
-      setError(err.message || 'Failed to create business')
+      setError(err.message || 'Failed to create business directory')
     } finally {
       setLoading(false)
     }
@@ -317,17 +328,9 @@ export default function BusinessDirectory() {
     setProductForm(prev => ({ ...prev, productImages: files }))
   }
 
-  const handleOpenMapPicker = () => {
-    setShowMapPicker(true)
-  }
-
-  const handleCloseMapPicker = () => {
-    setShowMapPicker(false)
-  }
-
-  const handleLocationSelect = (location) => {
-    setBusinessForm(prev => ({ ...prev, mapLocation: location }))
-    setShowMapPicker(false)
+  const handleGalleryChange = (e) => {
+    const files = Array.from(e.target.files)
+    setProductForm(prev => ({ ...prev, gallery: files }))
   }
 
   const handleProductSubmit = async (e) => {
@@ -337,12 +340,6 @@ export default function BusinessDirectory() {
 
     try {
       // Validation
-      if (!productForm.businessId) {
-        setError('Please select a business')
-        setLoading(false)
-        return
-      }
-
       if (!productForm.productName) {
         setError('Product Name is required')
         setLoading(false)
@@ -356,7 +353,7 @@ export default function BusinessDirectory() {
       }
 
       const formData = new FormData()
-      formData.append('businessId', productForm.businessId)
+      formData.append('companyId', productForm.companyId)
       formData.append('productName', productForm.productName)
       formData.append('displayPrice', productForm.displayPrice)
       formData.append('productPrice', productForm.productPrice || '')
@@ -369,18 +366,28 @@ export default function BusinessDirectory() {
         formData.append('productImages', file)
       })
 
-      const response = await createProduct(formData)
+      productForm.gallery.forEach((file, index) => {
+        formData.append('gallery', file)
+      })
+
+      const response = await createProductNew(formData)
       setToast({ message: response.message || 'Product created successfully', type: 'success' })
 
       // Reset form
       setProductForm({
-        businessId: '',
+        companyId: '',
         coverImage: null,
         productImages: [],
+        gallery: [],
         productName: '',
         displayPrice: false,
         productPrice: ''
       })
+
+      // Refresh products list
+      fetchProducts()
+        .then((data) => setProducts(data.products || []))
+        .catch(() => setProducts([]))
     } catch (err) {
       setError(err.message || 'Failed to create product')
     } finally {
@@ -390,7 +397,6 @@ export default function BusinessDirectory() {
 
   const availableDistricts = districts.map(d => d.districtName)
   const availableAreas = areas.map(a => a.areaName)
-  const availableSubCategories = subcategories.map(s => s.subcategoryName)
 
   return (
     <div className="page-container">
@@ -399,6 +405,12 @@ export default function BusinessDirectory() {
       </div>
 
       <div className="tabs">
+        <button
+          className={`tab ${activeTab === 'company' ? 'active' : ''}`}
+          onClick={() => setActiveTab('company')}
+        >
+          Company
+        </button>
         <button
           className={`tab ${activeTab === 'business' ? 'active' : ''}`}
           onClick={() => setActiveTab('business')}
@@ -415,14 +427,14 @@ export default function BusinessDirectory() {
 
       {error && <div className="alert alert-danger"><p>{error}</p></div>}
 
-      {activeTab === 'business' && (
+      {activeTab === 'company' && (
         <div>
-        <form onSubmit={handleBusinessSubmit} className="form-grid business-directory-form">
+        <form onSubmit={handleCompanySubmit} className="form-grid business-directory-form">
           <FloatingInput
             label="Business Name *"
             name="businessName"
-            value={businessForm.businessName}
-            onChange={handleBusinessChange}
+            value={companyForm.businessName}
+            onChange={handleCompanyChange}
             required
           />
 
@@ -430,38 +442,32 @@ export default function BusinessDirectory() {
             label="Email *"
             name="email"
             type="email"
-            value={businessForm.email}
-            onChange={handleBusinessChange}
+            value={companyForm.email}
+            onChange={handleCompanyChange}
             required
           />
 
           <FloatingInput
-            label="Mobile Number *"
-            name="mobileNumber"
-            type="tel"
-            value={businessForm.mobileNumber}
-            onChange={(e) => {
-              const digits = e.target.value.replace(/\D/g, '').slice(0, 10)
-              setBusinessForm(prev => ({ ...prev, mobileNumber: digits }))
-            }}
-            required
-            inputProps={{ inputMode: 'numeric', maxLength: 10 }}
+            label="Owner Name"
+            name="ownerName"
+            value={companyForm.ownerName}
+            onChange={handleCompanyChange}
           />
 
           <FloatingInput
             label="Website"
             name="website"
             type="url"
-            value={businessForm.website}
-            onChange={handleBusinessChange}
+            value={companyForm.website}
+            onChange={handleCompanyChange}
           />
 
           <div className="full-width">
             <FloatingInput
               label="Description"
               name="description"
-              value={businessForm.description}
-              onChange={handleBusinessChange}
+              value={companyForm.description}
+              onChange={handleCompanyChange}
               multiline
               rows={3}
             />
@@ -471,18 +477,25 @@ export default function BusinessDirectory() {
             label="Year of Establishment"
             name="yearOfEstablishment"
             type="number"
-            value={businessForm.yearOfEstablishment}
-            onChange={handleBusinessChange}
+            value={companyForm.yearOfEstablishment}
+            onChange={handleCompanyChange}
             min="1900"
             max={new Date().getFullYear()}
+          />
+
+          <FloatingInput
+            label="GST Number"
+            name="gstNumber"
+            value={companyForm.gstNumber}
+            onChange={handleCompanyChange}
           />
 
           <FloatingInput
             label="Number of Employees"
             name="numberOfEmployees"
             type="number"
-            value={businessForm.numberOfEmployees}
-            onChange={handleBusinessChange}
+            value={companyForm.numberOfEmployees}
+            onChange={handleCompanyChange}
             min="0"
             placeholder="Total employees"
           />
@@ -491,135 +504,79 @@ export default function BusinessDirectory() {
             label="Yearly Turnover (₹)"
             name="yearlyTurnover"
             type="text"
-            value={businessForm.yearlyTurnover}
-            onChange={handleBusinessChange}
+            value={companyForm.yearlyTurnover}
+            onChange={handleCompanyChange}
             placeholder="e.g., 50L, 2Cr, 1.5Cr"
           />
 
-          <div className="full-width">
-            <label className="map-location-label">Map Location</label>
-            <div className="map-location-wrapper">
-              <input
-                type="text"
-                name="mapLocation"
-                value={businessForm.mapLocation}
-                onChange={handleBusinessChange}
-                placeholder="Click to select location on map"
-                className="map-location-input"
-                readOnly
-                onClick={handleOpenMapPicker}
-              />
-              <button
-                type="button"
-                className="map-picker-button"
-                onClick={handleOpenMapPicker}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                  <circle cx="12" cy="10" r="3"></circle>
-                </svg>
-                Pick Location
-              </button>
-            </div>
-            {businessForm.mapLocation && (
-              <div className="map-location-preview">
-                <a href={businessForm.mapLocation} target="_blank" rel="noopener noreferrer" className="map-preview-link">
-                  View selected location on Google Maps →
-                </a>
-              </div>
-            )}
+          <div className="form-actions full-width">
+            <button type="submit" className="button button-primary" disabled={loading}>
+              {loading ? 'Saving...' : 'Save Company'}
+            </button>
           </div>
+        </form></div>
+      )}
 
-          {showMapPicker && (
-            <div className="map-picker-modal">
-              <div className="map-picker-overlay" onClick={handleCloseMapPicker}></div>
-              <div className="map-picker-content">
-                <div className="map-picker-header">
-                  <h3>Select Location</h3>
-                  <button type="button" className="map-picker-close" onClick={handleCloseMapPicker}>✕</button>
-                </div>
-                <div className="map-picker-body">
-                  <p className="map-picker-instruction">
-                    Search for your location on Google Maps, then copy the URL and paste it below:
-                  </p>
-                  <input
-                    type="text"
-                    placeholder="Paste Google Maps URL here..."
-                    className="map-url-input"
-                    id="mapUrlInput"
-                  />
-                  <div className="map-picker-actions">
-                    <button
-                      type="button"
-                      className="button button-secondary"
-                      onClick={handleCloseMapPicker}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      className="button button-primary"
-                      onClick={() => {
-                        const input = document.getElementById('mapUrlInput')
-                        if (input && input.value) {
-                          handleLocationSelect(input.value)
-                        }
-                      }}
-                    >
-                      Confirm Location
-                    </button>
-                  </div>
-                  <a
-                    href="https://maps.google.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="open-maps-link"
-                  >
-                    Open Google Maps →
-                  </a>
-                </div>
-              </div>
-            </div>
-          )}
+      {activeTab === 'business' && (
+        <div>
+        <form onSubmit={handleBusinessDirectorySubmit} className="form-grid business-directory-form">
+          <FloatingInput
+            label="Select Company"
+            name="companyId"
+            value={businessDirectoryForm.companyId}
+            onChange={handleBusinessDirectoryChange}
+            type="select"
+            options={[{ value: '', label: 'Select Company (Optional)' }, ...companies.map(c => ({ value: c.id, label: c.businessName }))]}
+          />
+
+          <FloatingInput
+            label="Category *"
+            name="category"
+            value={businessDirectoryForm.category}
+            onChange={handleBusinessDirectoryChange}
+            required
+            type="select"
+            options={[{ value: '', label: 'Select Category *' }, ...categories.map(c => ({ value: c.categoryName, label: c.categoryName }))]}
+          />
 
           <FloatingInput
             label="Country *"
             name="country"
-            value={businessForm.country}
-            onChange={handleBusinessChange}
+            value={businessDirectoryForm.country}
+            onChange={handleBusinessDirectoryChange}
             required
             type="select"
             options={[{ value: '', label: 'Select Country *' }, ...countries.map(c => ({ value: c.countryName, label: c.countryName }))]}
           />
 
           <FloatingInput
-            
+            label="State *"
             name="state"
-            value={businessForm.state}
-            onChange={handleBusinessChange}
+            value={businessDirectoryForm.state}
+            onChange={handleBusinessDirectoryChange}
             required
             type="select"
             options={[{ value: '', label: 'Select State *' }, ...states.map(s => ({ value: s.stateName, label: s.stateName }))]}
           />
 
           <FloatingInput
-            
+            label="District *"
             name="district"
-            value={businessForm.district}
-            onChange={handleBusinessChange}
+            value={businessDirectoryForm.district}
+            onChange={handleBusinessDirectoryChange}
             required
-            disabled={!businessForm.state || districts.length === 0}
+            disabled={!businessDirectoryForm.state || districts.length === 0}
             type="select"
             options={[{ value: '', label: 'Select District *' }, ...availableDistricts.map(d => ({ value: d, label: d }))]}
           />
 
           <FloatingInput
-            
+            label="Area *"
             name="area"
-            value={businessForm.area}
-            onChange={handleBusinessChange}
+            value={businessDirectoryForm.area}
+            onChange={handleBusinessDirectoryChange}
             required
-            disabled={!businessForm.district || areas.length === 0}
+            disabled={!businessDirectoryForm.district || areas.length === 0}
             type="select"
             options={[{ value: '', label: 'Select Area *' }, ...availableAreas.map(a => ({ value: a, label: a }))]}
           />
@@ -627,42 +584,22 @@ export default function BusinessDirectory() {
           <FloatingInput
             label="Pincode *"
             name="pincode"
-            value={businessForm.pincode}
+            value={businessDirectoryForm.pincode}
             onChange={(e) => {
               const digits = e.target.value.replace(/\D/g, '').slice(0, 6)
-              setBusinessForm(prev => ({ ...prev, pincode: digits }))
+              setBusinessDirectoryForm(prev => ({ ...prev, pincode: digits }))
             }}
             required
             inputProps={{ inputMode: 'numeric', maxLength: 6 }}
           />
 
-          <FloatingInput
-            
-            name="mainCategory"
-            value={businessForm.mainCategory}
-            onChange={handleBusinessChange}
-            required
-            type="select"
-            options={[{ value: '', label: 'Select Category *' }, ...categories.map(c => ({ value: c.categoryName, label: c.categoryName }))]}
-          />
-
-          <FloatingInput
-            
-            name="subCategory"
-            value={businessForm.subCategory}
-            onChange={handleBusinessChange}
-            disabled={!businessForm.mainCategory || subcategories.length === 0}
-            type="select"
-            options={[{ value: '', label: 'Select Sub Category' }, ...availableSubCategories.map(s => ({ value: s, label: s }))]}
-          />
-
           <div className="full-width business-hours-section">
             <h3>Business Hours</h3>
-            {businessForm.businessHoursGroups.map((group, groupIndex) => (
+            {businessDirectoryForm.businessHoursGroups.map((group, groupIndex) => (
               <div key={group.id} className="business-hours-group">
                 <div className="business-hours-group-header">
                   <span className="schedule-title">Schedule {groupIndex + 1}</span>
-                  {businessForm.businessHoursGroups.length > 1 && (
+                  {businessDirectoryForm.businessHoursGroups.length > 1 && (
                     <button
                       type="button"
                       className="button button-danger button-small remove-schedule-btn"
@@ -691,7 +628,7 @@ export default function BusinessDirectory() {
                       <input
                         type="time"
                         value={group.openTime}
-                        onChange={(e) => handleBusinessHoursChange(group.id, 'openTime', e.target.value)}
+                        onChange={(e) => handleBusinessDirectoryHoursChange(group.id, 'openTime', e.target.value)}
                       />
                     </label>
                     <label>
@@ -699,7 +636,7 @@ export default function BusinessDirectory() {
                       <input
                         type="time"
                         value={group.closeTime}
-                        onChange={(e) => handleBusinessHoursChange(group.id, 'closeTime', e.target.value)}
+                        onChange={(e) => handleBusinessDirectoryHoursChange(group.id, 'closeTime', e.target.value)}
                       />
                     </label>
                   </div>
@@ -727,13 +664,12 @@ export default function BusinessDirectory() {
         <div>
         <form onSubmit={handleProductSubmit} className="form-grid business-directory-form">
           <FloatingInput
-            
-            name="businessId"
-            value={productForm.businessId}
+            label="Select Company"
+            name="companyId"
+            value={productForm.companyId}
             onChange={handleProductChange}
-            required
             type="select"
-            options={[{ value: '', label: 'Select a Business *' }, ...businesses.map(b => ({ value: b.id, label: b.businessName }))]}
+            options={[{ value: '', label: 'Select Company (Optional)' }, ...companies.map(c => ({ value: c.id, label: c.businessName }))]}
           />
           <FloatingInput
             label="Product Name *"
@@ -766,7 +702,6 @@ export default function BusinessDirectory() {
                 />
                 Yes
               </label>
-              
             </div>
           </div><br></br>
 
@@ -782,13 +717,6 @@ export default function BusinessDirectory() {
               required
             />
           )}
-
-          <div className="form-actions full-width">
-            <button type="submit" className="button button-primary" disabled={loading}>
-              {loading ? 'Saving...' : 'Save Product'}
-            </button>
-          </div>
-          
 
           <div className="full-width">
             <FloatingInput
@@ -824,7 +752,29 @@ export default function BusinessDirectory() {
             )}
           </div>
 
-          
+          <div className="full-width">
+            <FloatingInput
+              label="Gallery"
+              name="gallery"
+              type="file"
+              value=""
+              onChange={handleGalleryChange}
+              inputProps={{ accept: 'image/*', multiple: true }}
+            />
+            {productForm.gallery.length > 0 && (
+              <div className="image-preview">
+                {productForm.gallery.map((file, index) => (
+                  <img key={index} src={URL.createObjectURL(file)} alt={`Gallery ${index + 1}`} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="form-actions full-width">
+            <button type="submit" className="button button-primary" disabled={loading}>
+              {loading ? 'Saving...' : 'Save Product'}
+            </button>
+          </div>
         </form></div>
       )}
 

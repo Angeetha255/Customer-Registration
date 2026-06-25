@@ -5,10 +5,14 @@ import dotenv from 'dotenv'
 import authRoutes from './routes/auth.js'
 import userRoutes from './routes/users.js'
 import businessRoutes from './routes/business.js'
+import companyRoutes from './routes/company.js'
+import businessDirectoryRoutes from './routes/businessDirectory.js'
+import productRoutes from './routes/product.js'
 import masterDataRoutes from './routes/masterData.js'
 import Admin from './models/Admin.js'
 import User from './models/User.js'   // must be imported so sequelize.sync() creates the users table
 import Settings from './models/Settings.js'
+import Company from './models/Company.js'
 import Business from './models/Business.js'
 import Product from './models/Product.js'
 import bcrypt from 'bcrypt'
@@ -17,7 +21,7 @@ import { sequelize } from './models/sequelize.js'
 dotenv.config()
 
 const app = express()
-const PORT = process.env.PORT || 5001
+const PORT = process.env.PORT || 5002
 
 app.use(cors())
 app.use(express.json())
@@ -25,6 +29,9 @@ app.use(express.json())
 app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/business', businessRoutes)
+app.use('/api/company', companyRoutes)
+app.use('/api/business-directory', businessDirectoryRoutes)
+app.use('/api/product', productRoutes)
 app.use('/api/master-data', masterDataRoutes)
 app.use('/uploads', express.static('uploads'))
 

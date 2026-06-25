@@ -8,10 +8,10 @@ const Product = sequelize.define(
       autoIncrement: true,
       primaryKey: true,
     },
-    businessId: {
+    companyId: {
       type: DataTypes.INTEGER.UNSIGNED,
-      allowNull: false,
-      references: { model: 'business', key: 'id' },
+      allowNull: true,
+      references: { model: 'company', key: 'id' },
       onDelete: 'CASCADE',
     },
     coverImage: { type: DataTypes.STRING, allowNull: true },

@@ -686,6 +686,7 @@ input:focus {
 .button-secondary {
   background: #eef2ff;
   color: var(--accent-strong);
+  margin-right:10px;
 }
 
 .button-muted {
@@ -1533,7 +1534,7 @@ opacity:.9;
 .page-panel h2, .page-panel .subtitle { text-align: center; }
 
 .status-badge { display: inline-block; padding: 4px 8px; border-radius: 12px; font-weight: 700; font-size: 0.85rem; }
-.status-badge.active { background: #dcfce7; color: #166534; }
+.status-badge.active { background: #5fff95; color: #166534; }
 .status-badge.inactive { background: #fee2e2; color: #991b1b; }
 
 .floating-field input.with-toggle { padding-right: 72px; }
@@ -3188,15 +3189,16 @@ opacity:.9;
 /* ── Status badges ── */
 .status-badge {
   display: inline-block;
-  padding: 2px 8px;
-  border-radius: 999px;
+  padding: 4px 8px;
+  border-radius: 3px;
   font-size: 0.75rem;
   font-weight: 600;
 }
 
 .status-active {
-  background: #dcfce7;
+  background: #7dffb7;
   color: #166534;
+  border:none;
 }
 
 .status-inactive {
@@ -4039,7 +4041,7 @@ input[type="file"]::file-selector-button {
 }
 
 .data-table th {
-  padding: 1rem;
+  padding: 0.5rem;
   text-align: left;
   font-weight: 600;
   font-size: 0.85rem;
@@ -4049,7 +4051,7 @@ input[type="file"]::file-selector-button {
 }
 
 .data-table td {
-  padding: 1rem;
+  padding: 0.4rem;
   border-bottom: 1px solid var(--border);
   font-size: 0.9rem;
   color: var(--text);
