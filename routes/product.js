@@ -3,6 +3,7 @@ import multer from 'multer'
 import path from 'path'
 import { authMiddleware } from '../middleware/auth.js'
 import Product from '../models/Product.js'
+import { Op } from 'sequelize'
 
 const router = express.Router()
 
@@ -39,20 +40,53 @@ router.post('/', authMiddleware, upload.fields([
   { name: 'gallery', maxCount: 20 }
 ]), async (req, res) => {
   try {
-    const { companyId, productName, displayPrice, productPrice } = req.body
+    const { 
+      companyId, 
+      productName, 
+      displayPrice, 
+      productMrp,
+      discountPercentage,
+      discountPrice,
+      isEnabled,
+      specifications,
+      descriptions
+    } = req.body
 
     // Validation
     if (!productName) {
       return res.status(400).json({ message: 'Product Name is required' })
     }
 
-    if (displayPrice && !productPrice) {
-      return res.status(400).json({ message: 'Product Price is required when display price is enabled' })
-    }
-
     const coverImagePath = req.files?.coverImage?.[0]?.filename || null
     const productImagePaths = req.files?.productImages?.map(file => file.filename) || []
     const galleryPaths = req.files?.gallery?.map(file => file.filename) || []
+
+    // Calculate discount price if not provided
+    let finalDiscountPrice = discountPrice ? parseFloat(discountPrice) : null
+    if (productMrp && discountPercentage && !finalDiscountPrice) {
+      const mrp = parseFloat(productMrp)
+      const discount = parseFloat(discountPercentage)
+      finalDiscountPrice = mrp - (mrp * discount / 100)
+    }
+
+    // Parse specifications and descriptions from JSON string if needed
+    let parsedSpecs = null
+    if (specifications) {
+      try {
+        parsedSpecs = typeof specifications === 'string' ? JSON.parse(specifications) : specifications
+      } catch (e) {
+        parsedSpecs = null
+      }
+    }
+
+    let parsedDescs = null
+    if (descriptions) {
+      try {
+        parsedDescs = typeof descriptions === 'string' ? JSON.parse(descriptions) : descriptions
+      } catch (e) {
+        parsedDescs = null
+      }
+    }
 
     const product = await Product.create({
       companyId: companyId || null,
@@ -61,7 +95,12 @@ router.post('/', authMiddleware, upload.fields([
       gallery: galleryPaths,
       productName,
       displayPrice: displayPrice === 'true' || displayPrice === true,
-      productPrice: displayPrice ? productPrice : null,
+      productMrp: productMrp || null,
+      discountPercentage: discountPercentage ? parseFloat(discountPercentage) : 0,
+      discountPrice: finalDiscountPrice,
+      isEnabled: isEnabled === 'true' || isEnabled === true,
+      specifications: parsedSpecs,
+      descriptions: parsedDescs,
       createdBy: req.user.id
     })
 
@@ -79,15 +118,21 @@ router.put('/:id', authMiddleware, upload.fields([
   { name: 'gallery', maxCount: 20 }
 ]), async (req, res) => {
   try {
-    const { companyId, productName, displayPrice, productPrice } = req.body
+    const { 
+      companyId, 
+      productName, 
+      displayPrice, 
+      productMrp,
+      discountPercentage,
+      discountPrice,
+      isEnabled,
+      specifications,
+      descriptions
+    } = req.body
 
     // Validation
     if (!productName) {
       return res.status(400).json({ message: 'Product Name is required' })
-    }
-
-    if (displayPrice && !productPrice) {
-      return res.status(400).json({ message: 'Product Price is required when display price is enabled' })
     }
 
     const product = await Product.findOne({
@@ -102,6 +147,33 @@ router.put('/:id', authMiddleware, upload.fields([
     const productImagePaths = req.files?.productImages?.map(file => file.filename) || product.productImages
     const galleryPaths = req.files?.gallery?.map(file => file.filename) || product.gallery
 
+    // Calculate discount price if not provided
+    let finalDiscountPrice = discountPrice ? parseFloat(discountPrice) : null
+    if (productMrp && discountPercentage && !finalDiscountPrice) {
+      const mrp = parseFloat(productMrp)
+      const discount = parseFloat(discountPercentage)
+      finalDiscountPrice = mrp - (mrp * discount / 100)
+    }
+
+    // Parse specifications and descriptions from JSON string if needed
+    let parsedSpecs = product.specifications
+    if (specifications) {
+      try {
+        parsedSpecs = typeof specifications === 'string' ? JSON.parse(specifications) : specifications
+      } catch (e) {
+        parsedSpecs = product.specifications
+      }
+    }
+
+    let parsedDescs = product.descriptions
+    if (descriptions) {
+      try {
+        parsedDescs = typeof descriptions === 'string' ? JSON.parse(descriptions) : descriptions
+      } catch (e) {
+        parsedDescs = product.descriptions
+      }
+    }
+
     await product.update({
       companyId: companyId || null,
       coverImage: coverImagePath,
@@ -109,7 +181,12 @@ router.put('/:id', authMiddleware, upload.fields([
       gallery: galleryPaths,
       productName,
       displayPrice: displayPrice === 'true' || displayPrice === true,
-      productPrice: displayPrice ? productPrice : null,
+      productMrp: productMrp || null,
+      discountPercentage: discountPercentage ? parseFloat(discountPercentage) : 0,
+      discountPrice: finalDiscountPrice,
+      isEnabled: isEnabled === 'true' || isEnabled === true,
+      specifications: parsedSpecs,
+      descriptions: parsedDescs,
     })
 
     res.status(200).json({ message: 'Product updated successfully', product })

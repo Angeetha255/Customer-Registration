@@ -4,39 +4,29 @@ import Business from '../models/Business.js'
 
 const router = express.Router()
 
-// POST /api/business-directory - Create a new business
+// POST /api/business-directory - Create a new business catalogue entry
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const {
       companyId,
       category,
       subcategory,
-      country,
-      state,
-      district,
-      area,
-      pincode,
+      website,
+      description,
       businessHours
     } = req.body
 
     // Validation
-    if (!category || !state || !district || !area || !pincode) {
-      return res.status(400).json({ message: 'Category, State, District, Area, and Pincode are required' })
-    }
-
-    if (!/^[0-9]{6}$/.test(pincode)) {
-      return res.status(400).json({ message: 'Pincode must be 6 digits' })
+    if (!category) {
+      return res.status(400).json({ message: 'Category is required' })
     }
 
     const business = await Business.create({
       companyId: companyId || null,
       category,
       subcategory: subcategory || null,
-      country: country || 'India',
-      state,
-      district,
-      area,
-      pincode,
+      website: website || null,
+      description: description || null,
       businessHours: businessHours || null,
       createdBy: req.user.id
     })
@@ -48,28 +38,21 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 })
 
-// PUT /api/business-directory/:id - Update a business
+// PUT /api/business-directory/:id - Update a business catalogue entry
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const {
       companyId,
       category,
       subcategory,
-      country,
-      state,
-      district,
-      area,
-      pincode,
+      website,
+      description,
       businessHours
     } = req.body
 
     // Validation
-    if (!category || !state || !district || !area || !pincode) {
-      return res.status(400).json({ message: 'Category, State, District, Area, and Pincode are required' })
-    }
-
-    if (!/^[0-9]{6}$/.test(pincode)) {
-      return res.status(400).json({ message: 'Pincode must be 6 digits' })
+    if (!category) {
+      return res.status(400).json({ message: 'Category is required' })
     }
 
     const business = await Business.findOne({
@@ -84,11 +67,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
       companyId: companyId || null,
       category,
       subcategory: subcategory || null,
-      country: country || 'India',
-      state,
-      district,
-      area,
-      pincode,
+      website: website || null,
+      description: description || null,
       businessHours: businessHours || null,
     })
 
@@ -99,7 +79,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
   }
 })
 
-// GET /api/business-directory - Get all businesses for the logged-in user
+// GET /api/business-directory - Get all business catalogue entries for the logged-in user
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const businesses = await Business.findAll({
@@ -113,7 +93,7 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 })
 
-// GET /api/business-directory/:id - Get a single business
+// GET /api/business-directory/:id - Get a single business catalogue entry
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const business = await Business.findOne({
@@ -129,7 +109,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
   }
 })
 
-// DELETE /api/business-directory/:id - Delete a business
+// DELETE /api/business-directory/:id - Delete a business catalogue entry
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const business = await Business.findOne({

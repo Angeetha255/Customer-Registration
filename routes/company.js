@@ -12,17 +12,20 @@ router.post('/', authMiddleware, async (req, res) => {
       email,
       mobileNumber,
       ownerName,
-      website,
-      description,
       yearOfEstablishment,
       gstNumber,
       yearlyTurnover,
-      numberOfEmployees
+      numberOfEmployees,
+      country,
+      state,
+      district,
+      area,
+      pincode
     } = req.body
 
     // Validation
-    if (!businessName || !email) {
-      return res.status(400).json({ message: 'Business Name and Email are required' })
+    if (!businessName || !email || !state || !district || !area || !pincode) {
+      return res.status(400).json({ message: 'Business Name, Email, State, District, Area, and Pincode are required' })
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -33,17 +36,24 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Mobile number must be 10 digits' })
     }
 
+    if (pincode && !/^[0-9]{6}$/.test(pincode)) {
+      return res.status(400).json({ message: 'Pincode must be 6 digits' })
+    }
+
     const company = await Company.create({
       businessName,
       email,
       mobileNumber: mobileNumber || null,
       ownerName: ownerName || null,
-      website: website || null,
-      description: description || null,
       yearOfEstablishment: yearOfEstablishment ? parseInt(yearOfEstablishment) : null,
       gstNumber: gstNumber || null,
       yearlyTurnover: yearlyTurnover || null,
       numberOfEmployees: numberOfEmployees ? parseInt(numberOfEmployees) : null,
+      country: country || 'India',
+      state,
+      district,
+      area,
+      pincode,
       createdBy: req.user.id
     })
 
@@ -62,17 +72,20 @@ router.put('/:id', authMiddleware, async (req, res) => {
       email,
       mobileNumber,
       ownerName,
-      website,
-      description,
       yearOfEstablishment,
       gstNumber,
       yearlyTurnover,
-      numberOfEmployees
+      numberOfEmployees,
+      country,
+      state,
+      district,
+      area,
+      pincode
     } = req.body
 
     // Validation
-    if (!businessName || !email) {
-      return res.status(400).json({ message: 'Business Name and Email are required' })
+    if (!businessName || !email || !state || !district || !area || !pincode) {
+      return res.status(400).json({ message: 'Business Name, Email, State, District, Area, and Pincode are required' })
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -81,6 +94,10 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
     if (mobileNumber && !/^[0-9]{10}$/.test(mobileNumber)) {
       return res.status(400).json({ message: 'Mobile number must be 10 digits' })
+    }
+
+    if (pincode && !/^[0-9]{6}$/.test(pincode)) {
+      return res.status(400).json({ message: 'Pincode must be 6 digits' })
     }
 
     const company = await Company.findOne({
@@ -96,12 +113,15 @@ router.put('/:id', authMiddleware, async (req, res) => {
       email,
       mobileNumber: mobileNumber || null,
       ownerName: ownerName || null,
-      website: website || null,
-      description: description || null,
       yearOfEstablishment: yearOfEstablishment ? parseInt(yearOfEstablishment) : null,
       gstNumber: gstNumber || null,
       yearlyTurnover: yearlyTurnover || null,
       numberOfEmployees: numberOfEmployees ? parseInt(numberOfEmployees) : null,
+      country: country || 'India',
+      state,
+      district,
+      area,
+      pincode,
     })
 
     res.status(200).json({ message: 'Company updated successfully', company })

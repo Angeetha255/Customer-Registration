@@ -501,7 +501,7 @@ router.delete('/categories/:id', authMiddleware, async (req, res) => {
 
 // ==================== SUBCATEGORIES ====================
 
-// Get subcategories by category
+// Get subcategories by category (or all if no categoryId)
 router.get('/subcategories', authMiddleware, async (req, res) => {
   try {
     const { categoryId } = req.query
@@ -509,6 +509,7 @@ router.get('/subcategories', authMiddleware, async (req, res) => {
     if (categoryId) where.categoryId = categoryId
     const subcategories = await Subcategory.findAll({
       where,
+      include: [{ model: Category, as: 'category', attributes: ['id', 'categoryName'] }],
       order: [['subcategoryName', 'ASC']]
     })
     res.json({ subcategories })

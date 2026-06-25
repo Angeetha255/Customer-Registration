@@ -31,12 +31,15 @@ export default function BusinessDirectory() {
     email: '',
     mobileNumber: '',
     ownerName: '',
-    website: '',
-    description: '',
     yearOfEstablishment: '',
     gstNumber: '',
     yearlyTurnover: '',
-    numberOfEmployees: ''
+    numberOfEmployees: '',
+    country: 'India',
+    state: '',
+    district: '',
+    area: '',
+    pincode: ''
   })
 
   // Business Directory form state
@@ -44,11 +47,8 @@ export default function BusinessDirectory() {
     companyId: '',
     category: '',
     subcategory: '',
-    country: '',
-    state: '',
-    district: '',
-    area: '',
-    pincode: '',
+    website: '',
+    description: '',
     businessHoursGroups: [
       { id: 1, days: [], openTime: '', closeTime: '' }
     ]
@@ -62,7 +62,13 @@ export default function BusinessDirectory() {
     gallery: [],
     productName: '',
     displayPrice: false,
-    productPrice: ''
+    productMrp: '',
+    discountPercentage: '',
+    discountPrice: '',
+    isEnabled: true,
+    specifications: [],
+    descriptions: [],
+    addProduct: null // null = not asked, true = yes, false = no
   })
 
   // Fetch master data on component mount
@@ -90,12 +96,12 @@ export default function BusinessDirectory() {
   // Fetch districts when state changes
   useEffect(() => {
     const loadDistricts = async () => {
-      if (!businessDirectoryForm.state) {
+      if (!companyForm.state) {
         setDistricts([])
         return
       }
       try {
-        const state = states.find(s => s.stateName === businessDirectoryForm.state)
+        const state = states.find(s => s.stateName === companyForm.state)
         if (state) {
           const res = await fetchDistricts(state.id)
           setDistricts(res.districts || [])
@@ -105,17 +111,17 @@ export default function BusinessDirectory() {
       }
     }
     loadDistricts()
-  }, [businessDirectoryForm.state, states])
+  }, [companyForm.state, states])
 
   // Fetch areas when district changes
   useEffect(() => {
     const loadAreas = async () => {
-      if (!businessDirectoryForm.district) {
+      if (!companyForm.district) {
         setAreas([])
         return
       }
       try {
-        const district = districts.find(d => d.districtName === businessDirectoryForm.district)
+        const district = districts.find(d => d.districtName === companyForm.district)
         if (district) {
           const res = await fetchAreas(district.id)
           setAreas(res.areas || [])
@@ -125,27 +131,43 @@ export default function BusinessDirectory() {
       }
     }
     loadAreas()
-  }, [businessDirectoryForm.district, districts])
+  }, [companyForm.district, districts])
 
-  // Fetch subcategories when category changes
+  // Fetch all subcategories with their categories for the dropdown
   useEffect(() => {
-    const loadSubcategories = async () => {
-      if (!businessDirectoryForm.category) {
-        setSubcategories([])
-        return
-      }
+    const loadAllSubcategories = async () => {
       try {
-        const category = categories.find(c => c.categoryName === businessDirectoryForm.category)
-        if (category) {
-          const res = await fetchSubcategories(category.id)
-          setSubcategories(res.subcategories || [])
+        // Fetch all subcategories (API now returns category data included)
+        const token = localStorage.getItem('userToken') || sessionStorage.getItem('userToken')
+        const res = await fetch(`${API_BASE}/master-data/subcategories`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
+        const data = await res.json()
+        if (Array.isArray(data.subcategories)) {
+          setSubcategories(data.subcategories)
         }
       } catch (err) {
         console.error('Failed to fetch subcategories:', err)
       }
     }
-    loadSubcategories()
-  }, [businessDirectoryForm.category, categories])
+    loadAllSubcategories()
+  }, [])
+
+  // Auto-detect category from subcategory selection
+  useEffect(() => {
+    if (!businessDirectoryForm.subcategory || subcategories.length === 0) {
+      return
+    }
+
+    const selectedSub = subcategories.find(sub => sub.subcategoryName === businessDirectoryForm.subcategory)
+    if (selectedSub && selectedSub.categoryName) {
+      setBusinessDirectoryForm(prev => ({ ...prev, category: selectedSub.categoryName }))
+    } else if (selectedSub && selectedSub.category) {
+      setBusinessDirectoryForm(prev => ({ ...prev, category: selectedSub.category.categoryName || selectedSub.category }))
+    }
+  }, [businessDirectoryForm.subcategory, subcategories])
 
   // Fetch companies, business directories, and products on component mount
   useEffect(() => {
@@ -221,8 +243,8 @@ export default function BusinessDirectory() {
 
     try {
       // Validation
-      if (!companyForm.businessName || !companyForm.email) {
-        setError('Business Name and Email are required')
+      if (!companyForm.businessName || !companyForm.email || !companyForm.state || !companyForm.district || !companyForm.area || !companyForm.pincode) {
+        setError('Business Name, Email, State, District, Area, and Pincode are required')
         setLoading(false)
         return
       }
@@ -242,12 +264,15 @@ export default function BusinessDirectory() {
         email: '',
         mobileNumber: '',
         ownerName: '',
-        website: '',
-        description: '',
         yearOfEstablishment: '',
         gstNumber: '',
         yearlyTurnover: '',
-        numberOfEmployees: ''
+        numberOfEmployees: '',
+        country: 'India',
+        state: '',
+        district: '',
+        area: '',
+        pincode: ''
       })
 
       // Refresh companies list
@@ -268,14 +293,8 @@ export default function BusinessDirectory() {
 
     try {
       // Validation
-      if (!businessDirectoryForm.category || !businessDirectoryForm.state || !businessDirectoryForm.district || !businessDirectoryForm.area || !businessDirectoryForm.pincode) {
-        setError('Category, State, District, Area, and Pincode are required')
-        setLoading(false)
-        return
-      }
-
-      if (!/^[0-9]{6}$/.test(businessDirectoryForm.pincode)) {
-        setError('Pincode must be 6 digits')
+      if (!businessDirectoryForm.subcategory) {
+        setError('Subcategory is required')
         setLoading(false)
         return
       }
@@ -311,11 +330,8 @@ export default function BusinessDirectory() {
         companyId: '',
         category: '',
         subcategory: '',
-        country: '',
-        state: '',
-        district: '',
-        area: '',
-        pincode: '',
+        website: '',
+        description: '',
         businessHoursGroups: [
           { id: 1, days: [], openTime: '', closeTime: '' }
         ]
@@ -358,6 +374,65 @@ export default function BusinessDirectory() {
     setProductForm(prev => ({ ...prev, gallery: files }))
   }
 
+  const addSpecification = () => {
+    setProductForm(prev => ({
+      ...prev,
+      specifications: [...prev.specifications, { id: Date.now(), name: '', detail: '' }]
+    }))
+  }
+
+  const removeSpecification = (id) => {
+    setProductForm(prev => ({
+      ...prev,
+      specifications: prev.specifications.filter(spec => spec.id !== id)
+    }))
+  }
+
+  const updateSpecification = (id, field, value) => {
+    setProductForm(prev => ({
+      ...prev,
+      specifications: prev.specifications.map(spec =>
+        spec.id === id ? { ...spec, [field]: value } : spec
+      )
+    }))
+  }
+
+  const addDescription = () => {
+    setProductForm(prev => ({
+      ...prev,
+      descriptions: [...prev.descriptions, { id: Date.now(), text: '' }]
+    }))
+  }
+
+  const removeDescription = (id) => {
+    setProductForm(prev => ({
+      ...prev,
+      descriptions: prev.descriptions.filter(desc => desc.id !== id)
+    }))
+  }
+
+  const updateDescription = (id, text) => {
+    setProductForm(prev => ({
+      ...prev,
+      descriptions: prev.descriptions.map(desc =>
+        desc.id === id ? { ...desc, text } : desc
+      )
+    }))
+  }
+
+  const calculateDiscountPrice = () => {
+    const mrp = parseFloat(productForm.productMrp) || 0
+    const discount = parseFloat(productForm.discountPercentage) || 0
+    const calculatedPrice = mrp - (mrp * discount / 100)
+    setProductForm(prev => ({ ...prev, discountPrice: calculatedPrice.toFixed(2) }))
+  }
+
+  useEffect(() => {
+    if (productForm.productMrp && productForm.discountPercentage) {
+      calculateDiscountPrice()
+    }
+  }, [productForm.productMrp, productForm.discountPercentage])
+
   const handleProductSubmit = async (e) => {
     e.preventDefault()
     setError('')
@@ -371,17 +446,26 @@ export default function BusinessDirectory() {
         return
       }
 
-      if (productForm.displayPrice && !productForm.productPrice) {
-        setError('Product Price is required when display price is enabled')
-        setLoading(false)
-        return
-      }
-
       const formData = new FormData()
       formData.append('companyId', productForm.companyId)
       formData.append('productName', productForm.productName)
       formData.append('displayPrice', productForm.displayPrice)
-      formData.append('productPrice', productForm.productPrice || '')
+      formData.append('productMrp', productForm.productMrp || '')
+      formData.append('discountPercentage', productForm.discountPercentage || '0')
+      formData.append('discountPrice', productForm.discountPrice || '')
+      formData.append('isEnabled', productForm.isEnabled)
+
+      // Add specifications as JSON string
+      const validSpecs = productForm.specifications.filter(spec => spec.name && spec.detail)
+      if (validSpecs.length > 0) {
+        formData.append('specifications', JSON.stringify(validSpecs.map(s => ({ name: s.name, detail: s.detail }))))
+      }
+
+      // Add descriptions as JSON string
+      const validDescs = productForm.descriptions.filter(desc => desc.text)
+      if (validDescs.length > 0) {
+        formData.append('descriptions', JSON.stringify(validDescs.map(d => d.text)))
+      }
 
       if (productForm.coverImage) {
         formData.append('coverImage', productForm.coverImage)
@@ -406,7 +490,13 @@ export default function BusinessDirectory() {
         gallery: [],
         productName: '',
         displayPrice: false,
-        productPrice: ''
+        productMrp: '',
+        discountPercentage: '',
+        discountPrice: '',
+        isEnabled: true,
+        specifications: [],
+        descriptions: [],
+        addProduct: null
       })
 
       // Refresh products list
@@ -491,28 +581,60 @@ export default function BusinessDirectory() {
             required
           />
 
-         
-
-          
-
           <FloatingInput
-            label="Website"
-            name="website"
-            type="url"
-            value={companyForm.website}
+            label="Country *"
+            name="country"
+            value={companyForm.country}
             onChange={handleCompanyChange}
+            required
+            type="select"
+            options={countries.map(c => ({ value: c.countryName, label: c.countryName }))}
           />
 
-          <div className="full-width">
-            <FloatingInput
-              label="Description"
-              name="description"
-              value={companyForm.description}
-              onChange={handleCompanyChange}
-              multiline
-              rows={3}
-            />
-          </div>
+          <FloatingInput
+            label="State *"
+            name="state"
+            value={companyForm.state}
+            onChange={handleCompanyChange}
+            required
+            type="select"
+            options={states.map(s => ({ value: s.stateName, label: s.stateName }))}
+          />
+
+          <FloatingInput
+            label="District *"
+            name="district"
+            value={companyForm.district}
+            onChange={handleCompanyChange}
+            required
+            disabled={!companyForm.state || districts.length === 0}
+            type="select"
+            options={availableDistricts.map(d => ({ value: d, label: d }))}
+          />
+
+          <FloatingInput
+            label="Area *"
+            name="area"
+            value={companyForm.area}
+            onChange={handleCompanyChange}
+            required
+            disabled={!companyForm.district || areas.length === 0}
+            type="select"
+            options={availableAreas.map(a => ({ value: a, label: a }))}
+          />
+
+          <FloatingInput
+            label="Pincode *"
+            name="pincode"
+            value={companyForm.pincode}
+            onChange={(e) => {
+              const digits = e.target.value.replace(/\D/g, '').slice(0, 6)
+              setCompanyForm(prev => ({ ...prev, pincode: digits }))
+            }}
+            required
+            inputProps={{ inputMode: 'numeric', maxLength: 6 }}
+          />
+
           <FloatingInput
             label="GST Number"
             name="gstNumber"
@@ -529,8 +651,6 @@ export default function BusinessDirectory() {
             min="1900"
             max={new Date().getFullYear()}
           />
-
-          
 
           <FloatingInput
             label="Number of Employees"
@@ -568,82 +688,48 @@ export default function BusinessDirectory() {
             value={businessDirectoryForm.companyId}
             onChange={handleBusinessDirectoryChange}
             type="select"
-            options={[{ value: '', label: 'Select Company ' }, ...companies.map(c => ({ value: c.id, label: c.businessName }))]}
+            options={companies.map(c => ({ value: c.id, label: c.businessName }))}
           />
 
           <FloatingInput
-            label="Category *"
-            name="category"
-            value={businessDirectoryForm.category}
-            onChange={handleBusinessDirectoryChange}
-            required
-            type="select"
-            options={[{ value: '', label: 'Select Category *' }, ...categories.map(c => ({ value: c.categoryName, label: c.categoryName }))]}
-          />
-
-          <FloatingInput
-            label="Subcategory"
+            label="Subcategory *"
             name="subcategory"
             value={businessDirectoryForm.subcategory}
             onChange={handleBusinessDirectoryChange}
-            disabled={!businessDirectoryForm.category || subcategories.length === 0}
+            required
             type="select"
-            options={[{ value: '', label: 'Select Subcategory' }, ...subcategories.map(s => ({ value: s.subcategoryName, label: s.subcategoryName }))]}
+            options={subcategories.map(sub => ({ value: sub.subcategoryName, label: sub.subcategoryName }))}
           />
 
+          {businessDirectoryForm.category && (
+            <div className="full-width" style={{ 
+              padding: '0.75rem', 
+              
+              borderRadius: '4px',
+              marginBottom: '1rem'
+            }}>
+              <strong>⭐ Category: {businessDirectoryForm.category}</strong>
+            </div>
+          )}
+
           <FloatingInput
-            label="Country *"
-            name="country"
-            value={businessDirectoryForm.country}
+            label="Website"
+            name="website"
+            type="url"
+            value={businessDirectoryForm.website}
             onChange={handleBusinessDirectoryChange}
-            required
-            type="select"
-            options={[{ value: '', label: 'Select Country *' }, ...countries.map(c => ({ value: c.countryName, label: c.countryName }))]}
           />
 
-          <FloatingInput
-            label="State *"
-            name="state"
-            value={businessDirectoryForm.state}
-            onChange={handleBusinessDirectoryChange}
-            required
-            type="select"
-            options={[{ value: '', label: 'Select State *' }, ...states.map(s => ({ value: s.stateName, label: s.stateName }))]}
-          />
-
-          <FloatingInput
-            label="District *"
-            name="district"
-            value={businessDirectoryForm.district}
-            onChange={handleBusinessDirectoryChange}
-            required
-            disabled={!businessDirectoryForm.state || districts.length === 0}
-            type="select"
-            options={[{ value: '', label: 'Select District *' }, ...availableDistricts.map(d => ({ value: d, label: d }))]}
-          />
-
-          <FloatingInput
-            label="Area *"
-            name="area"
-            value={businessDirectoryForm.area}
-            onChange={handleBusinessDirectoryChange}
-            required
-            disabled={!businessDirectoryForm.district || areas.length === 0}
-            type="select"
-            options={[{ value: '', label: 'Select Area *' }, ...availableAreas.map(a => ({ value: a, label: a }))]}
-          />
-
-          <FloatingInput
-            label="Pincode *"
-            name="pincode"
-            value={businessDirectoryForm.pincode}
-            onChange={(e) => {
-              const digits = e.target.value.replace(/\D/g, '').slice(0, 6)
-              setBusinessDirectoryForm(prev => ({ ...prev, pincode: digits }))
-            }}
-            required
-            inputProps={{ inputMode: 'numeric', maxLength: 6 }}
-          />
+          <div className="full-width">
+            <FloatingInput
+              label="Description"
+              name="description"
+              value={businessDirectoryForm.description}
+              onChange={handleBusinessDirectoryChange}
+              multiline
+              rows={3}
+            />
+          </div>
 
           <div className="full-width business-hours-section">
             <h3>Business Hours</h3>
@@ -714,6 +800,31 @@ export default function BusinessDirectory() {
 
       {activeTab === 'product' && (
         <div>
+        {productForm.addProduct === null ? (
+          <div style={{ textAlign: 'center', padding: '3rem' }}>
+            <h3>Do you want to add your product?</h3>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '1rem' }}>
+              <button
+                type="button"
+                className="button button-primary"
+                onClick={() => setProductForm(prev => ({ ...prev, addProduct: true }))}
+              >
+                Yes
+              </button>
+              <button
+                type="button"
+                className="button button-secondary"
+                onClick={() => setProductForm(prev => ({ ...prev, addProduct: false }))}
+              >
+                No
+              </button>
+            </div>
+          </div>
+        ) : productForm.addProduct === false ? (
+          <div style={{ textAlign: 'center', padding: '3rem' }}>
+            <h3>Thank You</h3>
+          </div>
+        ) : (
         <form onSubmit={handleProductSubmit} className="form-grid business-directory-form">
           <FloatingInput
             label="Select Company"
@@ -721,7 +832,7 @@ export default function BusinessDirectory() {
             value={productForm.companyId}
             onChange={handleProductChange}
             type="select"
-            options={[{ value: '', label: 'Select Company ' }, ...companies.map(c => ({ value: c.id, label: c.businessName }))]}
+            options={companies.map(c => ({ value: c.id, label: c.businessName }))}
           />
           <FloatingInput
             label="Product Name *"
@@ -733,7 +844,7 @@ export default function BusinessDirectory() {
 
           <div className="full-width">
             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: '600', color: 'var(--text)' }}>
-              Do you want to display the product price?
+              Do you want to display your price?
             </label>
             <div className="radio-group">
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem' }}>
@@ -755,20 +866,137 @@ export default function BusinessDirectory() {
                 Yes
               </label>
             </div>
-          </div><br></br>
+          </div><br/>
 
           {productForm.displayPrice && (
-            <FloatingInput
-              label="Product Price *"
-              name="productPrice"
-              type="number"
-              value={productForm.productPrice}
-              onChange={handleProductChange}
-              step="0.01"
-              min="0"
-              required
-            />
+            <>
+              <FloatingInput
+                label="Product MRP *"
+                name="productMrp"
+                type="number"
+                value={productForm.productMrp}
+                onChange={handleProductChange}
+                step="0.01"
+                min="0"
+                required
+              />
+
+              <FloatingInput
+                label="Discount (%)"
+                name="discountPercentage"
+                type="number"
+                value={productForm.discountPercentage}
+                onChange={handleProductChange}
+                step="0.01"
+                min="0"
+                max="100"
+              />
+
+              {productForm.discountPrice && (
+                <div className="full-width" style={{ 
+                  padding: '0.75rem', 
+                  background: '#d4edda', 
+                  border: '1px solid #28a745',
+                  borderRadius: '4px',
+                  marginBottom: '1rem'
+                }}>
+                  <strong>Discount Price: ₹{productForm.discountPrice}</strong>
+                </div>
+              )}
+            </>
           )}
+
+          <div className="full-width">
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: '600', color: 'var(--text)' }}>
+              Enable Product?
+            </label>
+            <div className="radio-group">
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem' }}>
+                <input
+                  type="radio"
+                  name="isEnabled"
+                  checked={productForm.isEnabled === true}
+                  onChange={() => setProductForm(prev => ({ ...prev, isEnabled: true }))}
+                />
+                Yes
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem' }}>
+                <input
+                  type="radio"
+                  name="isEnabled"
+                  checked={productForm.isEnabled === false}
+                  onChange={() => setProductForm(prev => ({ ...prev, isEnabled: false }))}
+                />
+                No
+              </label>
+            </div>
+          </div>
+
+          <div className="full-width">
+            <h3>Product Specifications</h3>
+            {productForm.specifications.map((spec, index) => (
+              <div key={spec.id} className="specification-row">
+                <FloatingInput
+                  label={`Specification ${index + 1} - Name`}
+                  value={spec.name}
+                  onChange={(e) => updateSpecification(spec.id, 'name', e.target.value)}
+                  placeholder="e.g., Size, Color"
+                />
+                <FloatingInput
+                  label={`Specification ${index + 1} - Detail`}
+                  value={spec.detail}
+                  onChange={(e) => updateSpecification(spec.id, 'detail', e.target.value)}
+                  placeholder="e.g., 40 cm, Black"
+                />
+                <button
+                  type="button"
+                  className="button button-danger button-small"
+                  onClick={() => removeSpecification(spec.id)}
+                  style={{ marginTop: '1.5rem' }}
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              className="button button-secondary button-small"
+              onClick={addSpecification}
+              style={{ marginTop: '0.5rem' }}
+            >
+              + Add Specification
+            </button>
+          </div>
+
+          <div className="full-width">
+            <h3>Product Description</h3>
+            {productForm.descriptions.map((desc, index) => (
+              <div key={desc.id} className="description-row">
+                <FloatingInput
+                  label={`Point ${index + 1}`}
+                  value={desc.text}
+                  onChange={(e) => updateDescription(desc.id, e.target.value)}
+                  placeholder="e.g., High quality material"
+                />
+                <button
+                  type="button"
+                  className="button button-danger button-small"
+                  onClick={() => removeDescription(desc.id)}
+                  style={{ marginTop: '1.5rem' }}
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              className="button button-secondary button-small"
+              onClick={addDescription}
+              style={{ marginTop: '0.5rem' }}
+            >
+              + Add Description Point
+            </button>
+          </div>
 
           <div className="full-width">
             <FloatingInput
@@ -827,7 +1055,9 @@ export default function BusinessDirectory() {
               {loading ? 'Saving...' : 'Save Product'}
             </button>
           </div>
-        </form></div>
+        </form>
+        )}
+        </div>
       )}
 
       <Toast

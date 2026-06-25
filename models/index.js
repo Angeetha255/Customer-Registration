@@ -64,4 +64,5 @@ if (Company && Product) {
   Product.belongsTo(Company, { foreignKey: 'companyId', as: 'company' })
 }
 
+
 export default db

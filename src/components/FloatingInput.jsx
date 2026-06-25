@@ -30,6 +30,9 @@ export default function FloatingInput({ label, id, name, type = 'text', value, o
           className={`${error ? 'invalid' : ''}`.trim()}
           aria-invalid={!!error}
         >
+          {options.length > 0 && (
+            <option value="" disabled>{label}</option>
+          )}
           {options.map(opt => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
