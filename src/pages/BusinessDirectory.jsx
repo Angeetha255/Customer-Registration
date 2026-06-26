@@ -36,10 +36,12 @@ export default function BusinessDirectory() {
     yearlyTurnover: '',
     numberOfEmployees: '',
     country: 'India',
+    countryId: '',
     state: '',
     district: '',
     area: '',
-    pincode: ''
+    pincode: '',
+    mapLink: ''
   })
 
   // Business Directory form state
@@ -68,6 +70,8 @@ export default function BusinessDirectory() {
     isEnabled: true,
     specifications: [],
     descriptions: [],
+    youtubeLink: '',
+    productCategory: '',
     addProduct: null // null = not asked, true = yes, false = no
   })
 
@@ -92,6 +96,23 @@ export default function BusinessDirectory() {
     }
     fetchMasterData()
   }, [])
+
+  // Fetch states when country changes
+  useEffect(() => {
+    const loadStates = async () => {
+      if (!companyForm.countryId) {
+        setStates([])
+        return
+      }
+      try {
+        const res = await fetchStates(companyForm.countryId)
+        setStates(res.states || [])
+      } catch (err) {
+        console.error('Failed to fetch states:', err)
+      }
+    }
+    loadStates()
+  }, [companyForm.countryId])
 
   // Fetch districts when state changes
   useEffect(() => {
@@ -186,7 +207,29 @@ export default function BusinessDirectory() {
 
   const handleCompanyChange = (e) => {
     const { name, value } = e.target
-    setCompanyForm(prev => ({ ...prev, [name]: value }))
+    setCompanyForm(prev => {
+      // Reset state and district when country changes
+      if (name === 'country') {
+        const selectedCountry = countries.find(c => c.countryName === value)
+        return { 
+          ...prev, 
+          country: value, 
+          countryId: selectedCountry ? selectedCountry.id : '',
+          state: '', 
+          district: '', 
+          area: '' 
+        }
+      }
+      // Reset district and area when state changes
+      if (name === 'state') {
+        return { ...prev, [name]: value, district: '', area: '' }
+      }
+      // Reset area when district changes
+      if (name === 'district') {
+        return { ...prev, [name]: value, area: '' }
+      }
+      return { ...prev, [name]: value }
+    })
   }
 
   const handleBusinessDirectoryChange = (e) => {
@@ -269,10 +312,12 @@ export default function BusinessDirectory() {
         yearlyTurnover: '',
         numberOfEmployees: '',
         country: 'India',
+        countryId: '',
         state: '',
         district: '',
         area: '',
-        pincode: ''
+        pincode: '',
+        mapLink: ''
       })
 
       // Refresh companies list
@@ -454,6 +499,8 @@ export default function BusinessDirectory() {
       formData.append('discountPercentage', productForm.discountPercentage || '0')
       formData.append('discountPrice', productForm.discountPrice || '')
       formData.append('isEnabled', productForm.isEnabled)
+      formData.append('youtubeLink', productForm.youtubeLink || '')
+      formData.append('productCategory', productForm.productCategory || '')
 
       // Add specifications as JSON string
       const validSpecs = productForm.specifications.filter(spec => spec.name && spec.detail)
@@ -496,6 +543,8 @@ export default function BusinessDirectory() {
         isEnabled: true,
         specifications: [],
         descriptions: [],
+        youtubeLink: '',
+        productCategory: '',
         addProduct: null
       })
 
@@ -544,6 +593,42 @@ export default function BusinessDirectory() {
 
       {activeTab === 'company' && (
         <div>
+        {companies.length > 0 && (
+          <div className="full-width" style={{ marginBottom: '2rem' }}>
+            {/* <h3>Your Companies</h3> */}
+            <div className="list-container">
+              {companies.map((company) => (
+                <div key={company.id} className="list-item">
+                  {/* <div>
+                    <strong>{company.businessName}</strong>
+                    <p>{company.email} | {company.state}, {company.district}</p>
+                  </div> */}
+                  {company.mapLink && (
+                    <div className="map-container" style={{
+                      width: '100%',
+                      maxWidth: '400px',
+                      height: '200px',
+                      marginTop: '1rem',
+                      borderRadius: '8px',
+                      overflow: 'hidden'
+                    }}>
+                      <iframe
+                        src={company.mapLink}
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0 }}
+                        allowFullScreen=""
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        title={`Map for ${company.businessName}`}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <form onSubmit={handleCompanySubmit} className="form-grid business-directory-form">
           <FloatingInput
             label="Business Name *"
@@ -669,6 +754,15 @@ export default function BusinessDirectory() {
             value={companyForm.yearlyTurnover}
             onChange={handleCompanyChange}
             placeholder="e.g., 50L, 2Cr, 1.5Cr"
+          />
+
+          <FloatingInput
+            label="Google Maps Link"
+            name="mapLink"
+            type="url"
+            value={companyForm.mapLink}
+            onChange={handleCompanyChange}
+            placeholder="https://maps.google.com/..."
           />
 
           <div className="form-actions full-width">
@@ -800,6 +894,41 @@ export default function BusinessDirectory() {
 
       {activeTab === 'product' && (
         <div>
+        {products.length > 0 && (
+          <div className="full-width" style={{ marginBottom: '2rem' }}>
+            <h3>Your Products</h3>
+            <div className="list-container">
+              {products.map((product) => (
+                <div key={product.id} className="list-item">
+                  <div>
+                    <strong>{product.productName}</strong>
+                    <p>Company ID: {product.companyId || 'N/A'}</p>
+                  </div>
+                  {product.youtubeLink && (
+                    <div className="video-container" style={{
+                      width: '100%',
+                      maxWidth: '560px',
+                      height: '315px',
+                      marginTop: '1rem',
+                      borderRadius: '8px',
+                      overflow: 'hidden'
+                    }}>
+                      <iframe
+                        src={product.youtubeLink.replace('watch?v=', 'embed/')}
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0 }}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen=""
+                        title={`Video for ${product.productName}`}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {productForm.addProduct === null ? (
           <div style={{ textAlign: 'center', padding: '3rem' }}>
             <h3>Do you want to add your product?</h3>
@@ -966,7 +1095,23 @@ export default function BusinessDirectory() {
             >
               + Add Specification
             </button>
-          </div>
+          </div><br/>
+
+          <FloatingInput
+            label="YouTube Link"
+            name="youtubeLink"
+            type="url"
+            value={productForm.youtubeLink}
+            onChange={handleProductChange}
+            placeholder="https://www.youtube.com/watch?v=..."
+          />
+
+          <FloatingInput
+            label="Product Category"
+            name="productCategory"
+            value={productForm.productCategory}
+            onChange={handleProductChange}
+          />
 
           <div className="full-width">
             <h3>Product Description</h3>

@@ -111,11 +111,15 @@ router.delete('/countries/:id', authMiddleware, async (req, res) => {
 
 // ==================== STATES ====================
 
-// Get all states
+// Get all states (optionally filtered by countryId)
 router.get('/states', authMiddleware, async (req, res) => {
   try {
+    const { countryId } = req.query
+    const where = { status: 'active' }
+    if (countryId) where.countryId = countryId
+    
     const states = await State.findAll({
-      where: { status: 'active' },
+      where,
       order: [['stateName', 'ASC']]
     })
     res.json({ states })
@@ -128,16 +132,20 @@ router.get('/states', authMiddleware, async (req, res) => {
 // Get all states with pagination (for admin)
 router.get('/states/all', authMiddleware, async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = '' } = req.query
+    const { page = 1, limit = 10, search = '', countryId = '' } = req.query
     const offset = (page - 1) * limit
 
     const where = {}
     if (search) {
       where.stateName = { [Op.like]: `%${search}%` }
     }
+    if (countryId) {
+      where.countryId = countryId
+    }
 
     const { count, rows } = await State.findAndCountAll({
       where,
+      include: [{ model: Country, as: 'country', attributes: ['id', 'countryName'] }],
       order: [['id', 'ASC']],
       limit: parseInt(limit),
       offset: parseInt(offset)
@@ -161,11 +169,11 @@ router.get('/states/all', authMiddleware, async (req, res) => {
 // Create state (admin only)
 router.post('/states', authMiddleware, async (req, res) => {
   try {
-    const { stateName } = req.body
+    const { stateName, countryId, status } = req.body
     if (!stateName) {
       return res.status(400).json({ message: 'State name is required' })
     }
-    const state = await State.create({ stateName, status: 'active' })
+    const state = await State.create({ stateName, countryId, status: status || 'active' })
     res.status(201).json({ message: 'State created successfully', state })
   } catch (err) {
     console.error('Error creating state:', err)
@@ -176,12 +184,12 @@ router.post('/states', authMiddleware, async (req, res) => {
 // Update state (admin only)
 router.put('/states/:id', authMiddleware, async (req, res) => {
   try {
-    const { stateName, status } = req.body
+    const { stateName, countryId, status } = req.body
     const state = await State.findByPk(req.params.id)
     if (!state) {
       return res.status(404).json({ message: 'State not found' })
     }
-    await state.update({ stateName, status })
+    await state.update({ stateName, countryId, status })
     res.json({ message: 'State updated successfully', state })
   } catch (err) {
     console.error('Error updating state:', err)

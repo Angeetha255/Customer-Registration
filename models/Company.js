@@ -21,6 +21,7 @@ const Company = sequelize.define(
     district: { type: DataTypes.STRING, allowNull: false },
     area: { type: DataTypes.STRING, allowNull: false },
     pincode: { type: DataTypes.STRING, allowNull: false },
+    mapLink: { type: DataTypes.TEXT, allowNull: true, field: 'map_link' },
     createdBy: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: true,

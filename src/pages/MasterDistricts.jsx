@@ -4,6 +4,7 @@ import { API_BASE } from '../services/api.js'
 export default function MasterDistricts() {
   const [districts, setDistricts] = useState([])
   const [states, setStates] = useState([])
+  const [countries, setCountries] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showForm, setShowForm] = useState(false)
@@ -23,11 +24,31 @@ export default function MasterDistricts() {
   useEffect(() => {
     fetchDistricts()
     fetchStates()
+    fetchCountries()
   }, [pagination.page, search])
 
-  const fetchStates = async () => {
+  const fetchCountries = async () => {
     try {
-      const response = await fetch(`${API_BASE}/master-data/states`, {
+      const response = await fetch(`${API_BASE}/master-data/countries`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        }
+      })
+      const data = await response.json()
+      if (response.ok) {
+        setCountries(data.countries || [])
+      }
+    } catch (err) {
+      console.error('Failed to fetch countries:', err)
+    }
+  }
+
+  const fetchStates = async (countryId = '') => {
+    try {
+      const url = countryId 
+        ? `${API_BASE}/master-data/states?countryId=${countryId}`
+        : `${API_BASE}/master-data/states`
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
         }
@@ -194,6 +215,15 @@ export default function MasterDistricts() {
     setError('')
   }
 
+  const handleCountryChange = (e) => {
+    const countryId = e.target.value
+    fetchStates(countryId)
+    // Reset state selection when country changes
+    if (editingDistrict) {
+      setFormData(prev => ({ ...prev, stateId: '' }))
+    }
+  }
+
   return (
     <div className="page-container">
       <div className="page-header">
@@ -315,6 +345,17 @@ export default function MasterDistricts() {
             <button className="button button-muted" onClick={closeForm}>Cancel</button>
           </div>
           <form onSubmit={handleSubmit} className="form-grid">
+            <label>
+              Country
+              <select
+                onChange={handleCountryChange}
+              >
+                <option value="">All Countries</option>
+                {countries.map((country) => (
+                  <option key={country.id} value={country.id}>{country.countryName}</option>
+                ))}
+              </select>
+            </label>
             <label>
               State *
               <select

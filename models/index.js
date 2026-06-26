@@ -38,6 +38,11 @@ const db = {
 }
 
 // Define relationships only after all models are loaded
+if (Country && State) {
+  Country.hasMany(State, { foreignKey: 'countryId', as: 'states' })
+  State.belongsTo(Country, { foreignKey: 'countryId', as: 'country' })
+}
+
 if (State && District) {
   State.hasMany(District, { foreignKey: 'stateId', as: 'districts' })
   District.belongsTo(State, { foreignKey: 'stateId', as: 'state' })

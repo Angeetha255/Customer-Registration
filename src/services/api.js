@@ -321,8 +321,10 @@ export const deleteProduct = (id) =>
 export const fetchCountries = () =>
   send('/master-data/countries', { headers: userHeaders() })
 
-export const fetchStates = () =>
-  send('/master-data/states', { headers: userHeaders() })
+export const fetchStates = (countryId) => {
+  const query = countryId ? `?countryId=${countryId}` : ''
+  return send(`/master-data/states${query}`, { headers: userHeaders() })
+}
 
 export const fetchDistricts = (stateId) =>
   send(`/master-data/districts?stateId=${stateId}`, { headers: userHeaders() })

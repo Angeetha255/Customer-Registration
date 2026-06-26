@@ -49,7 +49,9 @@ router.post('/', authMiddleware, upload.fields([
       discountPrice,
       isEnabled,
       specifications,
-      descriptions
+      descriptions,
+      youtubeLink,
+      productCategory
     } = req.body
 
     // Validation
@@ -101,6 +103,8 @@ router.post('/', authMiddleware, upload.fields([
       isEnabled: isEnabled === 'true' || isEnabled === true,
       specifications: parsedSpecs,
       descriptions: parsedDescs,
+      youtubeLink: youtubeLink || null,
+      productCategory: productCategory || null,
       createdBy: req.user.id
     })
 
@@ -127,7 +131,9 @@ router.put('/:id', authMiddleware, upload.fields([
       discountPrice,
       isEnabled,
       specifications,
-      descriptions
+      descriptions,
+      youtubeLink,
+      productCategory
     } = req.body
 
     // Validation
@@ -187,6 +193,8 @@ router.put('/:id', authMiddleware, upload.fields([
       isEnabled: isEnabled === 'true' || isEnabled === true,
       specifications: parsedSpecs,
       descriptions: parsedDescs,
+      youtubeLink: youtubeLink || null,
+      productCategory: productCategory || null,
     })
 
     res.status(200).json({ message: 'Product updated successfully', product })

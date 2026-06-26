@@ -212,15 +212,8 @@ export default function Register() {
             ) : (
               <form onSubmit={handleSubmit} className="form-grid register-form">
 
-                {referralMode === 'link' && referrer ? (
-                  <div className="introducer-badge">
-                    <span className="feature-icon">✦</span>
-                    <div>
-                      <strong>Referred by {referrer.name}</strong>
-                      <span>User ID: {referrer.userId || `MEM${referrer.id}`}</span>
-                    </div>
-                  </div>
-                ) : (
+                {/* When opened via referral link, silently store referrer — no UI shown */}
+                {referralMode === 'link' ? null : (
                   <div className="form-group referral-full-width">
                     <label
                       style={{

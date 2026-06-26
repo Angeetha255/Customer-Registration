@@ -21,6 +21,7 @@
     "add-topid": "node scripts/migrate-add-topid.js",
     "rename-admins-table": "node scripts/migrate-rename-admins-to-admin.js",
     "fix-admin-table": "node scripts/migrate-fix-admin-table.js",
+    "migrate-country-id": "node scripts/run-migration-add-country-id.js",
     "reset-levels-final": "node scripts/reset-levels-final.js",
     "backfill-levels": "node scripts/backfill-levels.js",
     "lint": "eslint ."

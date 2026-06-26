@@ -20,7 +20,8 @@ router.post('/', authMiddleware, async (req, res) => {
       state,
       district,
       area,
-      pincode
+      pincode,
+      mapLink
     } = req.body
 
     // Validation
@@ -54,6 +55,7 @@ router.post('/', authMiddleware, async (req, res) => {
       district,
       area,
       pincode,
+      mapLink: mapLink || null,
       createdBy: req.user.id
     })
 
@@ -80,7 +82,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
       state,
       district,
       area,
-      pincode
+      pincode,
+      mapLink
     } = req.body
 
     // Validation
@@ -122,6 +125,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
       district,
       area,
       pincode,
+      mapLink: mapLink || null,
     })
 
     res.status(200).json({ message: 'Company updated successfully', company })

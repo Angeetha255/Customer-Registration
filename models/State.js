@@ -13,6 +13,15 @@ const State = sequelize.define(
       allowNull: false,
       unique: true,
     },
+    countryId: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: true,
+      field: 'country_id',
+      references: {
+        model: 'countries',
+        key: 'id'
+      }
+    },
     status: {
       type: DataTypes.ENUM('active', 'inactive'),
       defaultValue: 'active',

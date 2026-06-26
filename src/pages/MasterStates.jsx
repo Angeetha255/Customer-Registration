@@ -3,6 +3,7 @@ import { API_BASE } from '../services/api.js'
 
 export default function MasterStates() {
   const [states, setStates] = useState([])
+  const [countries, setCountries] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showForm, setShowForm] = useState(false)
@@ -15,12 +16,30 @@ export default function MasterStates() {
 
   const [formData, setFormData] = useState({
     stateName: '',
+    countryId: '',
     status: 'active'
   })
 
   useEffect(() => {
     fetchStates()
+    fetchCountries()
   }, [pagination.page, search])
+
+  const fetchCountries = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/master-data/countries`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        }
+      })
+      const data = await response.json()
+      if (response.ok) {
+        setCountries(data.countries || [])
+      }
+    } catch (err) {
+      console.error('Failed to fetch countries:', err)
+    }
+  }
 
   const fetchStates = async () => {
     setLoading(true)
@@ -86,6 +105,7 @@ export default function MasterStates() {
     setEditingState(state)
     setFormData({
       stateName: state.stateName,
+      countryId: state.countryId || '',
       status: state.status
     })
     setShowForm(true)
@@ -163,14 +183,14 @@ export default function MasterStates() {
 
   const openAddForm = () => {
     setEditingState(null)
-    setFormData({ stateName: '', status: 'active' })
+    setFormData({ stateName: '', countryId: '', status: 'active' })
     setShowForm(true)
   }
 
   const closeForm = () => {
     setShowForm(false)
     setEditingState(null)
-    setFormData({ stateName: '', status: 'active' })
+    setFormData({ stateName: '', countryId: '', status: 'active' })
     setError('')
   }
 
@@ -217,6 +237,7 @@ export default function MasterStates() {
                 <tr>
                   <th>ID</th>
                   <th>State Name</th>
+                  <th>Country</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
@@ -224,17 +245,18 @@ export default function MasterStates() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="4" className="text-center">Loading...</td>
+                    <td colSpan="5" className="text-center">Loading...</td>
                   </tr>
                 ) : states.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="text-center">No states found</td>
+                    <td colSpan="5" className="text-center">No states found</td>
                   </tr>
                 ) : (
                   states.map((state) => (
                     <tr key={state.id}>
                       <td>{state.id}</td>
                       <td>{state.stateName}</td>
+                      <td>{state.country?.countryName || '-'}</td>
                       <td>
                         <button
                           className={`status-badge ${state.status === 'active' ? 'status-active' : 'status-inactive'}`}
@@ -301,6 +323,18 @@ export default function MasterStates() {
                 onChange={(e) => setFormData({ ...formData, stateName: e.target.value })}
                 required
               />
+            </label>
+            <label>
+              Country
+              <select
+                value={formData.countryId}
+                onChange={(e) => setFormData({ ...formData, countryId: e.target.value })}
+              >
+                <option value="">Select Country</option>
+                {countries.map((country) => (
+                  <option key={country.id} value={country.id}>{country.countryName}</option>
+                ))}
+              </select>
             </label>
             <label>
               Status
