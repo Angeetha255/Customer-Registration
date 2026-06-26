@@ -1673,6 +1673,33 @@ opacity:.9;
   position: relative;
   min-height: 48px;
 }
+
+/* Tablet */
+@media (max-width: 768px) {
+    .topbar {
+        gap: 10px;
+        padding: 10px 0;
+    }
+
+    .topbar > * {
+        flex: 1;
+        min-width: 140px;
+    }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+    .topbar {
+        flex-direction: row;
+        align-items: stretch;
+        gap: 18px;
+    }
+
+    .topbar > * {
+        width: 100%;
+    }
+} 
+
 .topbar-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .user-icon { width: 36px; height: 36px; border-radius: 999px; background: var(--accent); margin:10px; color: white; border: none; font-weight: 700; }
 
@@ -2488,8 +2515,9 @@ opacity:.9;
   color: var(--muted);
 }
 .page-container{
-  margin-left:50px;
-  margin-right: 50px;
+  margin-left: 20px;
+  margin-right: 20px;
+  max-width: 100%;
 }
 
 /* Genealogy tree styles */
@@ -3463,6 +3491,34 @@ opacity:.9;
   border-bottom: 2px solid var(--border);
 }
 
+/* Tablet */
+@media (max-width: 768px) {
+  .tabs {
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .tabs button,
+  .tabs .tab-btn {
+    flex: 1;
+    min-width: 120px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .tabs {
+    flex-direction: row;
+    border-bottom: none;
+    gap: 0.5rem;
+  }
+
+  .tabs button,
+  .tabs .tab-btn {
+    width: 100%;
+  }
+}
+
 .tab {
   padding: 0.75rem 1.5rem;
   border: none;
@@ -4353,6 +4409,142 @@ input[type="file"]::file-selector-button {
   margin-top: 1rem;
 }
 
+.business-directory-table-container {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+.business-directory-table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+}
+
+.business-directory-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface-strong);
+  white-space: nowrap;
+}
+
+.business-directory-table tbody tr.business-table-row {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.business-directory-table tbody tr.business-table-row:hover {
+  background: var(--surface-strong);
+}
+
+.business-directory-table .business-name-cell {
+  font-weight: 600;
+}
+
+.business-directory-table .actions-col,
+.business-directory-table .actions-cell {
+  width: 80px;
+  text-align: center;
+}
+
+.business-directory-table .actions-cell {
+  white-space: nowrap;
+}
+
+.business-directory-table .icon-button {
+  color: var(--accent);
+}
+
+.modal-card.business-details-modal {
+  max-width: 600px;
+}
+
+.business-details-modal-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.business-details-modal-content .business-card-header {
+  border-radius: 0;
+}
+
+.business-details-modal-header {
+  margin: -16px -20px 0;
+}
+
+.business-details-modal-content .business-card-section:first-of-type {
+  border-top: 1px solid var(--border);
+}
+
+.product-details-block {
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.product-details-block:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.product-details-block h5 {
+  margin: 1rem 0 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.product-specs-list,
+.product-descriptions-list,
+.product-images-preview {
+  margin-top: 1rem;
+}
+
+.product-spec-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface-strong);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.product-description-text {
+  margin: 0 0 0.5rem;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.product-images-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.product-preview-image {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+@media (max-width: 768px) {
+  .business-directory-table {
+    min-width: 520px;
+  }
+
+  .modal-card.business-details-modal {
+    max-width: 100%;
+  }
+}
+
 .business-cards-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr) !important;
@@ -4430,6 +4622,128 @@ input[type="file"]::file-selector-button {
   letter-spacing: 0.05em;
 }
 
+@media (max-width: 480px) {
+  .business-directory-list {
+    margin-top: 0.75rem;
+  }
+
+  .business-card {
+    border-radius: 10px;
+  }
+
+  .business-card-header {
+    padding: 0.9rem;
+  }
+
+  .business-card-title h3 {
+    font-size: 1.1rem;
+  }
+
+  .business-card-section {
+    padding: 0.9rem;
+  }
+
+  .business-card-section h4 {
+    font-size: 0.9rem;
+  }
+
+  .contact-item,
+  .business-card-address {
+    font-size: 0.8rem;
+    word-break: break-word;
+  }
+
+  .edit-business-btn {
+    width: 100%;
+  }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+
+  .business-cards-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem;
+  }
+
+  .business-card {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .business-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .business-card-title {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .business-card-title h3 {
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+    word-break: break-word;
+  }
+
+  .business-card-contact,
+  .business-card-address {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    line-height: 1.5;
+  }
+
+  .business-card-header .btn,
+  .edit-business-btn {
+    width: auto;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .business-card-section {
+    padding: 1rem;
+  }
+}
+
+/* Small Mobile */
+@media (max-width: 480px) {
+
+  .business-card-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .business-card-header .btn,
+  .edit-business-btn {
+    width: 100%;
+    margin-top: 0.75rem;
+  }
+
+  .business-card-title h3 {
+    font-size: 1.15rem;
+  }
+
+  .contact-item,
+  .business-card-address {
+    font-size: 0.9rem;
+  }
+}
+
+.business-directory-list,
+.business-cards-grid {
+    width: 100%;
+    max-width: 100%;
+}
+
+.business-card {
+    width: 100%;
+}
+
 .business-description {
   color: var(--text);
   line-height: 1.6;
@@ -4438,8 +4752,14 @@ input[type="file"]::file-selector-button {
 
 .business-info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .business-info-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .business-info-item {
@@ -4464,8 +4784,14 @@ input[type="file"]::file-selector-button {
 
 .business-details-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .business-details-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .business-detail-item {
@@ -4500,9 +4826,15 @@ input[type="file"]::file-selector-button {
 }
 
 .business-hours {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .business-hours {
+    grid-template-columns: 1fr;
+  }
 }
 
 .business-hours-item {
@@ -4527,9 +4859,15 @@ input[type="file"]::file-selector-button {
 }
 
 .services-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .services-list {
+    grid-template-columns: 1fr;
+  }
 }
 
 .service-item {

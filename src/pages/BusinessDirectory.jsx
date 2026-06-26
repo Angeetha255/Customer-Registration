@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { createCompany, updateCompany, fetchCompanies, createBusinessDirectory, updateBusinessDirectory, fetchBusinessDirectories, createProductNew, updateProduct, fetchProducts, fetchCountries, fetchStates, fetchDistricts, fetchAreas, fetchCategories, fetchSubcategories } from '../services/api.js'
 import Toast from '../components/Toast.jsx'
 import FloatingInput from '../components/FloatingInput.jsx'
+import Modal from '../components/Modal.jsx'
 const API_BASE = import.meta.env.VITE_API_BASE || '/api'
 
 // Days of the week
@@ -19,6 +20,8 @@ export default function BusinessDirectory() {
   const [editingCompanyId, setEditingCompanyId] = useState(null)
   const [editingBusinessId, setEditingBusinessId] = useState(null)
   const [editingProductId, setEditingProductId] = useState(null)
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false)
+  const [selectedCompanyId, setSelectedCompanyId] = useState(null)
 
   // Master data states
   const [countries, setCountries] = useState([])
@@ -196,21 +199,273 @@ export default function BusinessDirectory() {
 
   // Fetch companies, business directories, and products on component mount
   useEffect(() => {
-    fetchCompanies()
+    refreshCompaniesList()
+
+    fetchBusinessDirectories()
+      .then((data) => setBusinessDirectories(data.businessDirectories || []))
+      .catch(() => setBusinessDirectories([]))
+
+    fetchProducts()
+      .then((data) => setProducts(data.products || []))
+      .catch(() => setProducts([]))
+  }, [])
+
+  const refreshCompaniesList = () => {
+    return fetchCompanies()
       .then((data) => setCompanies(data.companies || []))
       .catch((err) => {
         console.error('Failed to fetch companies:', err)
         setCompanies([])
       })
-    
-    fetchBusinessDirectories()
-      .then((data) => setBusinessDirectories(data.businessDirectories || []))
-      .catch(() => setBusinessDirectories([]))
-    
-    fetchProducts()
-      .then((data) => setProducts(data.products || []))
-      .catch(() => setProducts([]))
-  }, [])
+  }
+
+  const selectedCompany = companies.find((c) => c.id === selectedCompanyId) || null
+
+  const getCompanyCategory = (company) => company.businesses?.[0]?.category || '—'
+  const getCompanyProductName = (company) => company.products?.[0]?.productName || '—'
+
+  const closeDetailsModal = () => {
+    setDetailsModalOpen(false)
+    setSelectedCompanyId(null)
+  }
+
+  const openDetailsModal = (company) => {
+    setSelectedCompanyId(company.id)
+    setDetailsModalOpen(true)
+  }
+
+  const handleEditFromTable = (e, company) => {
+    e.stopPropagation()
+    closeDetailsModal()
+    handleEditCompany(company)
+  }
+
+  const renderBusinessDetails = (company) => {
+    if (!company) return null
+
+    return (
+      <div className="business-details-modal-content">
+        <div className="business-card-header business-details-modal-header">
+          <div className="business-card-title">
+            <h3>{company.businessName}</h3>
+            <div className="business-card-contact">
+              <span className="contact-item">📧 {company.email}</span>
+              {company.mobileNumber && <span className="contact-item">📞 {company.mobileNumber}</span>}
+            </div>
+            <p className="business-card-address">
+              📍 {company.area}, {company.district}, {company.state} - {company.pincode}
+            </p>
+          </div>
+        </div>
+
+        {(company.ownerName || company.gstNumber || company.yearOfEstablishment || company.yearlyTurnover || company.numberOfEmployees) && (
+          <div className="business-card-section">
+            <h4>Key Business Information</h4>
+            <div className="business-info-grid">
+              {company.ownerName && (
+                <div className="business-info-item">
+                  <span className="business-info-label">Owner</span>
+                  <span className="business-info-value">{company.ownerName}</span>
+                </div>
+              )}
+              {company.gstNumber && (
+                <div className="business-info-item">
+                  <span className="business-info-label">GST Number</span>
+                  <span className="business-info-value">{company.gstNumber}</span>
+                </div>
+              )}
+              {company.yearOfEstablishment && (
+                <div className="business-info-item">
+                  <span className="business-info-label">Established</span>
+                  <span className="business-info-value">{company.yearOfEstablishment}</span>
+                </div>
+              )}
+              {company.yearlyTurnover && (
+                <div className="business-info-item">
+                  <span className="business-info-label">Turnover</span>
+                  <span className="business-info-value">₹{company.yearlyTurnover}</span>
+                </div>
+              )}
+              {company.numberOfEmployees && (
+                <div className="business-info-item">
+                  <span className="business-info-label">Employees</span>
+                  <span className="business-info-value">{company.numberOfEmployees}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {company.businesses?.[0]?.description && (
+          <div className="business-card-section">
+            <h4>Company Overview</h4>
+            <p className="business-description">{company.businesses[0].description}</p>
+          </div>
+        )}
+
+        {company.businesses && company.businesses.length > 0 && (
+          <div className="business-card-section">
+            <h4>Business Details</h4>
+            <div className="business-details-grid">
+              {company.businesses.map((business) => (
+                <div key={business.id}>
+                  {business.category && (
+                    <div className="business-detail-item">
+                      <span className="business-detail-label">Category</span>
+                      <span className="business-detail-value">{business.category}</span>
+                    </div>
+                  )}
+                  {business.subcategory && (
+                    <div className="business-detail-item">
+                      <span className="business-detail-label">Subcategory</span>
+                      <span className="business-detail-value">{business.subcategory}</span>
+                    </div>
+                  )}
+                  {business.website && (
+                    <div className="business-detail-item">
+                      <span className="business-detail-label">Website</span>
+                      <a href={business.website} target="_blank" rel="noopener noreferrer" className="business-detail-link">
+                        {business.website}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {company.businesses?.[0]?.businessHours && Object.keys(company.businesses[0].businessHours).length > 0 && (
+          <div className="business-card-section">
+            <h4>Business Hours</h4>
+            <div className="business-hours">
+              {DAYS.map((day) => {
+                const hours = company.businesses[0].businessHours[day]
+                if (hours?.isWorkingDay) {
+                  return (
+                    <div key={day} className="business-hours-item">
+                      <span className="business-hours-days">{day}</span>
+                      <span className="business-hours-time">{hours.openTime} - {hours.closeTime}</span>
+                    </div>
+                  )
+                }
+                return null
+              })}
+              {company.businesses[0].businessHours.Sunday?.isWorkingDay === false && (
+                <div className="business-hours-item">
+                  <span className="business-hours-days">Sunday</span>
+                  <span className="business-hours-time">Closed</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {company.products && company.products.length > 0 && (
+          <div className="business-card-section">
+            <h4>Product Details</h4>
+            {company.products.map((product) => (
+              <div key={product.id} className="product-details-block">
+                <div className="business-details-grid">
+                  <div className="business-detail-item">
+                    <span className="business-detail-label">Product Name</span>
+                    <span className="business-detail-value">{product.productName}</span>
+                  </div>
+                  {product.productCategory && (
+                    <div className="business-detail-item">
+                      <span className="business-detail-label">Product Category</span>
+                      <span className="business-detail-value">{product.productCategory}</span>
+                    </div>
+                  )}
+                  <div className="business-detail-item">
+                    <span className="business-detail-label">Status</span>
+                    <span className="business-detail-value">{product.isEnabled ? 'Enabled' : 'Disabled'}</span>
+                  </div>
+                  {product.displayPrice && product.productMrp && (
+                    <div className="business-detail-item">
+                      <span className="business-detail-label">MRP</span>
+                      <span className="business-detail-value">₹{product.productMrp}</span>
+                    </div>
+                  )}
+                  {product.displayPrice && product.discountPercentage > 0 && (
+                    <div className="business-detail-item">
+                      <span className="business-detail-label">Discount</span>
+                      <span className="business-detail-value">{product.discountPercentage}%</span>
+                    </div>
+                  )}
+                  {product.displayPrice && product.discountPrice && (
+                    <div className="business-detail-item">
+                      <span className="business-detail-label">Price</span>
+                      <span className="business-detail-value">₹{product.discountPrice}</span>
+                    </div>
+                  )}
+                  {product.youtubeLink && (
+                    <div className="business-detail-item">
+                      <span className="business-detail-label">YouTube</span>
+                      <a href={product.youtubeLink} target="_blank" rel="noopener noreferrer" className="business-detail-link">
+                        View Video
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                {product.specifications && product.specifications.length > 0 && (
+                  <div className="product-specs-list">
+                    <h5>Specifications</h5>
+                    {product.specifications.map((spec, index) => (
+                      <div key={index} className="product-spec-item">
+                        <span className="business-detail-label">{spec.name}</span>
+                        <span className="business-detail-value">{spec.detail}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {product.descriptions && product.descriptions.length > 0 && (
+                  <div className="product-descriptions-list">
+                    <h5>Descriptions</h5>
+                    {product.descriptions.map((desc, index) => (
+                      <p key={index} className="product-description-text">{desc}</p>
+                    ))}
+                  </div>
+                )}
+
+                {(product.coverImage || (product.productImages && product.productImages.length > 0) || (product.gallery && product.gallery.length > 0)) && (
+                  <div className="product-images-preview">
+                    <h5>Images</h5>
+                    <div className="product-images-grid">
+                      {product.coverImage && (
+                        <img src={`/uploads/${product.coverImage}`} alt={`${product.productName} cover`} className="product-preview-image" />
+                      )}
+                      {(product.productImages || []).map((img, index) => (
+                        <img key={`pi-${index}`} src={`/uploads/${img}`} alt={`${product.productName} ${index + 1}`} className="product-preview-image" />
+                      ))}
+                      {(product.gallery || []).map((img, index) => (
+                        <img key={`g-${index}`} src={`/uploads/${img}`} alt={`${product.productName} gallery ${index + 1}`} className="product-preview-image" />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {company.mapLink && (
+          <div className="business-card-section">
+            <a
+              href={company.mapLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="map-link-button"
+            >
+              📍 View Location on Google Maps
+            </a>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   const handleCompanyChange = (e) => {
     const { name, value } = e.target
@@ -416,9 +671,7 @@ export default function BusinessDirectory() {
       setEditingProductId(null)
 
       // Refresh companies list
-      fetchCompanies()
-        .then((data) => setCompanies(data.companies || []))
-        .catch(() => setCompanies([]))
+      await refreshCompaniesList()
       
       // Switch back to list view
       setViewMode('list')
@@ -491,6 +744,8 @@ export default function BusinessDirectory() {
       fetchBusinessDirectories()
         .then((data) => setBusinessDirectories(data.businessDirectories || []))
         .catch(() => setBusinessDirectories([]))
+
+      await refreshCompaniesList()
     } catch (err) {
       setError(err.message || 'Failed to save business directory')
     } finally {
@@ -664,6 +919,8 @@ export default function BusinessDirectory() {
       fetchProducts()
         .then((data) => setProducts(data.products || []))
         .catch(() => setProducts([]))
+
+      await refreshCompaniesList()
     } catch (err) {
       setError(err.message || 'Failed to save product')
     } finally {
@@ -688,6 +945,7 @@ export default function BusinessDirectory() {
           <button
             className={`button ${viewMode === 'form' ? 'button-primary' : 'button-secondary'}`}
             onClick={() => {
+              closeDetailsModal()
               setViewMode('form')
               setEditingCompanyId(null)
               setEditingBusinessId(null)
@@ -744,171 +1002,61 @@ export default function BusinessDirectory() {
       {viewMode === 'list' ? (
         <div className="business-directory-list">
           {error && <div className="alert alert-danger"><p>{error}</p></div>}
-          <div className="business-cards-grid">
-            {companies.map((company) => (
-              <div key={company.id} className="business-card">
-                {/* Card Header */}
-                <div className="business-card-header">
-                  <div className="business-card-title">
-                    <h3>{company.businessName}</h3>
-                    <div className="business-card-contact">
-                      <span className="contact-item">📧 {company.email}</span>
-                      {company.mobileNumber && <span className="contact-item">📞 {company.mobileNumber}</span>}
-                    </div>
-                    <p className="business-card-address">
-                      📍 {company.area}, {company.district}, {company.state} - {company.pincode}
-                    </p>
-                  </div>
-                  <button
-                    className="button button-primary button-small"
-                    onClick={() => handleEditCompany(company)}
-                  >
-                    Edit Business
-                  </button>
-                </div>
 
-                {/* Key Business Information */}
-                {(company.ownerName || company.gstNumber || company.yearOfEstablishment || company.yearlyTurnover || company.numberOfEmployees) && (
-                  <div className="business-card-section">
-                    <h4>Key Business Information</h4>
-                    <div className="business-info-grid">
-                      {company.ownerName && (
-                        <div className="business-info-item">
-                          <span className="business-info-label">Owner</span>
-                          <span className="business-info-value">{company.ownerName}</span>
-                        </div>
-                      )}
-                      {company.gstNumber && (
-                        <div className="business-info-item">
-                          <span className="business-info-label">GST Number</span>
-                          <span className="business-info-value">{company.gstNumber}</span>
-                        </div>
-                      )}
-                      {company.yearOfEstablishment && (
-                        <div className="business-info-item">
-                          <span className="business-info-label">Established</span>
-                          <span className="business-info-value">{company.yearOfEstablishment}</span>
-                        </div>
-                      )}
-                      {company.yearlyTurnover && (
-                        <div className="business-info-item">
-                          <span className="business-info-label">Turnover</span>
-                          <span className="business-info-value">₹{company.yearlyTurnover}</span>
-                        </div>
-                      )}
-                      {company.numberOfEmployees && (
-                        <div className="business-info-item">
-                          <span className="business-info-label">Employees</span>
-                          <span className="business-info-value">{company.numberOfEmployees}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Company Overview */}
-                {company.businesses?.[0]?.description && (
-                  <div className="business-card-section">
-                    <h4>Company Overview</h4>
-                    <p className="business-description">{company.businesses[0].description}</p>
-                  </div>
-                )}
-
-                {/* Business Details */}
-                {company.businesses && company.businesses.length > 0 && (
-                  <div className="business-card-section">
-                    <h4>Business Details</h4>
-                    <div className="business-details-grid">
-                      {company.businesses.map((business) => (
-                        <div key={business.id}>
-                          {business.category && (
-                            <div className="business-detail-item">
-                              <span className="business-detail-label">Category</span>
-                              <span className="business-detail-value">{business.category}</span>
-                            </div>
-                          )}
-                          {business.subcategory && (
-                            <div className="business-detail-item">
-                              <span className="business-detail-label">Subcategory</span>
-                              <span className="business-detail-value">{business.subcategory}</span>
-                            </div>
-                          )}
-                          {business.website && (
-                            <div className="business-detail-item">
-                              <span className="business-detail-label">Website</span>
-                              <a href={business.website} target="_blank" rel="noopener noreferrer" className="business-detail-link">
-                                {business.website}
-                              </a>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Business Hours */}
-                {company.businesses?.[0]?.businessHours && Object.keys(company.businesses[0].businessHours).length > 0 && (
-                  <div className="business-card-section">
-                    <h4>Business Hours</h4>
-                    <div className="business-hours">
-                      {DAYS.map((day) => {
-                        const hours = company.businesses[0].businessHours[day]
-                        if (hours?.isWorkingDay) {
-                          return (
-                            <div key={day} className="business-hours-item">
-                              <span className="business-hours-days">{day}</span>
-                              <span className="business-hours-time">{hours.openTime} - {hours.closeTime}</span>
-                            </div>
-                          )
-                        }
-                        return null
-                      })}
-                      {company.businesses[0].businessHours.Sunday?.isWorkingDay === false && (
-                        <div className="business-hours-item">
-                          <span className="business-hours-days">Sunday</span>
-                          <span className="business-hours-time">Closed</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Services/Products */}
-                {company.products && company.products.length > 0 && (
-                  <div className="business-card-section">
-                    <h4>Our Services / Products</h4>
-                    <div className="services-list">
-                      {company.products.map((product) => (
-                        <div key={product.id} className="service-item">
-                          <span className="service-name">{product.productName}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Map Link */}
-                {company.mapLink && (
-                  <div className="business-card-section">
-                    <a
-                      href={company.mapLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="map-link-button"
+          {companies.length > 0 ? (
+            <div className="business-directory-table-container">
+              <table className="data-table business-directory-table">
+                <thead>
+                  <tr>
+                    <th>Business Name</th>
+                    <th>Category</th>
+                    <th>Product Name</th>
+                    <th className="actions-col">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {companies.map((company) => (
+                    <tr
+                      key={company.id}
+                      className="business-table-row"
+                      onClick={() => openDetailsModal(company)}
                     >
-                      📍 View Location on Google Maps
-                    </a>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-          {companies.length === 0 && (
+                      <td className="business-name-cell">{company.businessName}</td>
+                      <td>{getCompanyCategory(company)}</td>
+                      <td>{getCompanyProductName(company)}</td>
+                      <td className="actions-cell">
+                        <button
+                          type="button"
+                          title="Edit"
+                          className="icon-button"
+                          aria-label={`Edit ${company.businessName}`}
+                          onClick={(e) => handleEditFromTable(e, company)}
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
             <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--muted)' }}>
-              <p>No business directory entries yet. Click "Add New" to create one!</p>
+              <p>No business directory entries yet. Click &quot;Add New&quot; to create one!</p>
             </div>
           )}
+
+          <Modal
+            isOpen={detailsModalOpen && Boolean(selectedCompany)}
+            onClose={closeDetailsModal}
+            title="Business Details"
+            cardClassName="business-details-modal"
+          >
+            {renderBusinessDetails(selectedCompany)}
+          </Modal>
         </div>
       ) : (
         <>
@@ -949,7 +1097,7 @@ export default function BusinessDirectory() {
                   </div> */}
                   {company.mapLink && (
                     <div style={{ marginBottom: '1rem' }}>
-                      <a 
+                      {/* <a 
                         href={company.mapLink} 
                         target="_blank" 
                         rel="noopener noreferrer"
@@ -964,9 +1112,9 @@ export default function BusinessDirectory() {
                           borderRadius: '0.5rem',
                           border: '1px solid var(--border)'
                         }}
-                      >
-                        📍 View Location on Google Maps
-                      </a>
+                      > */}
+                        {/* 📍 View Location on Google Maps
+                      </a> */}
                     </div>
                   )}
                 </div>
