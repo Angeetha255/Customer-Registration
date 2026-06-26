@@ -171,16 +171,77 @@ a {
 }
 
 .nav-link {
-  display: block;
-  padding: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
   border-radius: 12px;
   color: #cbd5e1;
+  font-size: 0.88rem;
 }
 
 .nav-link.active,
 .nav-link:hover {
   background: rgba(99, 102, 241, 0.15);
   color: white;
+}
+
+/* ── Nav section headers (collapsible) ── */
+.nav-section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 6px 8px;
+  background: transparent;
+  border: none;
+  color: #cbd5e1;
+  font-size: 0.88rem;
+  cursor: pointer;
+  border-radius: 12px;
+}
+
+.nav-section-toggle:hover {
+  background: rgba(99, 102, 241, 0.15);
+  color: white;
+}
+
+.nav-section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Nav icon ── */
+.nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.nav-link.active .nav-icon,
+.nav-link:hover .nav-icon,
+.nav-section-toggle:hover .nav-icon {
+  opacity: 1;
+}
+
+/* ── Sub-item links ── */
+.nav-sublink {
+  padding-left: 28px;
+  font-size: 0.82rem;
+}
+
+.nav-chevron {
+  font-size: 1rem;
+  transition: transform 200ms ease;
+}
+
+.nav-chevron.open {
+  transform: rotate(180deg);
 }
 
 .sidebar-footer {
@@ -3170,44 +3231,6 @@ opacity:.9;
 
 /* ── Sidebar genealogy section ── */
 
-.nav-section-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 8px 8px;
-  border: none;
-  background: transparent;
-  color: #cbd5e1;
-  font-size: inherit;
-  cursor: pointer;
-  border-radius: 12px;
-}
-
-.nav-section-toggle:hover {
-  background: rgba(99, 102, 241, 0.1);
-  color: white;
-}
-
-.nav-chevron {
-  display: inline-block;
-  transition: transform 0.2s ease;
-  font-size: 20px;
-}
-
-.nav-chevron.open {
-  transform: rotate(180deg);
-}
-
-.nav-sub {
-  padding-left: 8px;
-}
-
-.nav-sublink {
-  padding: 4px 16px;
-  font-size: 0.92rem;
-}
-
 /* ── Page header ── */
 .page-header {
   margin-bottom: 1.5rem;
@@ -4153,6 +4176,35 @@ input[type="file"]::file-selector-button {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 1.5rem;
+  max-width: 480px;
+}
+
+.form-card label select {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface-strong);
+  font-size: 0.9rem;
+  color: var(--text);
+  width: 100%;
+  max-width: 300px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+  cursor: pointer;
+}
+
+.form-card label select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.08);
+  outline: none;
+}
+
+.form-card label input {
+  max-width: 300px;
 }
 
 /* Business Directory Detail Page Styles */
