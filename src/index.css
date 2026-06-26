@@ -4097,7 +4097,470 @@ input[type="file"]::file-selector-button {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 1.5rem;
-  max-width: 600px;
+}
+
+/* Business Directory Detail Page Styles */
+.business-detail-page {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.business-detail-header {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.business-detail-title h1 {
+  margin: 0 0 1rem 0;
+  color: var(--text);
+  font-size: 1.75rem;
+}
+
+.business-detail-contact p {
+  margin: 0.5rem 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.business-detail-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.business-detail-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.business-detail-section h2 {
+  margin: 0 0 1.5rem 0;
+  color: var(--text);
+  font-size: 1.25rem;
+  border-bottom: 2px solid var(--surface-strong);
+  padding-bottom: 0.75rem;
+}
+
+.business-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.business-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.business-info-label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.business-info-value {
+  font-size: 1rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.company-overview {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .company-overview {
+    grid-template-columns: 1fr;
+  }
+}
+
+.overview-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.overview-description {
+  color: var(--text);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.overview-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.overview-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.overview-detail-label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.overview-detail span:last-child {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.map-link-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--accent);
+  color: white;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background 0.2s ease;
+  align-self: flex-start;
+}
+
+.map-link-button:hover {
+  background: var(--accent-strong);
+}
+
+.overview-image {
+  display: flex;
+  justify-content: center;
+}
+
+.building-image {
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.business-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.business-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.business-detail-label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.business-detail-value {
+  font-size: 1rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.business-detail-link {
+  color: var(--accent);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.business-detail-link:hover {
+  color: var(--accent-strong);
+  text-decoration: underline;
+}
+
+.business-hours {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.business-hours-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--surface-strong);
+  border-radius: 8px;
+}
+
+.business-hours-days {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.business-hours-time {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.services-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.service-item {
+  padding: 1rem;
+  background: var(--surface-strong);
+  border-radius: 8px;
+  border-left: 4px solid var(--accent);
+}
+
+.service-name {
+  font-weight: 500;
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.location-map {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.quick-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+/* Business Directory List Styles */
+.business-directory-list {
+  margin-top: 1rem;
+}
+
+.business-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .business-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.business-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.business-card:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.business-card-header {
+  padding: 1.5rem;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.business-card-title h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.5rem;
+  color: white;
+}
+
+.business-card-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.contact-item {
+  font-size: 0.9rem;
+  opacity: 0.95;
+}
+
+.business-card-address {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.business-card-section {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.business-card-section:last-child {
+  border-bottom: none;
+}
+
+.business-card-section h4 {
+  margin: 0 0 1rem 0;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.business-description {
+  color: var(--text);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.business-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.business-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.business-info-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.business-info-value {
+  font-size: 0.95rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.business-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.business-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.business-detail-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.business-detail-value {
+  font-size: 0.95rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.business-detail-link {
+  color: var(--accent);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.business-detail-link:hover {
+  color: var(--accent-strong);
+  text-decoration: underline;
+}
+
+.business-hours {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.business-hours-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface-strong);
+  border-radius: 6px;
+}
+
+.business-hours-days {
+  font-weight: 500;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.business-hours-time {
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 0.9rem;
+}
+
+.services-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.service-item {
+  padding: 0.75rem 1rem;
+  background: var(--surface-strong);
+  border-radius: 6px;
+  border-left: 3px solid var(--accent);
+}
+
+.service-name {
+  font-weight: 500;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.map-link-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--accent);
+  color: white;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: background 0.2s ease;
+}
+
+.map-link-button:hover {
+  background: var(--accent-strong);
 }
 
 .form-card-header {

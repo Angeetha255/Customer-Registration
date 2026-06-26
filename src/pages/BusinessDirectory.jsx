@@ -74,7 +74,7 @@ export default function BusinessDirectory() {
     isEnabled: true,
     specifications: [],
     descriptions: [],
-    // youtubeLink: '',
+    youtubeLink: '',
     productCategory: '',
     addProduct: null // null = not asked, true = yes, false = no
   })
@@ -358,7 +358,7 @@ export default function BusinessDirectory() {
         isEnabled: Boolean(product.isEnabled),
         specifications: product.specifications ? product.specifications.map((s, i) => ({ id: Date.now() + i, ...s })) : [],
         descriptions: product.descriptions ? product.descriptions.map((d, i) => ({ id: Date.now() + i, text: d })) : [],
-        // youtubeLink: product.youtubeLink || '',
+        youtubeLink: product.youtubeLink || '',
         productCategory: product.productCategory || '',
         addProduct: true
       })
@@ -654,7 +654,7 @@ export default function BusinessDirectory() {
         isEnabled: true,
         specifications: [],
         descriptions: [],
-        // youtubeLink: '',
+        youtubeLink: '',
         productCategory: '',
         addProduct: null
       })
@@ -730,7 +730,7 @@ export default function BusinessDirectory() {
                 isEnabled: true,
                 specifications: [],
                 descriptions: [],
-                // youtubeLink: '',
+                youtubeLink: '',
                 productCategory: '',
                 addProduct: null
               })
@@ -742,177 +742,163 @@ export default function BusinessDirectory() {
       </div>
 
       {viewMode === 'list' ? (
-        <div>
+        <div className="business-directory-list">
           {error && <div className="alert alert-danger"><p>{error}</p></div>}
-          <div className="form-grid" style={{ marginTop: '1rem' }}>
+          <div className="business-cards-grid">
             {companies.map((company) => (
-              <div key={company.id} className="list-item" style={{ padding: '1.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                  <div>
-                    <h3 style={{ margin: 0, color: 'var(--text)' }}>{company.businessName}</h3>
-                    <p style={{ margin: '0.25rem 0', color: 'var(--muted)' }}>
-                      {company.email} | {company.mobileNumber || 'No phone'}
-                    </p>
-                    <p style={{ margin: '0.25rem 0', color: 'var(--muted)' }}>
-                      {company.area}, {company.district}, {company.state} - {company.pincode}
+              <div key={company.id} className="business-card">
+                {/* Card Header */}
+                <div className="business-card-header">
+                  <div className="business-card-title">
+                    <h3>{company.businessName}</h3>
+                    <div className="business-card-contact">
+                      <span className="contact-item">📧 {company.email}</span>
+                      {company.mobileNumber && <span className="contact-item">📞 {company.mobileNumber}</span>}
+                    </div>
+                    <p className="business-card-address">
+                      📍 {company.area}, {company.district}, {company.state} - {company.pincode}
                     </p>
                   </div>
                   <button
-                    className="button button-secondary button-small"
+                    className="button button-primary button-small"
                     onClick={() => handleEditCompany(company)}
                   >
-                    Edit
+                    Edit Business
                   </button>
                 </div>
 
-                {/* Company Details */}
+                {/* Key Business Information */}
                 {(company.ownerName || company.gstNumber || company.yearOfEstablishment || company.yearlyTurnover || company.numberOfEmployees) && (
-                  <div style={{ marginBottom: '1rem' }}>
-                    <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>Company Info</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.5rem' }}>
-                      {company.ownerName && <div><span style={{ fontWeight: '600' }}>Owner:</span> {company.ownerName}</div>}
-                      {company.gstNumber && <div><span style={{ fontWeight: '600' }}>GST:</span> {company.gstNumber}</div>}
-                      {company.yearOfEstablishment && <div><span style={{ fontWeight: '600' }}>Established:</span> {company.yearOfEstablishment}</div>}
-                      {company.yearlyTurnover && <div><span style={{ fontWeight: '600' }}>Turnover:</span> {company.yearlyTurnover}</div>}
-                      {company.numberOfEmployees && <div><span style={{ fontWeight: '600' }}>Employees:</span> {company.numberOfEmployees}</div>}
+                  <div className="business-card-section">
+                    <h4>Key Business Information</h4>
+                    <div className="business-info-grid">
+                      {company.ownerName && (
+                        <div className="business-info-item">
+                          <span className="business-info-label">Owner</span>
+                          <span className="business-info-value">{company.ownerName}</span>
+                        </div>
+                      )}
+                      {company.gstNumber && (
+                        <div className="business-info-item">
+                          <span className="business-info-label">GST Number</span>
+                          <span className="business-info-value">{company.gstNumber}</span>
+                        </div>
+                      )}
+                      {company.yearOfEstablishment && (
+                        <div className="business-info-item">
+                          <span className="business-info-label">Established</span>
+                          <span className="business-info-value">{company.yearOfEstablishment}</span>
+                        </div>
+                      )}
+                      {company.yearlyTurnover && (
+                        <div className="business-info-item">
+                          <span className="business-info-label">Turnover</span>
+                          <span className="business-info-value">₹{company.yearlyTurnover}</span>
+                        </div>
+                      )}
+                      {company.numberOfEmployees && (
+                        <div className="business-info-item">
+                          <span className="business-info-label">Employees</span>
+                          <span className="business-info-value">{company.numberOfEmployees}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
 
-                {/* Map */}
-                {company.mapLink && (
-                  <div style={{ marginBottom: '1rem' }}>
-                    <a 
-                      href={company.mapLink} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      style={{ 
-                        display: 'inline-flex', 
-                        alignItems: 'center', 
-                        gap: '0.5rem', 
-                        color: 'var(--primary)',
-                        textDecoration: 'none',
-                        padding: '0.5rem 1rem',
-                        background: 'var(--surface)',
-                        borderRadius: '0.5rem',
-                        border: '1px solid var(--border)'
-                      }}
-                    >
-                      📍 View Location on Google Maps
-                    </a>
+                {/* Company Overview */}
+                {company.businesses?.[0]?.description && (
+                  <div className="business-card-section">
+                    <h4>Company Overview</h4>
+                    <p className="business-description">{company.businesses[0].description}</p>
                   </div>
                 )}
 
                 {/* Business Details */}
                 {company.businesses && company.businesses.length > 0 && (
-                  <div style={{ marginBottom: '1rem', padding: '1rem', background: 'var(--surface)', borderRadius: '0.5rem' }}>
-                    <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>Business Details</h4>
-                    {company.businesses.map((business) => (
-                      <div key={business.id}>
-                        {business.category && <p style={{ margin: '0.25rem 0' }}><span style={{ fontWeight: '600' }}>Category:</span> {business.category}</p>}
-                        {business.subcategory && <p style={{ margin: '0.25rem 0' }}><span style={{ fontWeight: '600' }}>Subcategory:</span> {business.subcategory}</p>}
-                        {business.website && <p style={{ margin: '0.25rem 0' }}><span style={{ fontWeight: '600' }}>Website:</span> <a href={business.website} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>{business.website}</a></p>}
-                        {business.description && <p style={{ margin: '0.25rem 0' }}><span style={{ fontWeight: '600' }}>Description:</span> {business.description}</p>}
-                        {business.businessHours && Object.keys(business.businessHours).length > 0 && (
-                          <div style={{ marginTop: '0.5rem' }}>
-                            <span style={{ fontWeight: '600' }}>Business Hours:</span>
-                            <div style={{ marginTop: '0.25rem' }}>
-                              {DAYS.map((day) => (
-                                business.businessHours[day]?.isWorkingDay && (
-                                  <div key={day} style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <span style={{ fontWeight: '500' }}>{day}:</span>
-                                    <span>{business.businessHours[day].openTime} - {business.businessHours[day].closeTime}</span>
-                                  </div>
-                                )
-                              ))}
+                  <div className="business-card-section">
+                    <h4>Business Details</h4>
+                    <div className="business-details-grid">
+                      {company.businesses.map((business) => (
+                        <div key={business.id}>
+                          {business.category && (
+                            <div className="business-detail-item">
+                              <span className="business-detail-label">Category</span>
+                              <span className="business-detail-value">{business.category}</span>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                          )}
+                          {business.subcategory && (
+                            <div className="business-detail-item">
+                              <span className="business-detail-label">Subcategory</span>
+                              <span className="business-detail-value">{business.subcategory}</span>
+                            </div>
+                          )}
+                          {business.website && (
+                            <div className="business-detail-item">
+                              <span className="business-detail-label">Website</span>
+                              <a href={business.website} target="_blank" rel="noopener noreferrer" className="business-detail-link">
+                                {business.website}
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
-                {/* Products */}
+                {/* Business Hours */}
+                {company.businesses?.[0]?.businessHours && Object.keys(company.businesses[0].businessHours).length > 0 && (
+                  <div className="business-card-section">
+                    <h4>Business Hours</h4>
+                    <div className="business-hours">
+                      {DAYS.map((day) => {
+                        const hours = company.businesses[0].businessHours[day]
+                        if (hours?.isWorkingDay) {
+                          return (
+                            <div key={day} className="business-hours-item">
+                              <span className="business-hours-days">{day}</span>
+                              <span className="business-hours-time">{hours.openTime} - {hours.closeTime}</span>
+                            </div>
+                          )
+                        }
+                        return null
+                      })}
+                      {company.businesses[0].businessHours.Sunday?.isWorkingDay === false && (
+                        <div className="business-hours-item">
+                          <span className="business-hours-days">Sunday</span>
+                          <span className="business-hours-time">Closed</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Services/Products */}
                 {company.products && company.products.length > 0 && (
-                  <div style={{ padding: '1rem', background: 'var(--surface)', borderRadius: '0.5rem' }}>
-                    <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>Products</h4>
-                    {company.products.map((product) => (
-                      <div key={product.id} style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border)' }}>
-                        <h5 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>{product.productName}</h5>
-                        {product.coverImage && (
-                          <img
-                            src={`/uploads/${product.coverImage}`}
-                            alt={product.productName}
-                            style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '0.25rem', marginBottom: '0.5rem' }}
-                          />
-                        )}
-                        {product.displayPrice && (
-                          <div style={{ marginBottom: '0.25rem' }}>
-                            {product.productMrp && <span style={{ textDecoration: 'line-through', color: 'var(--muted)' }}>₹{product.productMrp}</span>}
-                            {product.discountPrice && <span style={{ marginLeft: '0.5rem', color: 'var(--success)', fontWeight: '600' }}>₹{product.discountPrice}</span>}
-                          </div>
-                        )}
-                        {product.productCategory && <p style={{ margin: '0.25rem 0' }}><span style={{ fontWeight: '600' }}>Category:</span> {product.productCategory}</p>}
-                        {/* {product.youtubeLink && (
-                          <div style={{ marginTop: '0.5rem' }}>
-                            <iframe
-                              src={product.youtubeLink.replace('watch?v=', 'embed/')}
-                              width="100%"
-                              height="200"
-                              style={{ border: 0, borderRadius: '0.5rem' }}
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              allowFullScreen=""
-                              title={`Video for ${product.productName}`}
-                            />
-                          </div>
-                        )} */}
-                        {product.productImages && product.productImages.length > 0 && (
-                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-                            {product.productImages.map((img, i) => (
-                              <img
-                                key={i}
-                                src={`/uploads/${img}`}
-                                alt={`Product ${i + 1}`}
-                                style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '0.25rem' }}
-                              />
-                            ))}
-                          </div>
-                        )}
-                        {product.gallery && product.gallery.length > 0 && (
-                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-                            {product.gallery.map((img, i) => (
-                              <img
-                                key={i}
-                                src={`/uploads/${img}`}
-                                alt={`Gallery ${i + 1}`}
-                                style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '0.25rem' }}
-                              />
-                            ))}
-                          </div>
-                        )}
-                        {product.descriptions && product.descriptions.length > 0 && (
-                          <div style={{ marginTop: '0.5rem' }}>
-                            <span style={{ fontWeight: '600' }}>Description Points:</span>
-                            <ul style={{ margin: '0.25rem 0 0 1.25rem', padding: 0 }}>
-                              {product.descriptions.map((desc, i) => (
-                                <li key={i}>{desc}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        {product.specifications && product.specifications.length > 0 && (
-                          <div style={{ marginTop: '0.5rem' }}>
-                            <span style={{ fontWeight: '600' }}>Specifications:</span>
-                            <ul style={{ margin: '0.25rem 0 0 1.25rem', padding: 0 }}>
-                              {product.specifications.map((spec, i) => (
-                                <li key={i}><strong>{spec.name}:</strong> {spec.detail}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                  <div className="business-card-section">
+                    <h4>Our Services / Products</h4>
+                    <div className="services-list">
+                      {company.products.map((product) => (
+                        <div key={product.id} className="service-item">
+                          <span className="service-name">{product.productName}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Map Link */}
+                {company.mapLink && (
+                  <div className="business-card-section">
+                    <a
+                      href={company.mapLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="map-link-button"
+                    >
+                      📍 View Location on Google Maps
+                    </a>
                   </div>
                 )}
               </div>
@@ -1255,15 +1241,12 @@ export default function BusinessDirectory() {
         <div>
         {products.length > 0 && (
           <div className="full-width" style={{ marginBottom: '2rem' }}>
-            <h3>Your Products</h3>
+            {/* <h3>Your Products</h3> */}
             <div className="list-container">
               {products.map((product) => (
                 <div key={product.id} className="list-item">
-                  <div>
-                    <strong>{product.productName}</strong>
-                    <p>Company ID: {product.companyId || 'N/A'}</p>
-                  </div>
-                  {/* {product.youtubeLink && (
+                  
+                  {product.youtubeLink && (
                     <div className="video-container" style={{
                       width: '100%',
                       maxWidth: '560px',
@@ -1282,7 +1265,7 @@ export default function BusinessDirectory() {
                         title={`Video for ${product.productName}`}
                       />
                     </div>
-                  )} */}
+                  )} 
                 </div>
               ))}
             </div>
@@ -1456,14 +1439,14 @@ export default function BusinessDirectory() {
             </button>
           </div><br/>
 
-          {/* <FloatingInput
+          <FloatingInput
             label="YouTube Link"
             name="youtubeLink"
             type="url"
             value={productForm.youtubeLink}
             onChange={handleProductChange}
             placeholder="https://www.youtube.com/watch?v=..."
-          /> */}
+          />
 
           <FloatingInput
             label="Product Category"
