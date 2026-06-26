@@ -409,13 +409,37 @@ function AppLayout({ children }) {
   )
 }
 
+function RegisterRedirect() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const query = location.search
+
+  useEffect(() => {
+    navigate(`/user-register${query}`, { replace: true })
+  }, [navigate, query])
+
+  return null
+}
+
+function LoginRedirect() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const query = location.search
+
+  useEffect(() => {
+    navigate(`/user-login${query}`, { replace: true })
+  }, [navigate, query])
+
+  return null
+}
+
 function AppRoutes() {
   return (
     <Routes future={{ v7_relativeSplatPath: true }}>
       <Route path="/" element={<Landing />} />
-      {/* Redirect old routes to new routes */}
-      <Route path="/register" element={<Navigate to="/user-register" replace />} />
-      <Route path="/login" element={<Navigate to="/user-login" replace />} />
+      {/* Redirect old routes to new routes, preserving query parameters */}
+      <Route path="/register" element={<RegisterRedirect />} />
+      <Route path="/login" element={<LoginRedirect />} />
       <Route path="/user-register" element={<Register />} />
       <Route path="/user-login" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
