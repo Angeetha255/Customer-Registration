@@ -8,6 +8,7 @@ const API_BASE = import.meta.env.VITE_API_BASE || '/api'
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 export default function BusinessDirectory() {
+  const [viewMode, setViewMode] = useState('list') // 'list' or 'form'
   const [activeTab, setActiveTab] = useState('company')
   const [toast, setToast] = useState({ message: '', type: 'success' })
   const [error, setError] = useState('')
@@ -15,6 +16,9 @@ export default function BusinessDirectory() {
   const [companies, setCompanies] = useState([])
   const [businessDirectories, setBusinessDirectories] = useState([])
   const [products, setProducts] = useState([])
+  const [editingCompanyId, setEditingCompanyId] = useState(null)
+  const [editingBusinessId, setEditingBusinessId] = useState(null)
+  const [editingProductId, setEditingProductId] = useState(null)
 
   // Master data states
   const [countries, setCountries] = useState([])
@@ -70,7 +74,7 @@ export default function BusinessDirectory() {
     isEnabled: true,
     specifications: [],
     descriptions: [],
-    youtubeLink: '',
+    // youtubeLink: '',
     productCategory: '',
     addProduct: null // null = not asked, true = yes, false = no
   })
@@ -194,7 +198,10 @@ export default function BusinessDirectory() {
   useEffect(() => {
     fetchCompanies()
       .then((data) => setCompanies(data.companies || []))
-      .catch(() => setCompanies([]))
+      .catch((err) => {
+        console.error('Failed to fetch companies:', err)
+        setCompanies([])
+      })
     
     fetchBusinessDirectories()
       .then((data) => setBusinessDirectories(data.businessDirectories || []))
@@ -279,6 +286,85 @@ export default function BusinessDirectory() {
     }))
   }
 
+  // Handle edit company
+  const handleEditCompany = (company) => {
+    setViewMode('form')
+    setActiveTab('company')
+    setEditingCompanyId(company.id)
+    
+    // Find country id
+    const selectedCountry = countries.find(c => c.countryName === company.country)
+    setCompanyForm({
+      businessName: company.businessName,
+      email: company.email,
+      mobileNumber: company.mobileNumber || '',
+      ownerName: company.ownerName || '',
+      yearOfEstablishment: company.yearOfEstablishment ? String(company.yearOfEstablishment) : '',
+      gstNumber: company.gstNumber || '',
+      yearlyTurnover: company.yearlyTurnover || '',
+      numberOfEmployees: company.numberOfEmployees ? String(company.numberOfEmployees) : '',
+      country: company.country || 'India',
+      countryId: selectedCountry ? selectedCountry.id : '',
+      state: company.state,
+      district: company.district,
+      area: company.area,
+      pincode: company.pincode,
+      mapLink: company.mapLink || ''
+    })
+
+    // Load associated business and product if they exist
+    if (company.businesses && company.businesses.length > 0) {
+      const business = company.businesses[0]
+      setEditingBusinessId(business.id)
+      
+      // Convert businessHours to businessHoursGroups
+      const groups = []
+      const hoursByGroup = {}
+      
+      Object.entries(business.businessHours || {}).forEach(([day, hours]) => {
+        if (hours.isWorkingDay) {
+          const key = `${hours.openTime}-${hours.closeTime}`
+          if (!hoursByGroup[key]) {
+            hoursByGroup[key] = { id: Date.now() + Math.random(), days: [], openTime: hours.openTime, closeTime: hours.closeTime }
+            groups.push(hoursByGroup[key])
+          }
+          hoursByGroup[key].days.push(day)
+        }
+      })
+
+      setBusinessDirectoryForm({
+        companyId: String(company.id),
+        category: business.category || '',
+        subcategory: business.subcategory || '',
+        website: business.website || '',
+        description: business.description || '',
+        businessHoursGroups: groups.length > 0 ? groups : [{ id: 1, days: [], openTime: '', closeTime: '' }]
+      })
+    }
+
+    if (company.products && company.products.length > 0) {
+      const product = company.products[0]
+      setEditingProductId(product.id)
+      setProductForm({
+        companyId: String(company.id),
+        coverImage: null,
+        productImages: [],
+        gallery: [],
+        productName: product.productName,
+        displayPrice: Boolean(product.displayPrice),
+        productMrp: product.productMrp ? String(product.productMrp) : '',
+        discountPercentage: product.discountPercentage ? String(product.discountPercentage) : '',
+        discountPrice: product.discountPrice ? String(product.discountPrice) : '',
+        isEnabled: Boolean(product.isEnabled),
+        specifications: product.specifications ? product.specifications.map((s, i) => ({ id: Date.now() + i, ...s })) : [],
+        descriptions: product.descriptions ? product.descriptions.map((d, i) => ({ id: Date.now() + i, text: d })) : [],
+        // youtubeLink: product.youtubeLink || '',
+        productCategory: product.productCategory || '',
+        addProduct: true
+      })
+    }
+  }
+
   const handleCompanySubmit = async (e) => {
     e.preventDefault()
     setError('')
@@ -298,8 +384,14 @@ export default function BusinessDirectory() {
         return
       }
 
-      const response = await createCompany(companyForm)
-      setToast({ message: response.message || 'Company created successfully', type: 'success' })
+      let response
+      if (editingCompanyId) {
+        response = await updateCompany(editingCompanyId, companyForm)
+      } else {
+        response = await createCompany(companyForm)
+      }
+      
+      setToast({ message: response.message || (editingCompanyId ? 'Company updated successfully' : 'Company created successfully'), type: 'success' })
       
       // Reset form
       setCompanyForm({
@@ -319,13 +411,19 @@ export default function BusinessDirectory() {
         pincode: '',
         mapLink: ''
       })
+      setEditingCompanyId(null)
+      setEditingBusinessId(null)
+      setEditingProductId(null)
 
       // Refresh companies list
       fetchCompanies()
         .then((data) => setCompanies(data.companies || []))
         .catch(() => setCompanies([]))
+      
+      // Switch back to list view
+      setViewMode('list')
     } catch (err) {
-      setError(err.message || 'Failed to create company')
+      setError(err.message || 'Failed to save company')
     } finally {
       setLoading(false)
     }
@@ -367,8 +465,14 @@ export default function BusinessDirectory() {
         businessHours
       }
 
-      const response = await createBusinessDirectory(businessDirectoryDataForAPI)
-      setToast({ message: response.message || 'Business Directory created successfully', type: 'success' })
+      let response
+      if (editingBusinessId) {
+        response = await updateBusinessDirectory(editingBusinessId, businessDirectoryDataForAPI)
+      } else {
+        response = await createBusinessDirectory(businessDirectoryDataForAPI)
+      }
+
+      setToast({ message: response.message || (editingBusinessId ? 'Business Directory updated successfully' : 'Business Directory created successfully'), type: 'success' })
       
       // Reset form
       setBusinessDirectoryForm({
@@ -381,13 +485,14 @@ export default function BusinessDirectory() {
           { id: 1, days: [], openTime: '', closeTime: '' }
         ]
       })
+      setEditingBusinessId(null)
 
       // Refresh business directories list
       fetchBusinessDirectories()
         .then((data) => setBusinessDirectories(data.businessDirectories || []))
         .catch(() => setBusinessDirectories([]))
     } catch (err) {
-      setError(err.message || 'Failed to create business directory')
+      setError(err.message || 'Failed to save business directory')
     } finally {
       setLoading(false)
     }
@@ -526,8 +631,14 @@ export default function BusinessDirectory() {
         formData.append('gallery', file)
       })
 
-      const response = await createProductNew(formData)
-      setToast({ message: response.message || 'Product created successfully', type: 'success' })
+      let response
+      if (editingProductId) {
+        response = await updateProduct(editingProductId, formData)
+      } else {
+        response = await createProductNew(formData)
+      }
+
+      setToast({ message: response.message || (editingProductId ? 'Product updated successfully' : 'Product created successfully'), type: 'success' })
 
       // Reset form
       setProductForm({
@@ -543,17 +654,18 @@ export default function BusinessDirectory() {
         isEnabled: true,
         specifications: [],
         descriptions: [],
-        youtubeLink: '',
+        // youtubeLink: '',
         productCategory: '',
         addProduct: null
       })
+      setEditingProductId(null)
 
       // Refresh products list
       fetchProducts()
         .then((data) => setProducts(data.products || []))
         .catch(() => setProducts([]))
     } catch (err) {
-      setError(err.message || 'Failed to create product')
+      setError(err.message || 'Failed to save product')
     } finally {
       setLoading(false)
     }
@@ -566,30 +678,276 @@ export default function BusinessDirectory() {
     <div className="page-container">
       <div className="page-header">
         <h1>Business Directory</h1>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button
+            className={`button ${viewMode === 'list' ? 'button-primary' : 'button-secondary'}`}
+            onClick={() => setViewMode('list')}
+          >
+            List View
+          </button>
+          <button
+            className={`button ${viewMode === 'form' ? 'button-primary' : 'button-secondary'}`}
+            onClick={() => {
+              setViewMode('form')
+              setEditingCompanyId(null)
+              setEditingBusinessId(null)
+              setEditingProductId(null)
+              setCompanyForm({
+                businessName: '',
+                email: '',
+                mobileNumber: '',
+                ownerName: '',
+                yearOfEstablishment: '',
+                gstNumber: '',
+                yearlyTurnover: '',
+                numberOfEmployees: '',
+                country: 'India',
+                countryId: '',
+                state: '',
+                district: '',
+                area: '',
+                pincode: '',
+                mapLink: ''
+              })
+              setBusinessDirectoryForm({
+                companyId: '',
+                category: '',
+                subcategory: '',
+                website: '',
+                description: '',
+                businessHoursGroups: [{ id: 1, days: [], openTime: '', closeTime: '' }]
+              })
+              setProductForm({
+                companyId: '',
+                coverImage: null,
+                productImages: [],
+                gallery: [],
+                productName: '',
+                displayPrice: false,
+                productMrp: '',
+                discountPercentage: '',
+                discountPrice: '',
+                isEnabled: true,
+                specifications: [],
+                descriptions: [],
+                // youtubeLink: '',
+                productCategory: '',
+                addProduct: null
+              })
+            }}
+          >
+            Add New
+          </button>
+        </div>
       </div>
 
-      <div className="tabs">
-        <button
-          className={`tab ${activeTab === 'company' ? 'active' : ''}`}
-          onClick={() => setActiveTab('company')}
-        >
-          Company
-        </button>
-        <button
-          className={`tab ${activeTab === 'business' ? 'active' : ''}`}
-          onClick={() => setActiveTab('business')}
-        >
-          Business
-        </button>
-        <button
-          className={`tab ${activeTab === 'product' ? 'active' : ''}`}
-          onClick={() => setActiveTab('product')}
-        >
-          Product
-        </button>
-      </div>
+      {viewMode === 'list' ? (
+        <div>
+          {error && <div className="alert alert-danger"><p>{error}</p></div>}
+          <div className="form-grid" style={{ marginTop: '1rem' }}>
+            {companies.map((company) => (
+              <div key={company.id} className="list-item" style={{ padding: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                  <div>
+                    <h3 style={{ margin: 0, color: 'var(--text)' }}>{company.businessName}</h3>
+                    <p style={{ margin: '0.25rem 0', color: 'var(--muted)' }}>
+                      {company.email} | {company.mobileNumber || 'No phone'}
+                    </p>
+                    <p style={{ margin: '0.25rem 0', color: 'var(--muted)' }}>
+                      {company.area}, {company.district}, {company.state} - {company.pincode}
+                    </p>
+                  </div>
+                  <button
+                    className="button button-secondary button-small"
+                    onClick={() => handleEditCompany(company)}
+                  >
+                    Edit
+                  </button>
+                </div>
 
-      {error && <div className="alert alert-danger"><p>{error}</p></div>}
+                {/* Company Details */}
+                {(company.ownerName || company.gstNumber || company.yearOfEstablishment || company.yearlyTurnover || company.numberOfEmployees) && (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>Company Info</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.5rem' }}>
+                      {company.ownerName && <div><span style={{ fontWeight: '600' }}>Owner:</span> {company.ownerName}</div>}
+                      {company.gstNumber && <div><span style={{ fontWeight: '600' }}>GST:</span> {company.gstNumber}</div>}
+                      {company.yearOfEstablishment && <div><span style={{ fontWeight: '600' }}>Established:</span> {company.yearOfEstablishment}</div>}
+                      {company.yearlyTurnover && <div><span style={{ fontWeight: '600' }}>Turnover:</span> {company.yearlyTurnover}</div>}
+                      {company.numberOfEmployees && <div><span style={{ fontWeight: '600' }}>Employees:</span> {company.numberOfEmployees}</div>}
+                    </div>
+                  </div>
+                )}
+
+                {/* Map */}
+                {company.mapLink && (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <a 
+                      href={company.mapLink} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style={{ 
+                        display: 'inline-flex', 
+                        alignItems: 'center', 
+                        gap: '0.5rem', 
+                        color: 'var(--primary)',
+                        textDecoration: 'none',
+                        padding: '0.5rem 1rem',
+                        background: 'var(--surface)',
+                        borderRadius: '0.5rem',
+                        border: '1px solid var(--border)'
+                      }}
+                    >
+                      📍 View Location on Google Maps
+                    </a>
+                  </div>
+                )}
+
+                {/* Business Details */}
+                {company.businesses && company.businesses.length > 0 && (
+                  <div style={{ marginBottom: '1rem', padding: '1rem', background: 'var(--surface)', borderRadius: '0.5rem' }}>
+                    <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>Business Details</h4>
+                    {company.businesses.map((business) => (
+                      <div key={business.id}>
+                        {business.category && <p style={{ margin: '0.25rem 0' }}><span style={{ fontWeight: '600' }}>Category:</span> {business.category}</p>}
+                        {business.subcategory && <p style={{ margin: '0.25rem 0' }}><span style={{ fontWeight: '600' }}>Subcategory:</span> {business.subcategory}</p>}
+                        {business.website && <p style={{ margin: '0.25rem 0' }}><span style={{ fontWeight: '600' }}>Website:</span> <a href={business.website} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>{business.website}</a></p>}
+                        {business.description && <p style={{ margin: '0.25rem 0' }}><span style={{ fontWeight: '600' }}>Description:</span> {business.description}</p>}
+                        {business.businessHours && Object.keys(business.businessHours).length > 0 && (
+                          <div style={{ marginTop: '0.5rem' }}>
+                            <span style={{ fontWeight: '600' }}>Business Hours:</span>
+                            <div style={{ marginTop: '0.25rem' }}>
+                              {DAYS.map((day) => (
+                                business.businessHours[day]?.isWorkingDay && (
+                                  <div key={day} style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <span style={{ fontWeight: '500' }}>{day}:</span>
+                                    <span>{business.businessHours[day].openTime} - {business.businessHours[day].closeTime}</span>
+                                  </div>
+                                )
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Products */}
+                {company.products && company.products.length > 0 && (
+                  <div style={{ padding: '1rem', background: 'var(--surface)', borderRadius: '0.5rem' }}>
+                    <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>Products</h4>
+                    {company.products.map((product) => (
+                      <div key={product.id} style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border)' }}>
+                        <h5 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>{product.productName}</h5>
+                        {product.coverImage && (
+                          <img
+                            src={`/uploads/${product.coverImage}`}
+                            alt={product.productName}
+                            style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '0.25rem', marginBottom: '0.5rem' }}
+                          />
+                        )}
+                        {product.displayPrice && (
+                          <div style={{ marginBottom: '0.25rem' }}>
+                            {product.productMrp && <span style={{ textDecoration: 'line-through', color: 'var(--muted)' }}>₹{product.productMrp}</span>}
+                            {product.discountPrice && <span style={{ marginLeft: '0.5rem', color: 'var(--success)', fontWeight: '600' }}>₹{product.discountPrice}</span>}
+                          </div>
+                        )}
+                        {product.productCategory && <p style={{ margin: '0.25rem 0' }}><span style={{ fontWeight: '600' }}>Category:</span> {product.productCategory}</p>}
+                        {/* {product.youtubeLink && (
+                          <div style={{ marginTop: '0.5rem' }}>
+                            <iframe
+                              src={product.youtubeLink.replace('watch?v=', 'embed/')}
+                              width="100%"
+                              height="200"
+                              style={{ border: 0, borderRadius: '0.5rem' }}
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen=""
+                              title={`Video for ${product.productName}`}
+                            />
+                          </div>
+                        )} */}
+                        {product.productImages && product.productImages.length > 0 && (
+                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                            {product.productImages.map((img, i) => (
+                              <img
+                                key={i}
+                                src={`/uploads/${img}`}
+                                alt={`Product ${i + 1}`}
+                                style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '0.25rem' }}
+                              />
+                            ))}
+                          </div>
+                        )}
+                        {product.gallery && product.gallery.length > 0 && (
+                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                            {product.gallery.map((img, i) => (
+                              <img
+                                key={i}
+                                src={`/uploads/${img}`}
+                                alt={`Gallery ${i + 1}`}
+                                style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '0.25rem' }}
+                              />
+                            ))}
+                          </div>
+                        )}
+                        {product.descriptions && product.descriptions.length > 0 && (
+                          <div style={{ marginTop: '0.5rem' }}>
+                            <span style={{ fontWeight: '600' }}>Description Points:</span>
+                            <ul style={{ margin: '0.25rem 0 0 1.25rem', padding: 0 }}>
+                              {product.descriptions.map((desc, i) => (
+                                <li key={i}>{desc}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {product.specifications && product.specifications.length > 0 && (
+                          <div style={{ marginTop: '0.5rem' }}>
+                            <span style={{ fontWeight: '600' }}>Specifications:</span>
+                            <ul style={{ margin: '0.25rem 0 0 1.25rem', padding: 0 }}>
+                              {product.specifications.map((spec, i) => (
+                                <li key={i}><strong>{spec.name}:</strong> {spec.detail}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          {companies.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--muted)' }}>
+              <p>No business directory entries yet. Click "Add New" to create one!</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="tabs">
+            <button
+              className={`tab ${activeTab === 'company' ? 'active' : ''}`}
+              onClick={() => setActiveTab('company')}
+            >
+              Company
+            </button>
+            <button
+              className={`tab ${activeTab === 'business' ? 'active' : ''}`}
+              onClick={() => setActiveTab('business')}
+            >
+              Business
+            </button>
+            <button
+              className={`tab ${activeTab === 'product' ? 'active' : ''}`}
+              onClick={() => setActiveTab('product')}
+            >
+              Product
+            </button>
+          </div>
+
+          {error && <div className="alert alert-danger"><p>{error}</p></div>}
 
       {activeTab === 'company' && (
         <div>
@@ -604,24 +962,25 @@ export default function BusinessDirectory() {
                     <p>{company.email} | {company.state}, {company.district}</p>
                   </div> */}
                   {company.mapLink && (
-                    <div className="map-container" style={{
-                      width: '100%',
-                      maxWidth: '400px',
-                      height: '200px',
-                      marginTop: '1rem',
-                      borderRadius: '8px',
-                      overflow: 'hidden'
-                    }}>
-                      <iframe
-                        src={company.mapLink}
-                        width="100%"
-                        height="100%"
-                        style={{ border: 0 }}
-                        allowFullScreen=""
-                        loading="lazy"
-                        referrerPolicy="no-referrer-when-downgrade"
-                        title={`Map for ${company.businessName}`}
-                      />
+                    <div style={{ marginBottom: '1rem' }}>
+                      <a 
+                        href={company.mapLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={{ 
+                          display: 'inline-flex', 
+                          alignItems: 'center', 
+                          gap: '0.5rem', 
+                          color: 'var(--primary)',
+                          textDecoration: 'none',
+                          padding: '0.5rem 1rem',
+                          background: 'var(--surface)',
+                          borderRadius: '0.5rem',
+                          border: '1px solid var(--border)'
+                        }}
+                      >
+                        📍 View Location on Google Maps
+                      </a>
                     </div>
                   )}
                 </div>
@@ -904,7 +1263,7 @@ export default function BusinessDirectory() {
                     <strong>{product.productName}</strong>
                     <p>Company ID: {product.companyId || 'N/A'}</p>
                   </div>
-                  {product.youtubeLink && (
+                  {/* {product.youtubeLink && (
                     <div className="video-container" style={{
                       width: '100%',
                       maxWidth: '560px',
@@ -923,7 +1282,7 @@ export default function BusinessDirectory() {
                         title={`Video for ${product.productName}`}
                       />
                     </div>
-                  )}
+                  )} */}
                 </div>
               ))}
             </div>
@@ -1097,14 +1456,14 @@ export default function BusinessDirectory() {
             </button>
           </div><br/>
 
-          <FloatingInput
+          {/* <FloatingInput
             label="YouTube Link"
             name="youtubeLink"
             type="url"
             value={productForm.youtubeLink}
             onChange={handleProductChange}
             placeholder="https://www.youtube.com/watch?v=..."
-          />
+          /> */}
 
           <FloatingInput
             label="Product Category"
@@ -1205,11 +1564,13 @@ export default function BusinessDirectory() {
         </div>
       )}
 
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        onClose={() => setToast({ message: '', type: 'success' })}
-      />
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast({ message: '', type: 'success' })}
+        />
+        </>
+      )}
     </div>
   )
 }

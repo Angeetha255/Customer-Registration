@@ -1,6 +1,8 @@
 import express from 'express'
 import { authMiddleware } from '../middleware/auth.js'
 import Company from '../models/Company.js'
+import Business from '../models/Business.js'
+import Product from '../models/Product.js'
 
 const router = express.Router()
 
@@ -140,7 +142,11 @@ router.get('/', authMiddleware, async (req, res) => {
   try {
     const companies = await Company.findAll({
       where: { createdBy: req.user.id },
-      order: [['id', 'DESC']]
+      order: [['id', 'DESC']],
+      include: [
+        { model: Business, as: 'businesses' },
+        { model: Product, as: 'products' }
+      ]
     })
     res.json({ companies })
   } catch (err) {
@@ -153,7 +159,11 @@ router.get('/', authMiddleware, async (req, res) => {
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const company = await Company.findOne({
-      where: { id: req.params.id, createdBy: req.user.id }
+      where: { id: req.params.id, createdBy: req.user.id },
+      include: [
+        { model: Business, as: 'businesses' },
+        { model: Product, as: 'products' }
+      ]
     })
     if (!company) {
       return res.status(404).json({ message: 'Company not found' })

@@ -26,7 +26,7 @@ const Product = sequelize.define(
     displayPrice: { type: DataTypes.BOOLEAN, defaultValue: false, field: 'displayPrice' },
     specifications: { type: DataTypes.JSON, allowNull: true, field: 'specifications' },
     descriptions: { type: DataTypes.JSON, allowNull: true, field: 'descriptions' },
-    youtubeLink: { type: DataTypes.STRING(500), allowNull: true, field: 'youtube_link' },
+    // youtubeLink: { type: DataTypes.STRING(500), allowNull: true, field: 'youtube_link' },
     productCategory: { type: DataTypes.STRING, allowNull: true, field: 'product_category' },
     createdBy: {
       type: DataTypes.INTEGER.UNSIGNED,

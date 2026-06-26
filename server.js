@@ -9,6 +9,7 @@ import companyRoutes from './routes/company.js'
 import businessDirectoryRoutes from './routes/businessDirectory.js'
 import productRoutes from './routes/product.js'
 import masterDataRoutes from './routes/masterData.js'
+import db from './models/index.js'
 import Admin from './models/Admin.js'
 import User from './models/User.js'   // must be imported so sequelize.sync() creates the users table
 import Settings from './models/Settings.js'
@@ -21,7 +22,7 @@ import { sequelize } from './models/sequelize.js'
 dotenv.config()
 
 const app = express()
-const PORT = process.env.PORT || 5004
+const PORT = process.env.PORT || 5006 // Changed port to 5006
 
 app.use(cors())
 app.use(express.json())

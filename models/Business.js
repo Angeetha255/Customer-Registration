@@ -8,7 +8,6 @@ const Business = sequelize.define(
       autoIncrement: true,
       primaryKey: true,
     },
-    businessName: { type: DataTypes.STRING, allowNull: false, field: 'businessName' },
     companyId: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: true,
@@ -20,8 +19,6 @@ const Business = sequelize.define(
     subcategory: { type: DataTypes.STRING, allowNull: true, field: 'subcategory' },
     website: { type: DataTypes.STRING, allowNull: true, field: 'website' },
     description: { type: DataTypes.TEXT, allowNull: true, field: 'description' },
-    ownerName: { type: DataTypes.STRING, allowNull: true, field: 'owner_name' },
-    gstNumber: { type: DataTypes.STRING, allowNull: true, field: 'gst_number' },
     status: { type: DataTypes.STRING, defaultValue: 'draft', field: 'status' },
     businessHours: { type: DataTypes.JSON, allowNull: true, field: 'businessHours' },
     createdBy: {

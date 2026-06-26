@@ -1,6 +1,7 @@
 import express from 'express'
 import { authMiddleware } from '../middleware/auth.js'
 import Business from '../models/Business.js'
+import Company from '../models/Company.js'
 
 const router = express.Router()
 
