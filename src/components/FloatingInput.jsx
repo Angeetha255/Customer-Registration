@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 
-export default function FloatingInput({ label, id, name, type = 'text', value, onChange, required, minLength, error, showToggle = false, inputProps = {}, multiline = false, rows = 3, options = [] }) {
+export default function FloatingInput({ label, id, name, type = 'text', value, onChange, required, minLength, error, showToggle = false, inputProps = {}, multiline = false, rows = 3, options = [], disabled = false }) {
   const inputId = id || `field_${name}`
   const [visible, setVisible] = useState(false)
   const inputType = type === 'password' && showToggle ? (visible ? 'text' : 'password') : type
@@ -26,10 +26,13 @@ export default function FloatingInput({ label, id, name, type = 'text', value, o
           value={value}
           onChange={onChange}
           required={required}
-          disabled={inputProps?.disabled}
+          disabled={disabled}
           className={`${error ? 'invalid' : ''}`.trim()}
           aria-invalid={!!error}
         >
+          {options.length > 0 && (
+            <option value="" disabled>{label}</option>
+          )}
           {options.map(opt => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}

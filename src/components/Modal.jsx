@@ -3,7 +3,7 @@
  * footer prop: renders custom footer content (e.g. action buttons).
  * If no footer prop, renders no footer at all.
  */
-export default function Modal({ isOpen, onClose, title, children, footer }) {
+export default function Modal({ isOpen, onClose, title, children, footer, cardClassName = '' }) {
   if (!isOpen) return null
 
   return (
@@ -11,7 +11,7 @@ export default function Modal({ isOpen, onClose, title, children, footer }) {
       className="modal-backdrop"
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="modal-card">
+      <div className={`modal-card${cardClassName ? ` ${cardClassName}` : ''}`}>
         <div className="modal-header">
           <h3>{title}</h3>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Close">×</button>

@@ -160,6 +160,10 @@ export default function Register() {
       const response = await registerCustomer(payload)
       setSuccess('Registration completed!')
       setCreatedUser(response.user || { name: form.name, email: form.email, phone: form.phone })
+      // Store referral info from backend (authoritative source)
+      if (response.referralInfo) {
+        setReferrer({ name: response.referralInfo.referrerName, userId: response.referralInfo.referrerUserId })
+      }
       // Save credentials before clearing form so auto-login can use them
       setSavedCredentials({ email: form.email, password: form.password })
       setShowPassword(false)
@@ -208,12 +212,32 @@ export default function Register() {
             ) : (
               <form onSubmit={handleSubmit} className="form-grid register-form">
 
+                {/* When opened via referral link, show read-only referrer info */}
                 {referralMode === 'link' && referrer ? (
-                  <div className="introducer-badge">
-                    <span className="feature-icon">✦</span>
-                    <div>
-                      <strong>Referred by {referrer.name}</strong>
-                      <span>User ID: {referrer.userId || `MEM${referrer.id}`}</span>
+                  <div className="form-group referral-full-width">
+                    <label
+                      style={{
+                        fontSize: '0.9rem',
+                        fontWeight: 500,
+                        marginBottom: 4,
+                        display: 'block'
+                      }}
+                    >
+                      Referrer User ID
+                    </label>
+                    <input
+                      type="text"
+                      value={referrer.userId || `MEM${referrer.id}`}
+                      readOnly
+                      className="form-input"
+                      style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                    />
+                    <div className="introducer-badge" style={{ marginTop: 8 }}>
+                      <span className="feature-icon">✓</span>
+                      <div>
+                        <strong>Referred by {referrer.name}</strong>
+                        <span>User ID: {referrer.userId || `MEM${referrer.id}`}</span>
+                      </div>
                     </div>
                   </div>
                 ) : (

@@ -4,6 +4,7 @@ import path from 'path'
 import { authMiddleware } from '../middleware/auth.js'
 import Business from '../models/Business.js'
 import Product from '../models/Product.js'
+import { Op } from 'sequelize'
 
 const router = express.Router()
 
@@ -33,64 +34,30 @@ const upload = multer({
   }
 })
 
-// POST /api/business - Create a new business
+// POST /api/business-directory - Create a new business directory entry
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const {
-      businessName,
-      email,
-      mobileNumber,
+      companyId,
+      category,
+      subcategory,
       website,
       description,
-      yearOfEstablishment,
-      mapLocation,
-      country,
-      state,
-      district,
-      area,
-      pincode,
-      mainCategory,
-      subCategory,
-      businessHours,
-      numberOfEmployees,
-      yearlyTurnover
+      businessHours
     } = req.body
 
     // Validation
-    if (!businessName || !email || !mobileNumber || !state || !district || !area || !pincode || !mainCategory) {
-      return res.status(400).json({ message: 'Required fields are missing' })
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ message: 'Invalid email format' })
-    }
-
-    if (!/^[0-9]{10}$/.test(mobileNumber)) {
-      return res.status(400).json({ message: 'Mobile number must be 10 digits' })
-    }
-
-    if (!/^[0-9]{6}$/.test(pincode)) {
-      return res.status(400).json({ message: 'Pincode must be 6 digits' })
+    if (!category) {
+      return res.status(400).json({ message: 'Category is required' })
     }
 
     const business = await Business.create({
-      businessName,
-      email,
-      mobileNumber,
-      website,
-      description,
-      yearOfEstablishment,
-      mapLocation,
-      country: country || 'India',
-      state,
-      district,
-      area,
-      pincode,
-      mainCategory,
-      subCategory,
-      businessHours,
-      numberOfEmployees: numberOfEmployees ? parseInt(numberOfEmployees) : null,
-      yearlyTurnover: yearlyTurnover || null,
+      companyId: companyId || null,
+      category,
+      subcategory: subcategory || null,
+      website: website || null,
+      description: description || null,
+      businessHours: businessHours || null,
       createdBy: req.user.id
     })
 
@@ -101,6 +68,97 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 })
 
+// PUT /api/business-directory/:id - Update a business directory entry
+router.put('/:id', authMiddleware, async (req, res) => {
+  try {
+    const {
+      companyId,
+      category,
+      subcategory,
+      website,
+      description,
+      businessHours
+    } = req.body
+
+    // Validation
+    if (!category) {
+      return res.status(400).json({ message: 'Category is required' })
+    }
+
+    const business = await Business.findOne({
+      where: { id: req.params.id, createdBy: req.user.id }
+    })
+
+    if (!business) {
+      return res.status(404).json({ message: 'Business not found' })
+    }
+
+    await business.update({
+      companyId: companyId || null,
+      category,
+      subcategory: subcategory || null,
+      website: website || null,
+      description: description || null,
+      businessHours: businessHours || null,
+    })
+
+    res.status(200).json({ message: 'Business updated successfully', business })
+  } catch (err) {
+    console.error('Error updating business:', err)
+    res.status(500).json({ message: 'Failed to update business' })
+  }
+})
+
+// GET /api/business-directory - Get all business directories
+router.get('/', authMiddleware, async (req, res) => {
+  try {
+    const businesses = await Business.findAll({
+      where: { createdBy: req.user.id },
+      include: ['company'],
+      order: [['id', 'DESC']]
+    })
+    res.json({ businesses })
+  } catch (err) {
+    console.error('Error fetching businesses:', err)
+    res.status(500).json({ message: 'Failed to fetch businesses' })
+  }
+})
+
+// GET /api/business-directory/:id - Get a single business directory entry
+router.get('/:id', authMiddleware, async (req, res) => {
+  try {
+    const business = await Business.findOne({
+      where: { id: req.params.id, createdBy: req.user.id },
+      include: ['company']
+    })
+    if (!business) {
+      return res.status(404).json({ message: 'Business not found' })
+    }
+    res.json({ business })
+  } catch (err) {
+    console.error('Error fetching business:', err)
+    res.status(500).json({ message: 'Failed to fetch business' })
+  }
+})
+
+// DELETE /api/business-directory/:id - Delete a business directory entry
+router.delete('/:id', authMiddleware, async (req, res) => {
+  try {
+    const business = await Business.findOne({
+      where: { id: req.params.id, createdBy: req.user.id }
+    })
+    if (!business) {
+      return res.status(404).json({ message: 'Business not found' })
+    }
+
+    await business.destroy()
+    res.status(200).json({ message: 'Business deleted successfully' })
+  } catch (err) {
+    console.error('Error deleting business:', err)
+    res.status(500).json({ message: 'Failed to delete business' })
+  }
+})
+
 // POST /api/business/products - Create a new product
 router.post('/products', authMiddleware, upload.fields([
   { name: 'coverImage', maxCount: 1 },
@@ -108,7 +166,7 @@ router.post('/products', authMiddleware, upload.fields([
   { name: 'gallery', maxCount: 20 }
 ]), async (req, res) => {
   try {
-    const { businessId, productName, displayPrice, productPrice } = req.body
+    const { businessId, productName, displayPrice, productMrp, discountPercentage, discountPrice, isEnabled } = req.body
 
     // Validation
     if (!businessId || !productName) {
@@ -125,6 +183,14 @@ router.post('/products', authMiddleware, upload.fields([
     const productImagePaths = req.files?.productImages?.map(file => file.filename) || []
     const galleryPaths = req.files?.gallery?.map(file => file.filename) || []
 
+    // Calculate discount price if not provided
+    let finalDiscountPrice = discountPrice ? parseFloat(discountPrice) : null
+    if (productMrp && discountPercentage && !finalDiscountPrice) {
+      const mrp = parseFloat(productMrp)
+      const discount = parseFloat(discountPercentage)
+      finalDiscountPrice = mrp - (mrp * discount / 100)
+    }
+
     const product = await Product.create({
       businessId,
       coverImage: coverImagePath,
@@ -132,7 +198,10 @@ router.post('/products', authMiddleware, upload.fields([
       gallery: galleryPaths,
       productName,
       displayPrice: displayPrice === 'true' || displayPrice === true,
-      productPrice: displayPrice ? productPrice : null,
+      productMrp: productMrp || null,
+      discountPercentage: discountPercentage ? parseFloat(discountPercentage) : 0,
+      discountPrice: finalDiscountPrice,
+      isEnabled: isEnabled === 'true' || isEnabled === true,
       createdBy: req.user.id
     })
 
@@ -143,37 +212,7 @@ router.post('/products', authMiddleware, upload.fields([
   }
 })
 
-// GET /api/business - Get all businesses (for future use)
-router.get('/', authMiddleware, async (req, res) => {
-  try {
-    const businesses = await Business.findAll({
-      where: { createdBy: req.user.id },
-      order: [['id', 'DESC']]
-    })
-    res.json({ businesses })
-  } catch (err) {
-    console.error('Error fetching businesses:', err)
-    res.status(500).json({ message: 'Failed to fetch businesses' })
-  }
-})
-
-// GET /api/business/:id - Get a single business (for future use)
-router.get('/:id', authMiddleware, async (req, res) => {
-  try {
-    const business = await Business.findOne({
-      where: { id: req.params.id, createdBy: req.user.id }
-    })
-    if (!business) {
-      return res.status(404).json({ message: 'Business not found' })
-    }
-    res.json({ business })
-  } catch (err) {
-    console.error('Error fetching business:', err)
-    res.status(500).json({ message: 'Failed to fetch business' })
-  }
-})
-
-// GET /api/business/:id/products - Get products for a business (for future use)
+// GET /api/business/:id/products - Get products for a business
 router.get('/:id/products', authMiddleware, async (req, res) => {
   try {
     const products = await Product.findAll({

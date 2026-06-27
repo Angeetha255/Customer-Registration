@@ -9,7 +9,7 @@
  * Run once: node scripts/run-migration.js
  */
 
-import { sequelize } from '../models/index.js'
+import { sequelize } from '../models/sequelize.js'
 
 const qi = sequelize.getQueryInterface()
 
@@ -132,10 +132,6 @@ async function run() {
     } else {
       console.log('  – registeredAt already exists, skipping')
     }
-    // Ensure any NULL registeredAt is backfilled from dateOfJoining (safe no-op if both exist)
-    await sequelize.query(
-      'UPDATE `users` SET `registeredAt` = `dateOfJoining` WHERE `registeredAt` IS NULL AND `dateOfJoining` IS NOT NULL'
-    )
 
     // ── 7. Add dateOfJoining column ───────────────────────────────────────
     if (!(await columnExists('users', 'dateOfJoining'))) {

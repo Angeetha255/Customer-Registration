@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE || '/api'
+export const API_BASE = import.meta.env.VITE_API_BASE || '/api'
 
 import { SESSION_TYPES, getToken } from '../utils/sessionIsolation.js'
 
@@ -185,7 +185,7 @@ export const searchTeamView = (q) =>
 
 export const loginWithApi = login
 
-// Business Directory endpoints
+// Business Directory endpoints (legacy - kept for backward compatibility)
 export const createBusiness = (data) =>
   send('/business', {
     method: 'POST',
@@ -217,9 +217,114 @@ export const fetchBusiness = (id) =>
 export const fetchBusinessProducts = (businessId) =>
   send(`/business/${businessId}/products`, { headers: userHeaders() })
 
+// Company endpoints
+export const createCompany = (data) =>
+  send('/company', {
+    method: 'POST',
+    headers: userHeaders(),
+    body: JSON.stringify(data),
+  })
+
+export const updateCompany = (id, data) =>
+  send(`/company/${id}`, {
+    method: 'PUT',
+    headers: userHeaders(),
+    body: JSON.stringify(data),
+  })
+
+export const fetchCompanies = () =>
+  send('/company', { headers: userHeaders() })
+
+export const fetchCompany = (id) =>
+  send(`/company/${id}`, { headers: userHeaders() })
+
+export const deleteCompany = (id) =>
+  send(`/company/${id}`, {
+    method: 'DELETE',
+    headers: userHeaders(),
+  })
+
+// Business Directory endpoints (new structure)
+export const createBusinessDirectory = (data) =>
+  send('/business-directory', {
+    method: 'POST',
+    headers: userHeaders(),
+    body: JSON.stringify(data),
+  })
+
+export const updateBusinessDirectory = (id, data) =>
+  send(`/business-directory/${id}`, {
+    method: 'PUT',
+    headers: userHeaders(),
+    body: JSON.stringify(data),
+  })
+
+export const fetchBusinessDirectories = () =>
+  send('/business-directory', { headers: userHeaders() })
+
+export const fetchBusinessDirectory = (id) =>
+  send(`/business-directory/${id}`, { headers: userHeaders() })
+
+export const deleteBusinessDirectory = (id) =>
+  send(`/business-directory/${id}`, {
+    method: 'DELETE',
+    headers: userHeaders(),
+  })
+
+// Product endpoints (new structure)
+export const createProductNew = (formData) =>
+  fetch(`${API_BASE}/product`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${getUserToken()}`,
+    },
+    body: formData,
+  }).then(async (res) => {
+    const body = await res.json().catch(() => null)
+    if (!res.ok) {
+      throw new Error(body?.message || res.statusText)
+    }
+    return body
+  })
+
+export const updateProduct = (id, formData) =>
+  fetch(`${API_BASE}/product/${id}`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${getUserToken()}`,
+    },
+    body: formData,
+  }).then(async (res) => {
+    const body = await res.json().catch(() => null)
+    if (!res.ok) {
+      throw new Error(body?.message || res.statusText)
+    }
+    return body
+  })
+
+export const fetchProducts = () =>
+  send('/product', { headers: userHeaders() })
+
+export const fetchProduct = (id) =>
+  send(`/product/${id}`, { headers: userHeaders() })
+
+export const fetchProductsByCompany = (companyId) =>
+  send(`/product/company/${companyId}`, { headers: userHeaders() })
+
+export const deleteProduct = (id) =>
+  send(`/product/${id}`, {
+    method: 'DELETE',
+    headers: userHeaders(),
+  })
+
 // Master Data API endpoints
-export const fetchStates = () =>
-  send('/master-data/states', { headers: userHeaders() })
+export const fetchCountries = () =>
+  send('/master-data/countries', { headers: userHeaders() })
+
+export const fetchStates = (countryId) => {
+  const query = countryId ? `?countryId=${countryId}` : ''
+  return send(`/master-data/states${query}`, { headers: userHeaders() })
+}
 
 export const fetchDistricts = (stateId) =>
   send(`/master-data/districts?stateId=${stateId}`, { headers: userHeaders() })

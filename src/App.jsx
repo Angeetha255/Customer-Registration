@@ -20,6 +20,12 @@ import MyDirect from './pages/MyDirect.jsx'
 import MyTeam from './pages/MyTeam.jsx'
 import TeamView from './pages/TeamView.jsx'
 import NotFound from './pages/NotFound.jsx'
+import MasterCountries from './pages/MasterCountries.jsx'
+import MasterStates from './pages/MasterStates.jsx'
+import MasterDistricts from './pages/MasterDistricts.jsx'
+import MasterAreas from './pages/MasterAreas.jsx'
+import MasterCategories from './pages/MasterCategories.jsx'
+import MasterSubCategories from './pages/MasterSubCategories.jsx'
 import { fetchTopId, setTopId, updateTopId, fetchAdminStats, createFirstTopId } from './services/api.js'
 import Toast from './components/Toast.jsx'
 import './index.css'
@@ -403,13 +409,37 @@ function AppLayout({ children }) {
   )
 }
 
+function RegisterRedirect() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const query = location.search
+
+  useEffect(() => {
+    navigate(`/user-register${query}`, { replace: true })
+  }, [navigate, query])
+
+  return null
+}
+
+function LoginRedirect() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const query = location.search
+
+  useEffect(() => {
+    navigate(`/user-login${query}`, { replace: true })
+  }, [navigate, query])
+
+  return null
+}
+
 function AppRoutes() {
   return (
     <Routes future={{ v7_relativeSplatPath: true }}>
       <Route path="/" element={<Landing />} />
-      {/* Redirect old routes to new routes */}
-      <Route path="/register" element={<Navigate to="/user-register" replace />} />
-      <Route path="/login" element={<Navigate to="/user-login" replace />} />
+      {/* Redirect old routes to new routes, preserving query parameters */}
+      <Route path="/register" element={<RegisterRedirect />} />
+      <Route path="/login" element={<LoginRedirect />} />
       <Route path="/user-register" element={<Register />} />
       <Route path="/user-login" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -423,6 +453,12 @@ function AppRoutes() {
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
       <Route path="/admin/customers" element={<AdminRoute><AdminCustomers /></AdminRoute>} />
+      <Route path="/admin/masters/countries" element={<AdminRoute><MasterCountries /></AdminRoute>} />
+      <Route path="/admin/masters/states" element={<AdminRoute><MasterStates /></AdminRoute>} />
+      <Route path="/admin/masters/districts" element={<AdminRoute><MasterDistricts /></AdminRoute>} />
+      <Route path="/admin/masters/areas" element={<AdminRoute><MasterAreas /></AdminRoute>} />
+      <Route path="/admin/masters/categories" element={<AdminRoute><MasterCategories /></AdminRoute>} />
+      <Route path="/admin/masters/subcategories" element={<AdminRoute><MasterSubCategories /></AdminRoute>} />
       <Route path="/admin/settings" element={<AdminRoute><Settings /></AdminRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
