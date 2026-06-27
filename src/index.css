@@ -803,6 +803,44 @@ input:focus {
   min-width: 0;
 }
 
+/* Toolbar */
+.table-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+/* Search */
+.table-search {
+    flex: 1;
+    min-width: 260px;
+}
+
+.table-search input {
+    width: 100%;
+    height: 42px;
+    padding: 0 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    font-size: 14px;
+}
+
+/* Actions */
+.table-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.table-actions button,
+.table-actions select {
+    height: 42px;
+    border-radius: 10px;
+    padding: 0 16px;
+}
+
 .tv-search-form input {
   width: 100%;
   max-width: 300px;
@@ -1726,25 +1764,44 @@ opacity:.9;
 
 /* Topbar styles */
 .topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 0 12px;
-  position: relative;
-  min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    width: 100%;
+}
+
+.topbar-left,
+.topbar-right {
+    display: flex;
+    align-items: center;
+}
+
+.topbar-right {
+    margin-left: auto;
+    gap: 10px;
+}
+
+.user-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0; /* remove margin */
 }
 
 /* Tablet */
 @media (max-width: 768px) {
     .topbar {
         gap: 10px;
-        padding: 10px 0;
-    }
-
-    .topbar > * {
-        flex: 1;
-        min-width: 140px;
+        padding: 8px 0;
     }
 }
 
@@ -1752,35 +1809,86 @@ opacity:.9;
 @media (max-width: 480px) {
     .topbar {
         flex-direction: row;
-        align-items: stretch;
-        gap: 18px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 8px 0;
     }
 
+    /* Remove this if already exists */
     .topbar > * {
-        width: 100%;
+        flex: unset;
+        width: auto;
+        min-width: 0;
     }
-} 
 
-.topbar-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-.user-icon { width: 36px; height: 36px; border-radius: 999px; background: var(--accent); margin:10px; color: white; border: none; font-weight: 700; }
-
-.user-dropdown {
-  position: absolute;
-  right: 18px;
-  top: 56px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 8px 30px rgba(2,6,23,0.08);
-  display: flex;
-  flex-direction: column;
-  padding: 8px;
-  z-index: 70;
+    .user-icon {
+        width: 36px;
+        height: 36px;
+    }
 }
-.user-dropdown .button-link { padding: 8px 12px; text-align: left; }
 
 .logo { width: 44px; height: 44px; border-radius: 8px; background: #fff; color: #0f172a; display:flex; align-items:center; justify-content:center; font-weight:800; margin-right:8px; }
 .brand-text { display:inline-block; font-size:1rem; margin-top:6px; }
+
+
+/* Desktop */
+
+/* Mobile Only */
+/* @media (max-width: 480px) { */
+
+    .topbar-right {
+        position: relative;
+        margin-left: auto;
+    }
+
+    /* Hide text buttons */
+    .topbar-right .button-link,
+    .topbar-right .topbar-link,
+    .topbar-right .nav-link {
+        display: flex;
+    }
+
+    /* Show only profile icon */
+    .user-icon {
+        width: 36px;
+        height: 36px;
+    }
+
+    /* Dropdown */
+    .user-dropdown {
+        position: absolute;
+        top: 48px;
+        right: 0;
+        min-width: 180px;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        box-shadow: 0 8px 24px rgba(0,0,0,.12);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        z-index: 999;
+    }
+
+    .user-dropdown.show {
+        display: flex;
+    }
+
+    .user-dropdown .button-link {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 12px 16px;
+        text-align: left;
+        background: none;
+        border: 0;
+    }
+
+    .user-dropdown .button-link:not(:last-child) {
+        border-bottom: 1px solid #eee;
+    }
 
 /* Edit modal form — compact label + input rows */
 .modal-body label {
@@ -2579,6 +2687,12 @@ opacity:.9;
   margin-left: 20px;
   margin-right: 20px;
   max-width: 100%;
+}
+/* 1024px */
+@media (max-width: 1024px) {
+    .app-content{
+        margin: 0 20px;
+    }
 }
 
 /* Genealogy tree styles */

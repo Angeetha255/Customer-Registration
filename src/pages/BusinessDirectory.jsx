@@ -22,6 +22,7 @@ export default function BusinessDirectory() {
   const [editingProductId, setEditingProductId] = useState(null)
   const [detailsModalOpen, setDetailsModalOpen] = useState(false)
   const [selectedCompanyId, setSelectedCompanyId] = useState(null)
+  const [selectedProductId, setSelectedProductId] = useState(null)
 
   // Master data states
   const [countries, setCountries] = useState([])
@@ -222,26 +223,51 @@ export default function BusinessDirectory() {
   const selectedCompany = companies.find((c) => c.id === selectedCompanyId) || null
 
   const getCompanyCategory = (company) => company.businesses?.[0]?.category || '—'
-  const getCompanyProductName = (company) => company.products?.[0]?.productName || '—'
 
   const closeDetailsModal = () => {
     setDetailsModalOpen(false)
     setSelectedCompanyId(null)
+    setSelectedProductId(null)
   }
 
-  const openDetailsModal = (company) => {
+  const openDetailsModal = (company, product = null) => {
     setSelectedCompanyId(company.id)
+    setSelectedProductId(product?.id || null)
     setDetailsModalOpen(true)
   }
 
-  const handleEditFromTable = (e, company) => {
+  // Build product rows: one row per product
+  const productRows = []
+  companies.forEach((company) => {
+    if (company.products && company.products.length > 0) {
+      company.products.forEach((product) => {
+        productRows.push({
+          company,
+          product,
+          key: `${company.id}-${product.id}`
+        })
+      })
+    } else {
+      // Company with no products - show one row with placeholder
+      productRows.push({
+        company,
+        product: null,
+        key: `${company.id}-no-product`
+      })
+    }
+  })
+
+  const handleEditFromTable = (e, company, product = null) => {
     e.stopPropagation()
     closeDetailsModal()
-    handleEditCompany(company)
+    handleEditCompany(company, product)
   }
 
-  const renderBusinessDetails = (company) => {
+  const renderBusinessDetails = (company, product = null) => {
     if (!company) return null
+
+    // Find the specific product to display
+    const selectedProduct = product || (selectedProductId ? company.products?.find(p => p.id === selectedProductId) : null)
 
     return (
       <div className="business-details-modal-content">
@@ -361,93 +387,91 @@ export default function BusinessDirectory() {
           </div>
         )}
 
-        {company.products && company.products.length > 0 && (
+        {selectedProduct && (
           <div className="business-card-section">
             <h4>Product Details</h4>
-            {company.products.map((product) => (
-              <div key={product.id} className="product-details-block">
-                <div className="business-details-grid">
-                  <div className="business-detail-item">
-                    <span className="business-detail-label">Product Name</span>
-                    <span className="business-detail-value">{product.productName}</span>
-                  </div>
-                  {product.productCategory && (
-                    <div className="business-detail-item">
-                      <span className="business-detail-label">Product Category</span>
-                      <span className="business-detail-value">{product.productCategory}</span>
-                    </div>
-                  )}
-                  <div className="business-detail-item">
-                    <span className="business-detail-label">Status</span>
-                    <span className="business-detail-value">{product.isEnabled ? 'Enabled' : 'Disabled'}</span>
-                  </div>
-                  {product.displayPrice && product.productMrp && (
-                    <div className="business-detail-item">
-                      <span className="business-detail-label">MRP</span>
-                      <span className="business-detail-value">₹{product.productMrp}</span>
-                    </div>
-                  )}
-                  {product.displayPrice && product.discountPercentage > 0 && (
-                    <div className="business-detail-item">
-                      <span className="business-detail-label">Discount</span>
-                      <span className="business-detail-value">{product.discountPercentage}%</span>
-                    </div>
-                  )}
-                  {product.displayPrice && product.discountPrice && (
-                    <div className="business-detail-item">
-                      <span className="business-detail-label">Price</span>
-                      <span className="business-detail-value">₹{product.discountPrice}</span>
-                    </div>
-                  )}
-                  {product.youtubeLink && (
-                    <div className="business-detail-item">
-                      <span className="business-detail-label">YouTube</span>
-                      <a href={product.youtubeLink} target="_blank" rel="noopener noreferrer" className="business-detail-link">
-                        View Video
-                      </a>
-                    </div>
-                  )}
+            <div className="product-details-block">
+              <div className="business-details-grid">
+                <div className="business-detail-item">
+                  <span className="business-detail-label">Product Name</span>
+                  <span className="business-detail-value">{selectedProduct.productName}</span>
                 </div>
-
-                {product.specifications && product.specifications.length > 0 && (
-                  <div className="product-specs-list">
-                    <h5>Specifications</h5>
-                    {product.specifications.map((spec, index) => (
-                      <div key={index} className="product-spec-item">
-                        <span className="business-detail-label">{spec.name}</span>
-                        <span className="business-detail-value">{spec.detail}</span>
-                      </div>
-                    ))}
+                {selectedProduct.productCategory && (
+                  <div className="business-detail-item">
+                    <span className="business-detail-label">Product Category</span>
+                    <span className="business-detail-value">{selectedProduct.productCategory}</span>
                   </div>
                 )}
-
-                {product.descriptions && product.descriptions.length > 0 && (
-                  <div className="product-descriptions-list">
-                    <h5>Descriptions</h5>
-                    {product.descriptions.map((desc, index) => (
-                      <p key={index} className="product-description-text">{desc}</p>
-                    ))}
+                <div className="business-detail-item">
+                  <span className="business-detail-label">Status</span>
+                  <span className="business-detail-value">{selectedProduct.isEnabled ? 'Enabled' : 'Disabled'}</span>
+                </div>
+                {selectedProduct.displayPrice && selectedProduct.productMrp && (
+                  <div className="business-detail-item">
+                    <span className="business-detail-label">MRP</span>
+                    <span className="business-detail-value">₹{selectedProduct.productMrp}</span>
                   </div>
                 )}
-
-                {(product.coverImage || (product.productImages && product.productImages.length > 0) || (product.gallery && product.gallery.length > 0)) && (
-                  <div className="product-images-preview">
-                    <h5>Images</h5>
-                    <div className="product-images-grid">
-                      {product.coverImage && (
-                        <img src={`/uploads/${product.coverImage}`} alt={`${product.productName} cover`} className="product-preview-image" />
-                      )}
-                      {(product.productImages || []).map((img, index) => (
-                        <img key={`pi-${index}`} src={`/uploads/${img}`} alt={`${product.productName} ${index + 1}`} className="product-preview-image" />
-                      ))}
-                      {(product.gallery || []).map((img, index) => (
-                        <img key={`g-${index}`} src={`/uploads/${img}`} alt={`${product.productName} gallery ${index + 1}`} className="product-preview-image" />
-                      ))}
-                    </div>
+                {selectedProduct.displayPrice && selectedProduct.discountPercentage > 0 && (
+                  <div className="business-detail-item">
+                    <span className="business-detail-label">Discount</span>
+                    <span className="business-detail-value">{selectedProduct.discountPercentage}%</span>
+                  </div>
+                )}
+                {selectedProduct.displayPrice && selectedProduct.discountPrice && (
+                  <div className="business-detail-item">
+                    <span className="business-detail-label">Price</span>
+                    <span className="business-detail-value">₹{selectedProduct.discountPrice}</span>
+                  </div>
+                )}
+                {selectedProduct.youtubeLink && (
+                  <div className="business-detail-item">
+                    <span className="business-detail-label">YouTube</span>
+                    <a href={selectedProduct.youtubeLink} target="_blank" rel="noopener noreferrer" className="business-detail-link">
+                      View Video
+                    </a>
                   </div>
                 )}
               </div>
-            ))}
+
+              {selectedProduct.specifications && selectedProduct.specifications.length > 0 && (
+                <div className="product-specs-list">
+                  <h5>Specifications</h5>
+                  {selectedProduct.specifications.map((spec, index) => (
+                    <div key={index} className="product-spec-item">
+                      <span className="business-detail-label">{spec.name}</span>
+                      <span className="business-detail-value">{spec.detail}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {selectedProduct.descriptions && selectedProduct.descriptions.length > 0 && (
+                <div className="product-descriptions-list">
+                  <h5>Descriptions</h5>
+                  {selectedProduct.descriptions.map((desc, index) => (
+                    <p key={index} className="product-description-text">{desc}</p>
+                  ))}
+                </div>
+              )}
+
+              {(selectedProduct.coverImage || (selectedProduct.productImages && selectedProduct.productImages.length > 0) || (selectedProduct.gallery && selectedProduct.gallery.length > 0)) && (
+                <div className="product-images-preview">
+                  <h5>Images</h5>
+                  <div className="product-images-grid">
+                    {selectedProduct.coverImage && (
+                      <img src={`/uploads/${selectedProduct.coverImage}`} alt={`${selectedProduct.productName} cover`} className="product-preview-image" />
+                    )}
+                    {(selectedProduct.productImages || []).map((img, index) => (
+                      <img key={`pi-${index}`} src={`/uploads/${img}`} alt={`${selectedProduct.productName} ${index + 1}`} className="product-preview-image" />
+                    ))}
+                    {(selectedProduct.gallery || []).map((img, index) => (
+                      <img key={`g-${index}`} src={`/uploads/${img}`} alt={`${selectedProduct.productName} gallery ${index + 1}`} className="product-preview-image" />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -542,7 +566,7 @@ export default function BusinessDirectory() {
   }
 
   // Handle edit company
-  const handleEditCompany = (company) => {
+  const handleEditCompany = (company, product = null) => {
     setViewMode('form')
     setActiveTab('company')
     setEditingCompanyId(company.id)
@@ -597,24 +621,26 @@ export default function BusinessDirectory() {
       })
     }
 
-    if (company.products && company.products.length > 0) {
-      const product = company.products[0]
-      setEditingProductId(product.id)
+    // Use the selected product if provided, otherwise use the first product
+    const productToEdit = product || (company.products && company.products.length > 0 ? company.products[0] : null)
+    
+    if (productToEdit) {
+      setEditingProductId(productToEdit.id)
       setProductForm({
         companyId: String(company.id),
         coverImage: null,
         productImages: [],
         gallery: [],
-        productName: product.productName,
-        displayPrice: Boolean(product.displayPrice),
-        productMrp: product.productMrp ? String(product.productMrp) : '',
-        discountPercentage: product.discountPercentage ? String(product.discountPercentage) : '',
-        discountPrice: product.discountPrice ? String(product.discountPrice) : '',
-        isEnabled: Boolean(product.isEnabled),
-        specifications: product.specifications ? product.specifications.map((s, i) => ({ id: Date.now() + i, ...s })) : [],
-        descriptions: product.descriptions ? product.descriptions.map((d, i) => ({ id: Date.now() + i, text: d })) : [],
-        youtubeLink: product.youtubeLink || '',
-        productCategory: product.productCategory || '',
+        productName: productToEdit.productName,
+        displayPrice: Boolean(productToEdit.displayPrice),
+        productMrp: productToEdit.productMrp ? String(productToEdit.productMrp) : '',
+        discountPercentage: productToEdit.discountPercentage ? String(productToEdit.discountPercentage) : '',
+        discountPrice: productToEdit.discountPrice ? String(productToEdit.discountPrice) : '',
+        isEnabled: Boolean(productToEdit.isEnabled),
+        specifications: productToEdit.specifications ? productToEdit.specifications.map((s, i) => ({ id: Date.now() + i, ...s })) : [],
+        descriptions: productToEdit.descriptions ? productToEdit.descriptions.map((d, i) => ({ id: Date.now() + i, text: d })) : [],
+        youtubeLink: productToEdit.youtubeLink || '',
+        productCategory: productToEdit.productCategory || '',
         addProduct: true
       })
     }
@@ -838,6 +864,19 @@ export default function BusinessDirectory() {
     }
   }, [productForm.productMrp, productForm.discountPercentage])
 
+  // Clear specifications when displayPrice is toggled to false
+  useEffect(() => {
+    if (!productForm.displayPrice) {
+      setProductForm(prev => ({
+        ...prev,
+        specifications: [],
+        productMrp: '',
+        discountPercentage: '',
+        discountPrice: ''
+      }))
+    }
+  }, [productForm.displayPrice])
+
   const handleProductSubmit = async (e) => {
     e.preventDefault()
     setError('')
@@ -1015,22 +1054,22 @@ export default function BusinessDirectory() {
                   </tr>
                 </thead>
                 <tbody>
-                  {companies.map((company) => (
+                  {productRows.map((row) => (
                     <tr
-                      key={company.id}
+                      key={row.key}
                       className="business-table-row"
-                      onClick={() => openDetailsModal(company)}
+                      onClick={() => openDetailsModal(row.company, row.product)}
                     >
-                      <td className="business-name-cell">{company.businessName}</td>
-                      <td>{getCompanyCategory(company)}</td>
-                      <td>{getCompanyProductName(company)}</td>
+                      <td className="business-name-cell">{row.company.businessName}</td>
+                      <td>{getCompanyCategory(row.company)}</td>
+                      <td>{row.product?.productName || '—'}</td>
                       <td className="actions-cell">
                         <button
                           type="button"
                           title="Edit"
                           className="icon-button"
-                          aria-label={`Edit ${company.businessName}`}
-                          onClick={(e) => handleEditFromTable(e, company)}
+                          aria-label={`Edit ${row.company.businessName}`}
+                          onClick={(e) => handleEditFromTable(e, row.company, row.product)}
                         >
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -1055,7 +1094,7 @@ export default function BusinessDirectory() {
             title="Business Details"
             cardClassName="business-details-modal"
           >
-            {renderBusinessDetails(selectedCompany)}
+            {renderBusinessDetails(selectedCompany, selectedProductId ? selectedCompany.products?.find(p => p.id === selectedProductId) : null)}
           </Modal>
         </div>
       ) : (
@@ -1214,6 +1253,15 @@ export default function BusinessDirectory() {
           />
 
           <FloatingInput
+            label="Google Maps Link"
+            name="mapLink"
+            type="url"
+            value={companyForm.mapLink}
+            onChange={handleCompanyChange}
+            placeholder="https://maps.google.com/..."
+          />
+
+          <FloatingInput
             label="GST Number"
             name="gstNumber"
             value={companyForm.gstNumber}
@@ -1249,14 +1297,7 @@ export default function BusinessDirectory() {
             placeholder="e.g., 50L, 2Cr, 1.5Cr"
           />
 
-          <FloatingInput
-            label="Google Maps Link"
-            name="mapLink"
-            type="url"
-            value={companyForm.mapLink}
-            onChange={handleCompanyChange}
-            placeholder="https://maps.google.com/..."
-          />
+          
 
           <div className="form-actions full-width">
             <button type="submit" className="button button-primary" disabled={loading}>
@@ -1453,6 +1494,14 @@ export default function BusinessDirectory() {
             type="select"
             options={companies.map(c => ({ value: c.id, label: c.businessName }))}
           />
+
+          <FloatingInput
+            label="Product Category"
+            name="productCategory"
+            value={productForm.productCategory}
+            onChange={handleProductChange}
+          />
+
           <FloatingInput
             label="Product Name *"
             name="productName"
@@ -1479,53 +1528,89 @@ export default function BusinessDirectory() {
                 <input
                   type="radio"
                   name="displayPrice"
-                  checked={productForm.displayPrice === true}
-                  onChange={() => setProductForm(prev => ({ ...prev, displayPrice: true }))}
-                />
-                Yes
-              </label>
-            </div>
-          </div><br/>
+                    checked={productForm.displayPrice === true}
+                   onChange={() => setProductForm(prev => ({ ...prev, displayPrice: true }))}
+                 />
+                 Yes
+               </label>
+             </div>
+           </div><br/>
 
-          {productForm.displayPrice && (
-            <>
-              <FloatingInput
-                label="Product MRP *"
-                name="productMrp"
-                type="number"
-                value={productForm.productMrp}
-                onChange={handleProductChange}
-                step="0.01"
-                min="0"
-                required
-              />
+           {productForm.displayPrice && (
+             <>
+               <FloatingInput
+                 label="Product MRP *"
+                 name="productMrp"
+                 type="number"
+                 value={productForm.productMrp}
+                 onChange={handleProductChange}
+                 step="0.01"
+                 min="0"
+                 required
+               />
 
-              <FloatingInput
-                label="Discount (%)"
-                name="discountPercentage"
-                type="number"
-                value={productForm.discountPercentage}
-                onChange={handleProductChange}
-                step="0.01"
-                min="0"
-                max="100"
-              />
+               <FloatingInput
+                 label="Discount (%)"
+                 name="discountPercentage"
+                 type="number"
+                 value={productForm.discountPercentage}
+                 onChange={handleProductChange}
+                 step="0.01"
+                 min="0"
+                 max="100"
+               />
 
-              {productForm.discountPrice && (
-                <div className="full-width" style={{ 
-                  padding: '0.75rem', 
-                  background: '#d4edda', 
-                  border: '1px solid #28a745',
-                  borderRadius: '4px',
-                  marginBottom: '1rem'
-                }}>
-                  <strong>Discount Price: ₹{productForm.discountPrice}</strong>
-                </div>
-              )}
-            </>
-          )}
+               {productForm.discountPrice && (
+                 <div className="full-width" style={{ 
+                   padding: '0.75rem', 
+                   background: '#d4edda', 
+                   border: '1px solid #28a745',
+                   borderRadius: '4px',
+                   marginBottom: '1rem'
+                 }}>
+                   <strong>Discount Price: ₹{productForm.discountPrice}</strong>
+                 </div>
+               )}
 
-          <div className="full-width">
+               <div className="full-width">
+                 <h3>Product Specifications</h3>
+                 {productForm.specifications.map((spec, index) => (
+                   <div key={spec.id} className="specification-row">
+                     <FloatingInput
+                       label={`Specification ${index + 1} - Name`}
+                       value={spec.name}
+                       onChange={(e) => updateSpecification(spec.id, 'name', e.target.value)}
+                       placeholder="e.g., Size, Color"
+                     />
+                     <FloatingInput
+                       label={`Specification ${index + 1} - Detail`}
+                       value={spec.detail}
+                       onChange={(e) => updateSpecification(spec.id, 'detail', e.target.value)}
+                       placeholder="e.g., 40 cm, Black"
+                     />
+                     <button
+                       type="button"
+                       className="button button-danger button-small"
+                       onClick={() => removeSpecification(spec.id)}
+                       style={{ marginTop: '1.5rem' }}
+                     >
+                       Remove
+                     </button>
+                   </div>
+                 ))}
+                 <button
+                   type="button"
+                   className="button button-secondary button-small"
+                   onClick={addSpecification}
+                   style={{ marginTop: '0.5rem' }}
+                 >
+                   + Add Specification
+                 </button>
+               </div>
+             </>
+            )}
+
+          {/* <div className="full-width">
             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: '600', color: 'var(--text)' }}>
               Enable Product?
             </label>
@@ -1549,43 +1634,9 @@ export default function BusinessDirectory() {
                 No
               </label>
             </div>
-          </div>
+          </div> */}
 
-          <div className="full-width">
-            <h3>Product Specifications</h3>
-            {productForm.specifications.map((spec, index) => (
-              <div key={spec.id} className="specification-row">
-                <FloatingInput
-                  label={`Specification ${index + 1} - Name`}
-                  value={spec.name}
-                  onChange={(e) => updateSpecification(spec.id, 'name', e.target.value)}
-                  placeholder="e.g., Size, Color"
-                />
-                <FloatingInput
-                  label={`Specification ${index + 1} - Detail`}
-                  value={spec.detail}
-                  onChange={(e) => updateSpecification(spec.id, 'detail', e.target.value)}
-                  placeholder="e.g., 40 cm, Black"
-                />
-                <button
-                  type="button"
-                  className="button button-danger button-small"
-                  onClick={() => removeSpecification(spec.id)}
-                  style={{ marginTop: '1.5rem' }}
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              className="button button-secondary button-small"
-              onClick={addSpecification}
-              style={{ marginTop: '0.5rem' }}
-            >
-              + Add Specification
-            </button>
-          </div><br/>
+           <br/>
 
           <FloatingInput
             label="YouTube Link"
@@ -1596,12 +1647,7 @@ export default function BusinessDirectory() {
             placeholder="https://www.youtube.com/watch?v=..."
           />
 
-          <FloatingInput
-            label="Product Category"
-            name="productCategory"
-            value={productForm.productCategory}
-            onChange={handleProductChange}
-          />
+          
 
           <div className="full-width">
             <h3>Product Description</h3>
