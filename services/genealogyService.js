@@ -296,6 +296,8 @@ export const buildReferralHierarchyForUser = async (currentUserId) => {
 }
 
 export const getPlacementLevelSummary = async (rootId) => {
+  clearLevelCache()
+  
   const rows = await User.findAll({
     attributes: GENEALOGY_ATTRS,
     order: [['id', 'ASC']],
@@ -351,6 +353,8 @@ export const getPlacementLevelSummary = async (rootId) => {
  * Get enriched root node for Team View.
  */
 export const getTeamViewRoot = async (rootId) => {
+  clearLevelCache()
+  
   const user = await User.findByPk(rootId, { attributes: GENEALOGY_ATTRS })
   if (!user) return null
 
@@ -367,6 +371,9 @@ export const getTeamViewRoot = async (rootId) => {
  * Build placement binary tree rooted at userId (full tree — admin/debug use).
  */
 export const buildPlacementTree = async (rootId) => {
+  // Clear the level cache before building a new tree to ensure correct levels
+  clearLevelCache()
+  
   const root = await User.findByPk(rootId, { attributes: GENEALOGY_ATTRS })
   if (!root) return null
 
@@ -409,6 +416,8 @@ export const buildPlacementTree = async (rootId) => {
  * Build placement subtree for a node (lazy load for expand/collapse).
  */
 export const getPlacementChildren = async (parentId) => {
+  clearLevelCache()
+  
   const children = await User.findAll({
     where: { placeid: parentId },
     attributes: GENEALOGY_ATTRS,
@@ -445,6 +454,8 @@ export const hasPlacementChildren = async (userId) => {
  * Get all users at a specific placement level from the tree root.
  */
 export const getPlacementLevelUsers = async (rootId, level) => {
+  clearLevelCache()
+  
   const rows = await User.findAll({
     attributes: GENEALOGY_ATTRS,
     order: [['id', 'ASC']],

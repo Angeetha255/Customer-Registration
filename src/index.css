@@ -5160,7 +5160,7 @@ input[type="file"]::file-selector-button {
 
   .data-table th,
   .data-table td {
-    padding: 0.75rem 0.5rem;
+    padding: 0.4rem 0.4rem;
   }
 
   .form-card {

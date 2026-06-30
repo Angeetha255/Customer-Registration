@@ -9,6 +9,7 @@ import companyRoutes from './routes/company.js'
 import businessDirectoryRoutes from './routes/businessDirectory.js'
 import productRoutes from './routes/product.js'
 import masterDataRoutes from './routes/masterData.js'
+import publicRoutes from './routes/public.js'
 import db from './models/index.js'
 import Admin from './models/Admin.js'
 import User from './models/User.js'   // must be imported so sequelize.sync() creates the users table
@@ -34,6 +35,7 @@ app.use('/api/company', companyRoutes)
 app.use('/api/business-directory', businessDirectoryRoutes)
 app.use('/api/product', productRoutes)
 app.use('/api/master-data', masterDataRoutes)
+app.use('/api/public', publicRoutes)
 app.use('/uploads', express.static('uploads'))
 
 app.get('/', (_req, res) => {
