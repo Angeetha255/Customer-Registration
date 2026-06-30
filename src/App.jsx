@@ -14,6 +14,7 @@ import Profile from './pages/Profile.jsx'
 import AdminLogin from './pages/AdminLogin.jsx'
 import AdminDashboard from './pages/AdminDashboard.jsx'
 import AdminCustomers from './pages/AdminCustomers.jsx'
+import AdminVerify from './pages/AdminVerify.jsx'
 import Settings from './pages/Settings.jsx'
 import BusinessDirectory from './pages/BusinessDirectory.jsx'
 import MyDirect from './pages/MyDirect.jsx'
@@ -460,6 +461,7 @@ function AppRoutes() {
       <Route path="/admin/masters/categories" element={<AdminRoute><MasterCategories /></AdminRoute>} />
       <Route path="/admin/masters/subcategories" element={<AdminRoute><MasterSubCategories /></AdminRoute>} />
       <Route path="/admin/settings" element={<AdminRoute><Settings /></AdminRoute>} />
+      <Route path="/admin/verify" element={<AdminRoute><AdminVerify /></AdminRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   )

@@ -55,14 +55,18 @@ export default function BusinessDirectory() {
   // Business Directory form state
   const [businessDirectoryForm, setBusinessDirectoryForm] = useState({
     companyId: '',
-    category: '',
-    subcategory: '',
+    category: [],
+    subcategory: [],
     website: '',
     description: '',
     businessHoursGroups: [
       { id: 1, days: [], openTime: '', closeTime: '' }
     ]
   })
+
+  // Store subcategories grouped by category ID
+  const [subcategoriesByCategory, setSubcategoriesByCategory] = useState({})
+  const [loadingSubcategories, setLoadingSubcategories] = useState(false)
 
   // Product form state
   const [productForm, setProductForm] = useState({
@@ -162,29 +166,51 @@ export default function BusinessDirectory() {
     loadAreas()
   }, [companyForm.district, districts])
 
-  // Fetch all subcategories with their categories for the dropdown
+  // Fetch subcategories for selected categories
   useEffect(() => {
-    const loadAllSubcategories = async () => {
+    const loadSubcategoriesForCategories = async () => {
+      if (!businessDirectoryForm.category || businessDirectoryForm.category.length === 0) {
+        setSubcategoriesByCategory({})
+        return
+      }
+
+      setLoadingSubcategories(true)
       try {
-        // Fetch all subcategories (API now returns category data included)
-        const token = localStorage.getItem('userToken') || sessionStorage.getItem('userToken')
-        const res = await fetch(`${API_BASE}/master-data/subcategories`, {
-          headers: {
-            Authorization: `Bearer ${token}`
+        const selectedCategoryObjects = categories.filter(cat => 
+          businessDirectoryForm.category.includes(cat.categoryName)
+        )
+
+        const subcategoryPromises = selectedCategoryObjects.map(async (cat) => {
+          const res = await fetchSubcategories(cat.id)
+          return {
+            categoryId: cat.id,
+            categoryName: cat.categoryName,
+            subcategories: res.subcategories || []
           }
         })
-        const data = await res.json()
-        if (Array.isArray(data.subcategories)) {
-          setSubcategories(data.subcategories)
-        }
+
+        const results = await Promise.all(subcategoryPromises)
+        
+        const grouped = {}
+        results.forEach(result => {
+          grouped[result.categoryId] = {
+            categoryName: result.categoryName,
+            subcategories: result.subcategories
+          }
+        })
+
+        setSubcategoriesByCategory(grouped)
       } catch (err) {
         console.error('Failed to fetch subcategories:', err)
+      } finally {
+        setLoadingSubcategories(false)
       }
     }
-    loadAllSubcategories()
-  }, [])
 
-  // Auto-detect category from subcategory selection
+    loadSubcategoriesForCategories()
+  }, [businessDirectoryForm.category, categories])
+
+  // Auto-detect category from subcategory selection (for backward compatibility)
   useEffect(() => {
     if (!businessDirectoryForm.subcategory || subcategories.length === 0) {
       return
@@ -192,9 +218,14 @@ export default function BusinessDirectory() {
 
     const selectedSub = subcategories.find(sub => sub.subcategoryName === businessDirectoryForm.subcategory)
     if (selectedSub && selectedSub.categoryName) {
-      setBusinessDirectoryForm(prev => ({ ...prev, category: selectedSub.categoryName }))
-    } else if (selectedSub && selectedSub.category) {
-      setBusinessDirectoryForm(prev => ({ ...prev, category: selectedSub.category.categoryName || selectedSub.category }))
+      const catName = selectedSub.categoryName
+      setBusinessDirectoryForm(prev => {
+        const currentCategories = Array.isArray(prev.category) ? prev.category : []
+        if (!currentCategories.includes(catName)) {
+          return { ...prev, category: [...currentCategories, catName] }
+        }
+        return prev
+      })
     }
   }, [businessDirectoryForm.subcategory, subcategories])
 
@@ -565,6 +596,81 @@ export default function BusinessDirectory() {
     }))
   }
 
+  // Get all available subcategories from selected categories
+  const getAvailableSubcategories = () => {
+    const allSubs = []
+    Object.values(subcategoriesByCategory).forEach(catData => {
+      allSubs.push(...catData.subcategories)
+    })
+    return allSubs
+  }
+
+  // Handle category selection/deselection
+  const handleCategoryCheckboxChange = (categoryName) => {
+    setBusinessDirectoryForm(prev => {
+      const currentCategories = Array.isArray(prev.category) ? prev.category : []
+      const isSelected = currentCategories.includes(categoryName)
+      
+      let newCategories
+      if (isSelected) {
+        // Remove category
+        newCategories = currentCategories.filter(c => c !== categoryName)
+        
+        // Find category ID and remove its subcategories
+        const categoryToRemove = categories.find(c => c.categoryName === categoryName)
+        if (categoryToRemove) {
+          const subsToRemove = subcategoriesByCategory[categoryToRemove.id]?.subcategories || []
+          const subNamesToRemove = subsToRemove.map(s => s.subcategoryName)
+          const newSubcategories = (Array.isArray(prev.subcategory) ? prev.subcategory : [])
+            .filter(s => !subNamesToRemove.includes(s))
+          
+          return {
+            ...prev,
+            category: newCategories,
+            subcategory: newSubcategories
+          }
+        }
+      } else {
+        // Add category
+        newCategories = [...currentCategories, categoryName]
+      }
+      
+      return {
+        ...prev,
+        category: newCategories
+      }
+    })
+  }
+
+  // Handle subcategory selection/deselection
+  const handleSubcategoryCheckboxChange = (subcategoryName) => {
+    setBusinessDirectoryForm(prev => {
+      const currentSubs = Array.isArray(prev.subcategory) ? prev.subcategory : []
+      const isSelected = currentSubs.includes(subcategoryName)
+      
+      if (isSelected) {
+        // Deselect
+        return {
+          ...prev,
+          subcategory: currentSubs.filter(s => s !== subcategoryName)
+        }
+      } else {
+        // Check if already at limit
+        if (currentSubs.length >= 10) {
+          setError('Maximum 10 subcategories can be selected.')
+          setTimeout(() => setError(''), 3000)
+          return prev
+        }
+        
+        // Select
+        return {
+          ...prev,
+          subcategory: [...currentSubs, subcategoryName]
+        }
+      }
+    })
+  }
+
   // Handle edit company
   const handleEditCompany = (company, product = null) => {
     setViewMode('form')
@@ -715,8 +821,14 @@ export default function BusinessDirectory() {
 
     try {
       // Validation
-      if (!businessDirectoryForm.subcategory) {
-        setError('Subcategory is required')
+      if (!Array.isArray(businessDirectoryForm.category) || businessDirectoryForm.category.length === 0) {
+        setError('At least one category is required')
+        setLoading(false)
+        return
+      }
+
+      if (!Array.isArray(businessDirectoryForm.subcategory) || businessDirectoryForm.subcategory.length === 0) {
+        setError('At least one subcategory is required')
         setLoading(false)
         return
       }
@@ -739,8 +851,24 @@ export default function BusinessDirectory() {
         })
       })
 
+      // Get category IDs and subcategory IDs
+      const selectedCategoryObjects = categories.filter(cat => 
+        businessDirectoryForm.category.includes(cat.categoryName)
+      )
+      const categoryIds = selectedCategoryObjects.map(cat => cat.id)
+
+      const allAvailableSubs = getAvailableSubcategories()
+      const selectedSubcategoryObjects = allAvailableSubs.filter(sub =>
+        businessDirectoryForm.subcategory.includes(sub.subcategoryName)
+      )
+      const subcategoryIds = selectedSubcategoryObjects.map(sub => sub.id)
+
       const businessDirectoryDataForAPI = {
-        ...businessDirectoryForm,
+        companyId: businessDirectoryForm.companyId,
+        category: categoryIds,
+        subcategory: subcategoryIds,
+        website: businessDirectoryForm.website,
+        description: businessDirectoryForm.description,
         businessHours
       }
 
@@ -756,14 +884,15 @@ export default function BusinessDirectory() {
       // Reset form
       setBusinessDirectoryForm({
         companyId: '',
-        category: '',
-        subcategory: '',
+        category: [],
+        subcategory: [],
         website: '',
         description: '',
         businessHoursGroups: [
           { id: 1, days: [], openTime: '', closeTime: '' }
         ]
       })
+      setSubcategoriesByCategory({})
       setEditingBusinessId(null)
 
       // Refresh business directories list
@@ -1008,12 +1137,13 @@ export default function BusinessDirectory() {
               })
               setBusinessDirectoryForm({
                 companyId: '',
-                category: '',
-                subcategory: '',
+                category: [],
+                subcategory: [],
                 website: '',
                 description: '',
                 businessHoursGroups: [{ id: 1, days: [], openTime: '', closeTime: '' }]
               })
+              setSubcategoriesByCategory({})
               setProductForm({
                 companyId: '',
                 coverImage: null,
@@ -1177,7 +1307,7 @@ export default function BusinessDirectory() {
             onChange={handleCompanyChange}
           />
 
-           <FloatingInput
+          <FloatingInput
             label="Mobile Number"
             name="mobileNumber"
             type="tel"
@@ -1185,6 +1315,30 @@ export default function BusinessDirectory() {
             onChange={(e) => {
               const digits = e.target.value.replace(/\D/g, '').slice(0, 10)
               setCompanyForm(prev => ({ ...prev, mobileNumber: digits }))
+            }}
+            inputProps={{ inputMode: 'numeric', maxLength: 10 }}
+          />
+
+          <FloatingInput
+            label="Telephone Number"
+            name="telephoneNumber"
+            type="tel"
+            value={companyForm.telephoneNumber}
+            onChange={(e) => {
+              const digits = e.target.value.replace(/\D/g, '').slice(0, 10)
+              setCompanyForm(prev => ({ ...prev, telephoneNumber: digits }))
+            }}
+            inputProps={{ inputMode: 'numeric', maxLength: 10 }}
+          />
+
+          <FloatingInput
+            label="Additional Mobile Number"
+            name="additionalMobileNumber"
+            type="tel"
+            value={companyForm.additionalMobileNumber}
+            onChange={(e) => {
+              const digits = e.target.value.replace(/\D/g, '').slice(0, 10)
+              setCompanyForm(prev => ({ ...prev, additionalMobileNumber: digits }))
             }}
             inputProps={{ inputMode: 'numeric', maxLength: 10 }}
           />
@@ -1319,24 +1473,186 @@ export default function BusinessDirectory() {
             options={companies.map(c => ({ value: c.id, label: c.businessName }))}
           />
 
-          <FloatingInput
-            label="Subcategory *"
-            name="subcategory"
-            value={businessDirectoryForm.subcategory}
-            onChange={handleBusinessDirectoryChange}
-            required
-            type="select"
-            options={subcategories.map(sub => ({ value: sub.subcategoryName, label: sub.subcategoryName }))}
-          />
+          {/* Category Multi-Select with Chips */}
+          <div className="full-width">
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: '600', color: 'var(--text)' }}>
+              Category * <span style={{ color: 'var(--muted)', fontWeight: '400' }}>(Select multiple)</span>
+            </label>
+            
+            {/* Selected Categories as Chips */}
+            {Array.isArray(businessDirectoryForm.category) && businessDirectoryForm.category.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                {businessDirectoryForm.category.map((catName) => (
+                  <span
+                    key={catName}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      padding: '0.4rem 0.75rem',
+                      background: 'var(--primary)',
+                      color: 'white',
+                      borderRadius: '20px',
+                      fontSize: '0.9rem',
+                      fontWeight: '500'
+                    }}
+                  >
+                    {catName}
+                    <button
+                      type="button"
+                      onClick={() => handleCategoryCheckboxChange(catName)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'white',
+                        cursor: 'pointer',
+                        padding: '0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        fontSize: '1.2rem',
+                        lineHeight: 1
+                      }}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
 
-          {businessDirectoryForm.category && (
+            {/* Category Search and Selection */}
+            <div style={{ position: 'relative' }}>
+              <input
+                type="text"
+                placeholder="Search and select categories..."
+                style={{
+                  width: '100%',
+                  padding: '0.6rem',
+                  border: '1px solid var(--border)',
+                  borderRadius: '4px',
+                  fontSize: '0.95rem'
+                }}
+                onChange={(e) => {
+                  const searchTerm = e.target.value.toLowerCase()
+                  const filtered = categories.filter(cat => 
+                    cat.categoryName.toLowerCase().includes(searchTerm) &&
+                    !businessDirectoryForm.category.includes(cat.categoryName)
+                  )
+                  // Show filtered results in a dropdown
+                  if (filtered.length > 0) {
+                    // This is a simplified version - you can enhance with a proper dropdown
+                  }
+                }}
+              />
+            </div>
+
+            {/* Quick Category Selection */}
+            <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+              {categories.map((cat) => {
+                const isSelected = Array.isArray(businessDirectoryForm.category) && businessDirectoryForm.category.includes(cat.categoryName)
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => handleCategoryCheckboxChange(cat.categoryName)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}`,
+                      background: isSelected ? 'var(--primary)' : 'white',
+                      color: isSelected ? 'white' : 'var(--text)',
+                      borderRadius: '20px',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      fontWeight: isSelected ? '500' : '400',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {isSelected ? '✓ ' : ''}{cat.categoryName}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Subcategories Grouped by Category */}
+          {Array.isArray(businessDirectoryForm.category) && businessDirectoryForm.category.length > 0 && (
             <div className="full-width" style={{ 
-              padding: '0.75rem', 
-              
+              padding: '1rem', 
+              background: 'var(--surface)',
               borderRadius: '4px',
-              marginBottom: '1rem'
+              marginBottom: '1rem',
+              border: '1px solid var(--border)'
             }}>
-              <strong>⭐ Category: {businessDirectoryForm.category}</strong>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <strong>📋 Select Subcategories</strong>
+                <span style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>
+                  {businessDirectoryForm.subcategory.length}/10 selected
+                </span>
+              </div>
+              
+              {(() => {
+                // Group subcategories by category
+                const groupedSubcategories = {}
+                const availableSubs = getAvailableSubcategories()
+                
+                availableSubs.forEach(sub => {
+                  const catName = sub.category?.categoryName || sub.categoryName
+                  if (!groupedSubcategories[catName]) {
+                    groupedSubcategories[catName] = []
+                  }
+                  groupedSubcategories[catName].push(sub)
+                })
+
+                return Object.entries(groupedSubcategories).map(([catName, subs]) => (
+                  <div key={catName} style={{ marginBottom: '1.5rem' }}>
+                    <h4 style={{ 
+                      margin: '0 0 0.75rem 0', 
+                      padding: '0.5rem',
+                      background: 'var(--primary)',
+                      color: 'white',
+                      borderRadius: '4px',
+                      fontSize: '0.95rem'
+                    }}>
+                      {catName}
+                    </h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
+                      {subs.map((sub) => {
+                        const isSelected = Array.isArray(businessDirectoryForm.subcategory) && 
+                                         businessDirectoryForm.subcategory.includes(sub.subcategoryName)
+                        return (
+                          <label
+                            key={sub.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                              padding: '0.5rem',
+                              background: 'white',
+                              border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}`,
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '0.9rem'
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleSubcategoryCheckboxChange(sub.subcategoryName)}
+                              style={{ 
+                                width: '16px', 
+                                height: '16px', 
+                                cursor: 'pointer',
+                                accentColor: 'var(--primary)'
+                              }}
+                            />
+                            <span>{sub.subcategoryName}</span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))
+              })()}
             </div>
           )}
 

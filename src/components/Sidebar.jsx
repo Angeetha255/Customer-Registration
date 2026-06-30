@@ -102,6 +102,7 @@ export default function Sidebar({ open, onToggle }) {
 
   const companyItems = [
     { label: 'Set prefix', path: '/admin/settings', icon: 'Settings' },
+    { label: 'Verify', path: '/admin/verify', icon: 'Eye' },
   ]
 
   const mastersItems = [

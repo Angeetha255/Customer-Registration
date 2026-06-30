@@ -18,14 +18,18 @@ router.post('/', authMiddleware, async (req, res) => {
     } = req.body
 
     // Validation
-    if (!category) {
-      return res.status(400).json({ message: 'Category is required' })
+    if (!category || !Array.isArray(category) || category.length === 0) {
+      return res.status(400).json({ message: 'At least one category is required' })
+    }
+
+    if (subcategory && Array.isArray(subcategory) && subcategory.length > 10) {
+      return res.status(400).json({ message: 'Maximum 10 subcategories can be selected' })
     }
 
     const business = await Business.create({
       companyId: companyId || null,
-      category,
-      subcategory: subcategory || null,
+      category: JSON.stringify(category),
+      subcategory: subcategory ? JSON.stringify(subcategory) : null,
       website: website || null,
       description: description || null,
       businessHours: businessHours || null,
@@ -52,8 +56,12 @@ router.put('/:id', authMiddleware, async (req, res) => {
     } = req.body
 
     // Validation
-    if (!category) {
-      return res.status(400).json({ message: 'Category is required' })
+    if (!category || !Array.isArray(category) || category.length === 0) {
+      return res.status(400).json({ message: 'At least one category is required' })
+    }
+
+    if (subcategory && Array.isArray(subcategory) && subcategory.length > 10) {
+      return res.status(400).json({ message: 'Maximum 10 subcategories can be selected' })
     }
 
     const business = await Business.findOne({
@@ -66,8 +74,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
     await business.update({
       companyId: companyId || null,
-      category,
-      subcategory: subcategory || null,
+      category: JSON.stringify(category),
+      subcategory: subcategory ? JSON.stringify(subcategory) : null,
       website: website || null,
       description: description || null,
       businessHours: businessHours || null,
@@ -87,7 +95,28 @@ router.get('/', authMiddleware, async (req, res) => {
       where: { createdBy: req.user.id },
       order: [['id', 'DESC']]
     })
-    res.json({ businesses })
+    
+    // Parse JSON fields before sending
+    const parsedBusinesses = businesses.map(business => {
+      const data = business.toJSON()
+      if (data.category && typeof data.category === 'string') {
+        try {
+          data.category = JSON.parse(data.category)
+        } catch (e) {
+          data.category = []
+        }
+      }
+      if (data.subcategory && typeof data.subcategory === 'string') {
+        try {
+          data.subcategory = JSON.parse(data.subcategory)
+        } catch (e) {
+          data.subcategory = []
+        }
+      }
+      return data
+    })
+    
+    res.json({ businesses: parsedBusinesses })
   } catch (err) {
     console.error('Error fetching businesses:', err)
     res.status(500).json({ message: 'Failed to fetch businesses' })
@@ -103,7 +132,25 @@ router.get('/:id', authMiddleware, async (req, res) => {
     if (!business) {
       return res.status(404).json({ message: 'Business not found' })
     }
-    res.json({ business })
+    
+    // Parse JSON fields before sending
+    const data = business.toJSON()
+    if (data.category && typeof data.category === 'string') {
+      try {
+        data.category = JSON.parse(data.category)
+      } catch (e) {
+        data.category = []
+      }
+    }
+    if (data.subcategory && typeof data.subcategory === 'string') {
+      try {
+        data.subcategory = JSON.parse(data.subcategory)
+      } catch (e) {
+        data.subcategory = []
+      }
+    }
+    
+    res.json({ business: data })
   } catch (err) {
     console.error('Error fetching business:', err)
     res.status(500).json({ message: 'Failed to fetch business' })
