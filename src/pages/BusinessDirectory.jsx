@@ -1792,7 +1792,7 @@ export default function BusinessDirectory() {
             </div>
           )}
 
-        <br/>  <FloatingInput
+          <FloatingInput
             label="Website"
             name="website"
             type="url"

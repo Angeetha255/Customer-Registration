@@ -10,6 +10,7 @@ import businessDirectoryRoutes from './routes/businessDirectory.js'
 import productRoutes from './routes/product.js'
 import masterDataRoutes from './routes/masterData.js'
 import publicRoutes from './routes/public.js'
+import emailVerificationRoutes from './routes/emailVerification.js'
 import db from './models/index.js'
 import Admin from './models/Admin.js'
 import User from './models/User.js'   // must be imported so sequelize.sync() creates the users table
@@ -17,6 +18,7 @@ import Settings from './models/Settings.js'
 import Company from './models/Company.js'
 import Business from './models/Business.js'
 import Product from './models/Product.js'
+import Review from './models/Review.js'
 import bcrypt from 'bcrypt'
 import { sequelize } from './models/sequelize.js'
 
@@ -36,6 +38,7 @@ app.use('/api/business-directory', businessDirectoryRoutes)
 app.use('/api/product', productRoutes)
 app.use('/api/master-data', masterDataRoutes)
 app.use('/api/public', publicRoutes)
+app.use('/api/public/email-verification', emailVerificationRoutes)
 app.use('/uploads', express.static('uploads'))
 
 app.get('/', (_req, res) => {
@@ -98,3 +101,4 @@ const start = async () => {
 }
 
 start()
+
