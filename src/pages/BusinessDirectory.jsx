@@ -408,12 +408,6 @@ export default function BusinessDirectory() {
                 }
                 return null
               })}
-              {company.businesses[0].businessHours.Sunday?.isWorkingDay === false && (
-                <div className="business-hours-item">
-                  <span className="business-hours-days">Sunday</span>
-                  <span className="business-hours-time">Closed</span>
-                </div>
-              )}
             </div>
           </div>
         )}
