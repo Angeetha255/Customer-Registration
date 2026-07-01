@@ -102,7 +102,7 @@ export default function Sidebar({ open, onToggle }) {
 
   const companyItems = [
     { label: 'Set prefix', path: '/admin/settings', icon: 'Settings' },
-    { label: 'Verify', path: '/admin/verify', icon: 'Eye' },
+    { label: 'Badges', path: '/admin/verify', icon: 'Eye' },
   ]
 
   const mastersItems = [
@@ -116,9 +116,10 @@ export default function Sidebar({ open, onToggle }) {
 
   const adminItems = [
     { label: 'Dashboard', path: '/admin', icon: 'Dashboard' },
+    { label: 'Company', isSection: true, icon: 'Company', items: companyItems },
     { label: 'Users', path: '/admin/customers', icon: 'Users' },
     { label: 'Masters', isSection: true, icon: 'Masters', items: mastersItems },
-    { label: 'Company', isSection: true, icon: 'Company', items: companyItems },
+    
   ]
 
   const genealogyItems = [

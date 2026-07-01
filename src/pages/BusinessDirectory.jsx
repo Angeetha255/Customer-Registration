@@ -672,7 +672,7 @@ export default function BusinessDirectory() {
   }
 
   // Handle edit company
-  const handleEditCompany = (company, product = null) => {
+  const handleEditCompany = async (company, product = null) => {
     setViewMode('form')
     setActiveTab('company')
     setEditingCompanyId(company.id)
@@ -717,10 +717,50 @@ export default function BusinessDirectory() {
         }
       })
 
+      // Handle category - convert IDs to names if needed
+      let categoryValue = business.category || []
+      if (typeof business.category === 'string') {
+        try {
+          const parsed = JSON.parse(business.category)
+          // If it's an array of numbers, they are IDs - convert to names
+          if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'number') {
+            const matchedCategories = categories.filter(cat => parsed.includes(cat.id))
+            categoryValue = matchedCategories.map(cat => cat.categoryName)
+          } else {
+            // It's already a string (could be JSON string of names or single name)
+            categoryValue = parsed
+          }
+        } catch (e) {
+          // If JSON.parse fails, it's likely a plain string name
+          categoryValue = business.category
+        }
+      }
+
+      // Handle subcategory - convert IDs to names if needed
+      let subcategoryValue = business.subcategory || []
+      if (typeof business.subcategory === 'string') {
+        try {
+          const parsed = JSON.parse(business.subcategory)
+          // If it's an array of numbers, they are IDs - convert to names
+          if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'number') {
+            // Fetch all subcategories and match by IDs
+            const allSubcategories = await fetchSubcategories().then(res => res.subcategories || [])
+            const matchedSubcategories = allSubcategories.filter(sub => parsed.includes(sub.id))
+            subcategoryValue = matchedSubcategories.map(sub => sub.subcategoryName)
+          } else {
+            // It's already a string (could be JSON string of names or single name)
+            subcategoryValue = parsed
+          }
+        } catch (e) {
+          // If JSON.parse fails, it's likely a plain string name
+          subcategoryValue = business.subcategory
+        }
+      }
+
       setBusinessDirectoryForm({
         companyId: String(company.id),
-        category: business.category || '',
-        subcategory: business.subcategory || '',
+        category: categoryValue,
+        subcategory: subcategoryValue,
         website: business.website || '',
         description: business.description || '',
         businessHoursGroups: groups.length > 0 ? groups : [{ id: 1, days: [], openTime: '', closeTime: '' }]
@@ -851,22 +891,11 @@ export default function BusinessDirectory() {
         })
       })
 
-      // Get category IDs and subcategory IDs
-      const selectedCategoryObjects = categories.filter(cat => 
-        businessDirectoryForm.category.includes(cat.categoryName)
-      )
-      const categoryIds = selectedCategoryObjects.map(cat => cat.id)
-
-      const allAvailableSubs = getAvailableSubcategories()
-      const selectedSubcategoryObjects = allAvailableSubs.filter(sub =>
-        businessDirectoryForm.subcategory.includes(sub.subcategoryName)
-      )
-      const subcategoryIds = selectedSubcategoryObjects.map(sub => sub.id)
-
+      // Store actual category names and subcategory names (not IDs)
       const businessDirectoryDataForAPI = {
         companyId: businessDirectoryForm.companyId,
-        category: categoryIds,
-        subcategory: subcategoryIds,
+        category: businessDirectoryForm.category, // Store category names
+        subcategory: businessDirectoryForm.subcategory, // Store subcategory names
         website: businessDirectoryForm.website,
         description: businessDirectoryForm.description,
         businessHours
@@ -1479,52 +1508,11 @@ export default function BusinessDirectory() {
               Category * <span style={{ color: 'var(--muted)', fontWeight: '400' }}>(Select multiple)</span>
             </label>
             
-            {/* Selected Categories as Chips */}
-            {Array.isArray(businessDirectoryForm.category) && businessDirectoryForm.category.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                {businessDirectoryForm.category.map((catName) => (
-                  <span
-                    key={catName}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      padding: '0.4rem 0.75rem',
-                      background: 'var(--primary)',
-                      color: 'white',
-                      borderRadius: '20px',
-                      fontSize: '0.9rem',
-                      fontWeight: '500'
-                    }}
-                  >
-                    {catName}
-                    <button
-                      type="button"
-                      onClick={() => handleCategoryCheckboxChange(catName)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'white',
-                        cursor: 'pointer',
-                        padding: '0',
-                        display: 'flex',
-                        alignItems: 'center',
-                        fontSize: '1.2rem',
-                        lineHeight: 1
-                      }}
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Category Search and Selection */}
-            <div style={{ position: 'relative' }}>
+            {/* Category Search Box - Always at Top */}
+            <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
               <input
                 type="text"
-                placeholder="Search and select categories..."
+                placeholder="Search categories..."
                 style={{
                   width: '100%',
                   padding: '0.6rem',
@@ -1545,6 +1533,59 @@ export default function BusinessDirectory() {
                 }}
               />
             </div>
+
+            {/* Selected Categories as Chips - Below Search Box */}
+            {Array.isArray(businessDirectoryForm.category) && businessDirectoryForm.category.length > 0 && (
+              <div style={{ marginBottom: '1rem' }}>
+                <div style={{ fontSize: '0.85rem', color: 'var(--muted)', marginBottom: '0.5rem' }}>
+                  Selected Categories:
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {businessDirectoryForm.category.map((catName) => (
+                    <span
+                      key={catName}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.4rem 0.75rem',
+                        background: '#d4edda',
+                        border: '1px solid #28a745',
+                        color: '#155724',
+                        borderRadius: '20px',
+                        fontSize: '0.9rem',
+                        fontWeight: '500'
+                      }}
+                    >
+                      <span style={{ fontSize: '1rem' }}>✓</span>
+                      {catName}
+                      <button
+                        type="button"
+                        onClick={() => handleCategoryCheckboxChange(catName)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#155724',
+                          cursor: 'pointer',
+                          padding: '0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1.2rem',
+                          lineHeight: 1,
+                          width: '16px',
+                          height: '16px',
+                          fontWeight: 'bold'
+                        }}
+                        aria-label={`Remove ${catName}`}
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Quick Category Selection */}
             <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -1656,7 +1697,7 @@ export default function BusinessDirectory() {
             </div>
           )}
 
-          <FloatingInput
+        <br/>  <FloatingInput
             label="Website"
             name="website"
             type="url"
