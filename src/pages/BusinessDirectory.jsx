@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createCompany, updateCompany, fetchCompanies, createBusinessDirectory, updateBusinessDirectory, fetchBusinessDirectories, createProductNew, updateProduct, fetchProducts, fetchCountries, fetchStates, fetchDistricts, fetchAreas, fetchCategories, fetchSubcategories } from '../services/api.js'
 import Toast from '../components/Toast.jsx'
 import FloatingInput from '../components/FloatingInput.jsx'
@@ -32,6 +32,24 @@ export default function BusinessDirectory() {
   const [categories, setCategories] = useState([])
   const [subcategories, setSubcategories] = useState([])
   const [loadingMasterData, setLoadingMasterData] = useState(false)
+
+  // Category search autocomplete states
+  const [categorySearchQuery, setCategorySearchQuery] = useState('')
+  const [isCategorySuggestionsOpen, setIsCategorySuggestionsOpen] = useState(false)
+  const categoryDropdownRef = useRef(null)
+
+  // Close category search suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target)) {
+        setIsCategorySuggestionsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   // Company form state
   const [companyForm, setCompanyForm] = useState({
@@ -1496,198 +1514,281 @@ export default function BusinessDirectory() {
             options={companies.map(c => ({ value: c.id, label: c.businessName }))}
           />
 
-          {/* Category Multi-Select with Chips */}
-          <div className="full-width">
+          {/* Category Selection UI Redesign */}
+          <div className="full-width" ref={categoryDropdownRef} style={{ position: 'relative', marginBottom: '1.25rem' }}>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: '600', color: 'var(--text)' }}>
-              Category * <span style={{ color: 'var(--muted)', fontWeight: '400' }}>(Select multiple)</span>
+              Category * <span style={{ color: 'var(--muted)', fontWeight: '400' }}>(Type to search)</span>
             </label>
             
-            {/* Category Search Box - Always at Top */}
-            <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
+            {/* Searchable Input Field */}
+            <div style={{ position: 'relative' }}>
               <input
                 type="text"
-                placeholder="Search categories..."
+                placeholder="Type a category name..."
+                value={categorySearchQuery}
+                onChange={(e) => {
+                  setCategorySearchQuery(e.target.value);
+                  setIsCategorySuggestionsOpen(true);
+                }}
+                onFocus={() => setIsCategorySuggestionsOpen(true)}
                 style={{
                   width: '100%',
-                  padding: '0.6rem',
+                  padding: '0.75rem 1rem',
                   border: '1px solid var(--border)',
-                  borderRadius: '4px',
-                  fontSize: '0.95rem'
-                }}
-                onChange={(e) => {
-                  const searchTerm = e.target.value.toLowerCase()
-                  const filtered = categories.filter(cat => 
-                    cat.categoryName.toLowerCase().includes(searchTerm) &&
-                    !businessDirectoryForm.category.includes(cat.categoryName)
-                  )
-                  // Show filtered results in a dropdown
-                  if (filtered.length > 0) {
-                    // This is a simplified version - you can enhance with a proper dropdown
-                  }
+                  borderRadius: '8px',
+                  fontSize: '0.95rem',
+                  transition: 'border-color 0.2s ease',
+                  outline: 'none',
+                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
                 }}
               />
+              {categorySearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setCategorySearchQuery('')}
+                  style={{
+                    position: 'absolute',
+                    right: '0.75rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--muted)',
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    padding: '0.2rem'
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+
+              {/* Suggestions list */}
+              {isCategorySuggestionsOpen && categorySearchQuery.trim() !== '' && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'white',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                  maxHeight: '220px',
+                  overflowY: 'auto',
+                  zIndex: 1000,
+                  marginTop: '0.35rem'
+                }}>
+                  {(() => {
+                    const searchTerm = categorySearchQuery.toLowerCase();
+                    const filtered = categories.filter(cat => 
+                      cat.categoryName.toLowerCase().includes(searchTerm)
+                    );
+
+                    if (filtered.length === 0) {
+                      return (
+                        <div style={{ padding: '0.75rem 1rem', color: 'var(--muted)', fontSize: '0.9rem' }}>
+                          No matching categories found
+                        </div>
+                      );
+                    }
+
+                    return filtered.map(cat => {
+                      const isSelected = Array.isArray(businessDirectoryForm.category) && 
+                                       businessDirectoryForm.category.includes(cat.categoryName);
+                      return (
+                        <div
+                          key={cat.id}
+                          onClick={() => {
+                            handleCategoryCheckboxChange(cat.categoryName);
+                            setCategorySearchQuery('');
+                            setIsCategorySuggestionsOpen(false);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '0.65rem 1rem',
+                            cursor: 'pointer',
+                            backgroundColor: 'white',
+                            borderBottom: '1px solid #f3f4f6',
+                            transition: 'background-color 0.15s ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f3f4f6';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'white';
+                          }}
+                        >
+                          <span style={{ fontSize: '0.9rem', color: 'var(--text)', fontWeight: isSelected ? '600' : '400' }}>
+                            {cat.categoryName}
+                          </span>
+                          {isSelected && (
+                            <span style={{ color: '#fbbf24', fontSize: '1.1rem', marginRight: '0.25rem' }} aria-hidden="true">
+                              ⭐
+                            </span>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              )}
             </div>
 
-            {/* Selected Categories as Chips - Below Search Box */}
-            {Array.isArray(businessDirectoryForm.category) && businessDirectoryForm.category.length > 0 && (
-              <div style={{ marginBottom: '1rem' }}>
-                <div style={{ fontSize: '0.85rem', color: 'var(--muted)', marginBottom: '0.5rem' }}>
-                  Selected Categories:
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                  {businessDirectoryForm.category.map((catName) => (
-                    <span
-                      key={catName}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        padding: '0.4rem 0.75rem',
-                        background: '#d4edda',
-                        border: '1px solid #28a745',
-                        color: '#155724',
-                        borderRadius: '20px',
-                        fontSize: '0.9rem',
-                        fontWeight: '500'
-                      }}
-                    >
-                      <span style={{ fontSize: '1rem' }}>✓</span>
-                      {catName}
-                      <button
-                        type="button"
-                        onClick={() => handleCategoryCheckboxChange(catName)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#155724',
-                          cursor: 'pointer',
-                          padding: '0',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '1.2rem',
-                          lineHeight: 1,
-                          width: '16px',
-                          height: '16px',
-                          fontWeight: 'bold'
-                        }}
-                        aria-label={`Remove ${catName}`}
-                      >
-                        ✕
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Quick Category Selection */}
-            <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-              {categories.map((cat) => {
-                const isSelected = Array.isArray(businessDirectoryForm.category) && businessDirectoryForm.category.includes(cat.categoryName)
-                return (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => handleCategoryCheckboxChange(cat.categoryName)}
+            {/* Selected Categories & Subcategories as Removable Chips */}
+            {((Array.isArray(businessDirectoryForm.category) && businessDirectoryForm.category.length > 0) ||
+              (Array.isArray(businessDirectoryForm.subcategory) && businessDirectoryForm.subcategory.length > 0)) && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.75rem', marginBottom: '0.75rem' }}>
+                {/* Category Chips */}
+                {Array.isArray(businessDirectoryForm.category) && businessDirectoryForm.category.map((catName) => (
+                  <span
+                    key={`cat-chip-${catName}`}
                     style={{
-                      padding: '0.5rem 1rem',
-                      border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}`,
-                      background: isSelected ? 'var(--primary)' : 'white',
-                      color: isSelected ? 'white' : 'var(--text)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      padding: '0.4rem 0.75rem',
+                      background: '#eff6ff',
+                      border: '1px solid #bfdbfe',
+                      color: '#1e40af',
                       borderRadius: '20px',
-                      cursor: 'pointer',
-                      fontSize: '0.9rem',
-                      fontWeight: isSelected ? '500' : '400',
-                      transition: 'all 0.2s'
+                      fontSize: '0.85rem',
+                      fontWeight: '500'
                     }}
                   >
-                    {isSelected ? '✓ ' : ''}{cat.categoryName}
-                  </button>
-                )
-              })}
-            </div>
+                    <span>⭐ {catName}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleCategoryCheckboxChange(catName)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#1e40af',
+                        cursor: 'pointer',
+                        padding: '0',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.95rem',
+                        fontWeight: 'bold',
+                        marginLeft: '0.15rem'
+                      }}
+                      aria-label={`Remove category ${catName}`}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+
+                {/* Subcategory Chips */}
+                {Array.isArray(businessDirectoryForm.subcategory) && businessDirectoryForm.subcategory.map((subName) => (
+                  <span
+                    key={`sub-chip-${subName}`}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      padding: '0.4rem 0.75rem',
+                      background: '#ecfdf5',
+                      border: '1px solid #a7f3d0',
+                      color: '#065f46',
+                      borderRadius: '20px',
+                      fontSize: '0.85rem',
+                      fontWeight: '500'
+                    }}
+                  >
+                    <span>{subName}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleSubcategoryCheckboxChange(subName)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#065f46',
+                        cursor: 'pointer',
+                        padding: '0',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.95rem',
+                        fontWeight: 'bold',
+                        marginLeft: '0.15rem'
+                      }}
+                      aria-label={`Remove subcategory ${subName}`}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Subcategories Grouped by Category */}
+          {/* Subcategories Display Directly Below Selected Category */}
           {Array.isArray(businessDirectoryForm.category) && businessDirectoryForm.category.length > 0 && (
-            <div className="full-width" style={{ 
-              padding: '1rem', 
-              background: 'var(--surface)',
-              borderRadius: '4px',
-              marginBottom: '1rem',
-              border: '1px solid var(--border)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <strong>📋 Select Subcategories</strong>
-                <span style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>
-                  {businessDirectoryForm.subcategory.length}/10 selected
-                </span>
-              </div>
-              
-              {(() => {
-                // Group subcategories by category
-                const groupedSubcategories = {}
-                const availableSubs = getAvailableSubcategories()
-                
-                availableSubs.forEach(sub => {
-                  const catName = sub.category?.categoryName || sub.categoryName
-                  if (!groupedSubcategories[catName]) {
-                    groupedSubcategories[catName] = []
-                  }
-                  groupedSubcategories[catName].push(sub)
-                })
+            <div className="full-width" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.25rem' }}>
+              {businessDirectoryForm.category.map((catName) => {
+                const catObj = categories.find(c => c.categoryName === catName);
+                const subs = catObj ? (subcategoriesByCategory[catObj.id]?.subcategories || []) : [];
 
-                return Object.entries(groupedSubcategories).map(([catName, subs]) => (
-                  <div key={catName} style={{ marginBottom: '1.5rem' }}>
-                    <h4 style={{ 
-                      margin: '0 0 0.75rem 0', 
-                      padding: '0.5rem',
-                      background: 'var(--primary)',
-                      color: 'white',
-                      borderRadius: '4px',
-                      fontSize: '0.95rem'
-                    }}>
-                      {catName}
-                    </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
-                      {subs.map((sub) => {
-                        const isSelected = Array.isArray(businessDirectoryForm.subcategory) && 
-                                         businessDirectoryForm.subcategory.includes(sub.subcategoryName)
-                        return (
-                          <label
-                            key={sub.id}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.5rem',
-                              padding: '0.5rem',
-                              background: 'white',
-                              border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}`,
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              fontSize: '0.9rem'
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => handleSubcategoryCheckboxChange(sub.subcategoryName)}
-                              style={{ 
-                                width: '16px', 
-                                height: '16px', 
+                // Filter out subcategories that are already selected
+                const availableSubs = subs.filter(
+                  sub => !businessDirectoryForm.subcategory.includes(sub.subcategoryName)
+                );
+
+                // If not loading, and there are no available unselected subcategories, show nothing
+                if (!loadingSubcategories && availableSubs.length === 0) {
+                  return null;
+                }
+
+                return (
+                  <div key={`cat-subs-section-${catName}`} style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    <div style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <span>⭐ {catName}</span>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      {loadingSubcategories ? (
+                        <div style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>Loading subcategories...</div>
+                      ) : (
+                        availableSubs.map((sub) => {
+                          return (
+                            <button
+                              key={sub.id}
+                              type="button"
+                              onClick={() => handleSubcategoryCheckboxChange(sub.subcategoryName)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                padding: '0.4rem 0.8rem',
+                                background: '#f3f4f6',
+                                border: '1px solid #e5e7eb',
+                                color: '#4b5563',
+                                borderRadius: '6px',
                                 cursor: 'pointer',
-                                accentColor: 'var(--primary)'
+                                fontSize: '0.85rem',
+                                fontWeight: '400',
+                                transition: 'all 0.15s ease',
                               }}
-                            />
-                            <span>{sub.subcategoryName}</span>
-                          </label>
-                        )
-                      })}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor = 'var(--primary)';
+                                e.currentTarget.style.backgroundColor = '#eef2ff';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor = '#e5e7eb';
+                                e.currentTarget.style.backgroundColor = '#f3f4f6';
+                              }}
+                            >
+                              {sub.subcategoryName}
+                            </button>
+                          );
+                        })
+                      )}
                     </div>
                   </div>
-                ))
-              })()}
+                );
+              })}
             </div>
           )}
 
