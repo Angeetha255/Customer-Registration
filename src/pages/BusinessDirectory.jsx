@@ -625,23 +625,8 @@ export default function BusinessDirectory() {
       
       let newCategories
       if (isSelected) {
-        // Remove category
+        // Remove category only - do NOT clear subcategory
         newCategories = currentCategories.filter(c => c !== categoryName)
-        
-        // Find category ID and remove its subcategories
-        const categoryToRemove = categories.find(c => c.categoryName === categoryName)
-        if (categoryToRemove) {
-          const subsToRemove = subcategoriesByCategory[categoryToRemove.id]?.subcategories || []
-          const subNamesToRemove = subsToRemove.map(s => s.subcategoryName)
-          const newSubcategories = (Array.isArray(prev.subcategory) ? prev.subcategory : [])
-            .filter(s => !subNamesToRemove.includes(s))
-          
-          return {
-            ...prev,
-            category: newCategories,
-            subcategory: newSubcategories
-          }
-        }
       } else {
         // Add category
         newCategories = [...currentCategories, categoryName]
@@ -654,31 +639,16 @@ export default function BusinessDirectory() {
     })
   }
 
-  // Handle subcategory selection/deselection
-  const handleSubcategoryCheckboxChange = (subcategoryName) => {
+  // Handle subcategory selection (single selection only)
+  const handleSubcategorySelect = (subcategoryName) => {
     setBusinessDirectoryForm(prev => {
       const currentSubs = Array.isArray(prev.subcategory) ? prev.subcategory : []
       const isSelected = currentSubs.includes(subcategoryName)
       
-      if (isSelected) {
-        // Deselect
-        return {
-          ...prev,
-          subcategory: currentSubs.filter(s => s !== subcategoryName)
-        }
-      } else {
-        // Check if already at limit
-        if (currentSubs.length >= 10) {
-          setError('Maximum 10 subcategories can be selected.')
-          setTimeout(() => setError(''), 3000)
-          return prev
-        }
-        
-        // Select
-        return {
-          ...prev,
-          subcategory: [...currentSubs, subcategoryName]
-        }
+      // If already selected, deselect it; otherwise select it (replacing any previous selection)
+      return {
+        ...prev,
+        subcategory: isSelected ? [] : [subcategoryName]
       }
     })
   }
@@ -1702,7 +1672,7 @@ export default function BusinessDirectory() {
                     <span>{subName}</span>
                     <button
                       type="button"
-                      onClick={() => handleSubcategoryCheckboxChange(subName)}
+                      onClick={() => handleSubcategorySelect(subName)}
                       style={{
                         background: 'none',
                         border: 'none',
@@ -1753,31 +1723,38 @@ export default function BusinessDirectory() {
                         <div style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>Loading subcategories...</div>
                       ) : (
                         availableSubs.map((sub) => {
+                          const isSelected = Array.isArray(businessDirectoryForm.subcategory) && 
+                                           businessDirectoryForm.subcategory.includes(sub.subcategoryName);
                           return (
                             <button
                               key={sub.id}
                               type="button"
-                              onClick={() => handleSubcategoryCheckboxChange(sub.subcategoryName)}
+                              onClick={() => handleSubcategorySelect(sub.subcategoryName)}
                               style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 padding: '0.4rem 0.8rem',
-                                background: '#f3f4f6',
-                                border: '1px solid #e5e7eb',
-                                color: '#4b5563',
+                                background: isSelected ? '#dbeafe' : '#f3f4f6',
+                                border: isSelected ? '2px solid #2563eb' : '1px solid #e5e7eb',
+                                color: isSelected ? '#1e40af' : '#4b5563',
                                 borderRadius: '6px',
                                 cursor: 'pointer',
                                 fontSize: '0.85rem',
-                                fontWeight: '400',
+                                fontWeight: isSelected ? '600' : '400',
                                 transition: 'all 0.15s ease',
+                                boxShadow: isSelected ? '0 1px 3px rgba(37, 99, 235, 0.2)' : 'none',
                               }}
                               onMouseEnter={(e) => {
-                                e.currentTarget.style.borderColor = 'var(--primary)';
-                                e.currentTarget.style.backgroundColor = '#eef2ff';
+                                if (!isSelected) {
+                                  e.currentTarget.style.borderColor = 'var(--primary)';
+                                  e.currentTarget.style.backgroundColor = '#eef2ff';
+                                }
                               }}
                               onMouseLeave={(e) => {
-                                e.currentTarget.style.borderColor = '#e5e7eb';
-                                e.currentTarget.style.backgroundColor = '#f3f4f6';
+                                if (!isSelected) {
+                                  e.currentTarget.style.borderColor = '#e5e7eb';
+                                  e.currentTarget.style.backgroundColor = '#f3f4f6';
+                                }
                               }}
                             >
                               {sub.subcategoryName}
