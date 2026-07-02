@@ -7,6 +7,27 @@ import { Op } from 'sequelize'
 
 const router = express.Router()
 
+// YouTube URL validation
+const YOUTUBE_REGEX = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]{11}(\?[\w-]+(=[\w-]+)?)?(&[\w-]+(=[\w-]+)?)*$/
+
+function isValidYouTubeUrl(url) {
+  return YOUTUBE_REGEX.test(url)
+}
+
+function parseAndValidateYouTubeLinks(links) {
+  if (!links) return null
+  let parsed = typeof links === 'string' ? JSON.parse(links) : links
+  if (!Array.isArray(parsed)) {
+    throw new Error('youtubeLinks must be an array')
+  }
+  for (const url of parsed) {
+    if (typeof url !== 'string' || !isValidYouTubeUrl(url)) {
+      throw new Error(`Invalid YouTube URL: ${url}`)
+    }
+  }
+  return parsed
+}
+
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -90,6 +111,16 @@ router.post('/', authMiddleware, upload.fields([
       }
     }
 
+    // Parse and validate YouTube link (frontend sends as single string)
+    let parsedYouTubeLinks = null
+    if (youtubeLink && youtubeLink.trim()) {
+      const trimmedUrl = youtubeLink.trim()
+      if (!isValidYouTubeUrl(trimmedUrl)) {
+        return res.status(400).json({ message: `Invalid YouTube URL: ${trimmedUrl}` })
+      }
+      parsedYouTubeLinks = [trimmedUrl]
+    }
+
     const product = await Product.create({
       companyId: companyId || null,
       coverImage: coverImagePath,
@@ -103,7 +134,7 @@ router.post('/', authMiddleware, upload.fields([
       isEnabled: isEnabled === 'true' || isEnabled === true,
       specifications: parsedSpecs,
       descriptions: parsedDescs,
-      youtubeLink: youtubeLink || null,
+      youtubeLinks: parsedYouTubeLinks,
       productCategory: productCategory || null,
       createdBy: req.user.id
     })
@@ -180,6 +211,21 @@ router.put('/:id', authMiddleware, upload.fields([
       }
     }
 
+    // Parse and validate YouTube link (frontend sends as single string)
+    let parsedYouTubeLinks = product.youtubeLinks
+    if (youtubeLink !== undefined) {
+      if (youtubeLink && youtubeLink.trim()) {
+        const trimmedUrl = youtubeLink.trim()
+        if (!isValidYouTubeUrl(trimmedUrl)) {
+          return res.status(400).json({ message: `Invalid YouTube URL: ${trimmedUrl}` })
+        }
+        parsedYouTubeLinks = [trimmedUrl]
+      } else {
+        // Empty string means clear the links
+        parsedYouTubeLinks = null
+      }
+    }
+
     await product.update({
       companyId: companyId || null,
       coverImage: coverImagePath,
@@ -193,7 +239,7 @@ router.put('/:id', authMiddleware, upload.fields([
       isEnabled: isEnabled === 'true' || isEnabled === true,
       specifications: parsedSpecs,
       descriptions: parsedDescs,
-      youtubeLink: youtubeLink || null,
+      youtubeLinks: parsedYouTubeLinks,
       productCategory: productCategory || null,
     })
 

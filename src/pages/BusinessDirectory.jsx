@@ -467,10 +467,10 @@ export default function BusinessDirectory() {
                     <span className="business-detail-value">₹{selectedProduct.discountPrice}</span>
                   </div>
                 )}
-                {selectedProduct.youtubeLink && (
+                {selectedProduct.youtubeLinks && selectedProduct.youtubeLinks.length > 0 && (
                   <div className="business-detail-item">
                     <span className="business-detail-label">YouTube</span>
-                    <a href={selectedProduct.youtubeLink} target="_blank" rel="noopener noreferrer" className="business-detail-link">
+                    <a href={selectedProduct.youtubeLinks[0]} target="_blank" rel="noopener noreferrer" className="business-detail-link">
                       View Video
                     </a>
                   </div>
@@ -767,7 +767,7 @@ export default function BusinessDirectory() {
         isEnabled: Boolean(productToEdit.isEnabled),
         specifications: productToEdit.specifications ? productToEdit.specifications.map((s, i) => ({ id: Date.now() + i, ...s })) : [],
         descriptions: productToEdit.descriptions ? productToEdit.descriptions.map((d, i) => ({ id: Date.now() + i, text: d })) : [],
-        youtubeLink: productToEdit.youtubeLink || '',
+        youtubeLink: productToEdit.youtubeLinks ? (Array.isArray(productToEdit.youtubeLinks) ? productToEdit.youtubeLinks[0] || '' : '') : '',
         productCategory: productToEdit.productCategory || '',
         addProduct: true
       })
@@ -1864,26 +1864,6 @@ export default function BusinessDirectory() {
               {products.map((product) => (
                 <div key={product.id} className="list-item">
                   
-                  {product.youtubeLink && (
-                    <div className="video-container" style={{
-                      width: '100%',
-                      maxWidth: '560px',
-                      height: '315px',
-                      marginTop: '1rem',
-                      borderRadius: '8px',
-                      overflow: 'hidden'
-                    }}>
-                      <iframe
-                        src={product.youtubeLink.replace('watch?v=', 'embed/')}
-                        width="100%"
-                        height="100%"
-                        style={{ border: 0 }}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen=""
-                        title={`Video for ${product.productName}`}
-                      />
-                    </div>
-                  )} 
                 </div>
               ))}
             </div>
