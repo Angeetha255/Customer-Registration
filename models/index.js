@@ -7,6 +7,7 @@ import Admin from './Admin.js'
 import Company from './Company.js'
 import Business from './Business.js'
 import Product from './Product.js'
+import Review from './Review.js'
 import Level from './Level.js'
 import Counter from './Counter.js'
 import Settings from './Settings.js'
@@ -16,6 +17,7 @@ import District from './District.js'
 import Area from './Area.js'
 import Category from './Category.js'
 import Subcategory from './Subcategory.js'
+import EmailVerificationToken from './EmailVerificationToken.js'
 
 const db = {
   sequelize,
@@ -26,6 +28,7 @@ const db = {
   Company,
   Business,
   Product,
+  Review,
   Level,
   Counter,
   Settings,
@@ -35,9 +38,10 @@ const db = {
   Area,
   Category,
   Subcategory,
+  EmailVerificationToken,
 }
 
-// Define relationships only after all models are loaded
+// -- Location hierarchy --------------------------------------------------------
 if (Country && State) {
   Country.hasMany(State, { foreignKey: 'countryId', as: 'states' })
   State.belongsTo(Country, { foreignKey: 'countryId', as: 'country' })
@@ -53,12 +57,13 @@ if (District && Area) {
   Area.belongsTo(District, { foreignKey: 'districtId', as: 'district' })
 }
 
+// -- Category hierarchy --------------------------------------------------------
 if (Category && Subcategory) {
   Category.hasMany(Subcategory, { foreignKey: 'categoryId', as: 'subcategories' })
   Subcategory.belongsTo(Category, { foreignKey: 'categoryId', as: 'category' })
 }
 
-// Company, Business, and Product relationships
+// -- Company, Business, Product relationships ----------------------------------
 if (Company && Business) {
   Company.hasMany(Business, { foreignKey: 'companyId', as: 'businesses' })
   Business.belongsTo(Company, { foreignKey: 'companyId', as: 'company' })
@@ -69,5 +74,15 @@ if (Company && Product) {
   Product.belongsTo(Company, { foreignKey: 'companyId', as: 'company' })
 }
 
+// -- Review relationships ------------------------------------------------------
+if (Company && Review) {
+  Company.hasMany(Review, { foreignKey: 'company_id', as: 'reviews' })
+  Review.belongsTo(Company, { foreignKey: 'company_id', as: 'company' })
+}
+
+if (Product && Review) {
+  Product.hasMany(Review, { foreignKey: 'product_id', as: 'reviews' })
+  Review.belongsTo(Product, { foreignKey: 'product_id', as: 'product' })
+}
 
 export default db
