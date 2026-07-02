@@ -18,6 +18,10 @@ export default function MasterCategories() {
     status: 'active'
   })
 
+  const [bannerPreview, setBannerPreview] = useState(null)
+  const [bannerFile, setBannerFile] = useState(null)
+  const [removeBanner, setRemoveBanner] = useState(false)
+
   useEffect(() => {
     fetchCategories()
   }, [pagination.page, search])
@@ -50,27 +54,47 @@ export default function MasterCategories() {
     e.preventDefault()
     setError('')
     setLoading(true)
+
     try {
       const url = editingCategory
         ? `${API_BASE}/master-data/categories/${editingCategory.id}`
         : `${API_BASE}/master-data/categories`
       const method = editingCategory ? 'PUT' : 'POST'
-      
+
+      // Create FormData for multipart upload
+      const formDataToSend = new FormData()
+      formDataToSend.append('categoryName', formData.categoryName)
+      formDataToSend.append('status', formData.status)
+
+      // Append banner file if selected
+      if (bannerFile) {
+        formDataToSend.append('bannerImage', bannerFile)
+      }
+
+      // Append removeBanner flag if needed
+      if (editingCategory && removeBanner) {
+        formDataToSend.append('removeBanner', 'true')
+      }
+
       const response = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+          // Note: Don't set Content-Type when using FormData, browser will set it with boundary
         },
-        body: JSON.stringify(formData)
+        body: formDataToSend
       })
+
       const data = await response.json()
-      
+
       if (response.ok) {
         setToast({ message: data.message || 'Category saved successfully', type: 'success' })
         setShowForm(false)
         setEditingCategory(null)
         setFormData({ categoryName: '', status: 'active' })
+        setBannerPreview(null)
+        setBannerFile(null)
+        setRemoveBanner(false)
         fetchCategories()
       } else {
         setError(data.message || 'Failed to save category')
@@ -88,6 +112,15 @@ export default function MasterCategories() {
       categoryName: category.categoryName,
       status: category.status
     })
+    // Set banner preview if category has banner
+    if (category.bannerImage) {
+      setBannerPreview(category.bannerImage)
+      setRemoveBanner(false)
+    } else {
+      setBannerPreview(null)
+      setRemoveBanner(false)
+    }
+    setBannerFile(null)
     setShowForm(true)
   }
 
@@ -107,7 +140,7 @@ export default function MasterCategories() {
         }
       })
       const data = await response.json()
-      
+
       if (response.ok) {
         setToast({ message: data.message || 'Category deleted successfully', type: 'success' })
         setShowDeleteModal(false)
@@ -138,7 +171,7 @@ export default function MasterCategories() {
         })
       })
       const data = await response.json()
-      
+
       if (response.ok) {
         setToast({ message: 'Status updated successfully', type: 'success' })
         fetchCategories()
@@ -161,9 +194,47 @@ export default function MasterCategories() {
     setPagination(prev => ({ ...prev, page: newPage }))
   }
 
+  const handleBannerChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+      if (!allowedTypes.includes(file.type)) {
+        setError('Invalid file type. Only JPG, JPEG, PNG, and WEBP are allowed.')
+        return
+      }
+
+      // Validate file size (5MB)
+      const maxSize = 5 * 1024 * 1024
+      if (file.size > maxSize) {
+        setError('File size too large. Maximum size is 5MB.')
+        return
+      }
+
+      setBannerFile(file)
+      setRemoveBanner(false)
+
+      // Create preview
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setBannerPreview(reader.result)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleRemoveBanner = () => {
+    setBannerPreview(null)
+    setBannerFile(null)
+    setRemoveBanner(true)
+  }
+
   const openAddForm = () => {
     setEditingCategory(null)
     setFormData({ categoryName: '', status: 'active' })
+    setBannerPreview(null)
+    setBannerFile(null)
+    setRemoveBanner(false)
     setShowForm(true)
   }
 
@@ -171,6 +242,9 @@ export default function MasterCategories() {
     setShowForm(false)
     setEditingCategory(null)
     setFormData({ categoryName: '', status: 'active' })
+    setBannerPreview(null)
+    setBannerFile(null)
+    setRemoveBanner(false)
     setError('')
   }
 
@@ -217,6 +291,7 @@ export default function MasterCategories() {
                 <tr>
                   <th>ID</th>
                   <th>Category Name</th>
+                  <th>Banner</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
@@ -224,17 +299,34 @@ export default function MasterCategories() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="4" className="text-center">Loading...</td>
+                    <td colSpan="5" className="text-center">Loading...</td>
                   </tr>
                 ) : categories.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="text-center">No categories found</td>
+                    <td colSpan="5" className="text-center">No categories found</td>
                   </tr>
                 ) : (
                   categories.map((category) => (
                     <tr key={category.id}>
                       <td>{category.id}</td>
                       <td>{category.categoryName}</td>
+                      <td>
+                        {category.bannerImage ? (
+                          <img
+                            src={category.bannerImage}
+                            alt={category.categoryName}
+                            style={{
+                              width: '80px',
+                              height: '50px',
+                              objectFit: 'cover',
+                              borderRadius: '4px',
+                              border: '1px solid #ddd'
+                            }}
+                          />
+                        ) : (
+                          <span style={{ color: '#999', fontSize: '0.85rem' }}>No banner</span>
+                        )}
+                      </td>
                       <td>
                         <button
                           className={`status-badge ${category.status === 'active' ? 'status-active' : 'status-inactive'}`}
@@ -312,6 +404,75 @@ export default function MasterCategories() {
                 <option value="inactive">Inactive</option>
               </select>
             </label>
+
+            {/* Banner Image Upload */}
+            <div className="full-width">
+              <label>
+                Banner Image (JPG, JPEG, PNG, WEBP - Max 5MB)
+                <input
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  onChange={handleBannerChange}
+                  style={{ marginTop: '0.5rem' }}
+                />
+              </label>
+
+              {/* Banner Preview */}
+              {bannerPreview && (
+                <div style={{ marginTop: '1rem' }}>
+                  <p style={{ marginBottom: '0.5rem', fontWeight: '600' }}>Preview:</p>
+                  <img
+                    src={bannerPreview}
+                    alt="Banner preview"
+                    style={{
+                      width: '100%',
+                      maxWidth: '400px',
+                      height: 'auto',
+                      maxHeight: '200px',
+                      objectFit: 'cover',
+                      borderRadius: '4px',
+                      border: '1px solid #ddd'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="button button-small button-danger"
+                    onClick={handleRemoveBanner}
+                    style={{ marginTop: '0.5rem' }}
+                  >
+                    Remove Banner
+                  </button>
+                </div>
+              )}
+
+              {!bannerPreview && editingCategory?.bannerImage && !removeBanner && (
+                <div style={{ marginTop: '1rem' }}>
+                  <p style={{ marginBottom: '0.5rem', fontWeight: '600' }}>Current Banner:</p>
+                  <img
+                    src={editingCategory.bannerImage}
+                    alt="Current banner"
+                    style={{
+                      width: '100%',
+                      maxWidth: '400px',
+                      height: 'auto',
+                      maxHeight: '200px',
+                      objectFit: 'cover',
+                      borderRadius: '4px',
+                      border: '1px solid #ddd'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="button button-small button-danger"
+                    onClick={handleRemoveBanner}
+                    style={{ marginTop: '0.5rem' }}
+                  >
+                    Remove Banner
+                  </button>
+                </div>
+              )}
+            </div>
+
             <div className="form-actions full-width">
               <button type="submit" className="button button-primary" disabled={loading}>
                 {loading ? 'Saving...' : (editingCategory ? 'Update' : 'Add')}

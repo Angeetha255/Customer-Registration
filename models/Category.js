@@ -17,6 +17,11 @@ const Category = sequelize.define(
       type: DataTypes.ENUM('active', 'inactive'),
       defaultValue: 'active',
     },
+    bannerImage: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+      field: 'banner_image'
+    },
   },
   {
     tableName: 'categories',

@@ -3,6 +3,7 @@ import { authMiddleware } from '../middleware/auth.js'
 import db from '../models/index.js'
 import { sequelize, DataTypes } from '../models/sequelize.js'
 import { Op } from 'sequelize'
+import { uploadCategoryBanner, deleteOldBanner, getBannerUrl } from '../utils/imageUpload.js'
 
 const { Country, State, District, Area, Category, Subcategory } = db
 
@@ -462,13 +463,23 @@ router.get('/categories/all', authMiddleware, async (req, res) => {
 })
 
 // Create category (admin only)
-router.post('/categories', authMiddleware, async (req, res) => {
+router.post('/categories', authMiddleware, uploadCategoryBanner.single('bannerImage'), async (req, res) => {
   try {
     const { categoryName } = req.body
     if (!categoryName) {
       return res.status(400).json({ message: 'Category name is required' })
     }
-    const category = await Category.create({ categoryName, status: 'active' })
+
+    let bannerImage = null
+    if (req.file) {
+      bannerImage = getBannerUrl(req.file.filename)
+    }
+
+    const category = await Category.create({ 
+      categoryName, 
+      status: 'active',
+      bannerImage 
+    })
     res.status(201).json({ message: 'Category created successfully', category })
   } catch (err) {
     console.error('Error creating category:', err)
@@ -477,14 +488,33 @@ router.post('/categories', authMiddleware, async (req, res) => {
 })
 
 // Update category (admin only)
-router.put('/categories/:id', authMiddleware, async (req, res) => {
+router.put('/categories/:id', authMiddleware, uploadCategoryBanner.single('bannerImage'), async (req, res) => {
   try {
-    const { categoryName, status } = req.body
+    const { categoryName, status, removeBanner } = req.body
     const category = await Category.findByPk(req.params.id)
     if (!category) {
       return res.status(404).json({ message: 'Category not found' })
     }
-    await category.update({ categoryName, status })
+
+    // Handle banner removal
+    if (removeBanner === 'true' && category.bannerImage) {
+      deleteOldBanner(category.bannerImage)
+      await category.update({ categoryName, status, bannerImage: null })
+      res.json({ message: 'Category updated successfully', category })
+      return
+    }
+
+    // Handle banner update
+    let bannerImage = category.bannerImage
+    if (req.file) {
+      // Delete old banner if exists
+      if (category.bannerImage) {
+        deleteOldBanner(category.bannerImage)
+      }
+      bannerImage = getBannerUrl(req.file.filename)
+    }
+
+    await category.update({ categoryName, status, bannerImage })
     res.json({ message: 'Category updated successfully', category })
   } catch (err) {
     console.error('Error updating category:', err)
