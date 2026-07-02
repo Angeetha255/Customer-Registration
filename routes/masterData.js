@@ -3,7 +3,7 @@ import { authMiddleware } from '../middleware/auth.js'
 import db from '../models/index.js'
 import { sequelize, DataTypes } from '../models/sequelize.js'
 import { Op } from 'sequelize'
-import { uploadCategoryBanner, deleteOldBanner, getBannerUrl } from '../utils/imageUpload.js'
+import { uploadCategoryBanner, uploadCategoryBanners, deleteOldBanner, getBannerUrl } from '../utils/imageUpload.js'
 
 const { Country, State, District, Area, Category, Subcategory } = db
 
@@ -462,8 +462,21 @@ router.get('/categories/all', authMiddleware, async (req, res) => {
   }
 })
 
+// Helper to get banner images array from a category
+const getBannerImagesArray = (category) => {
+  // If bannerImages is already an array, return it
+  if (category.bannerImages && Array.isArray(category.bannerImages) && category.bannerImages.length > 0) {
+    return [...category.bannerImages]
+  }
+  // If bannerImage exists but bannerImages is empty, migrate the single banner
+  if (category.bannerImage) {
+    return [category.bannerImage]
+  }
+  return []
+}
+
 // Create category (admin only)
-router.post('/categories', authMiddleware, uploadCategoryBanner.single('bannerImage'), async (req, res) => {
+router.post('/categories', authMiddleware, uploadCategoryBanners.array('bannerImages', 10), async (req, res) => {
   try {
     const { categoryName } = req.body
     if (!categoryName) {
@@ -471,14 +484,18 @@ router.post('/categories', authMiddleware, uploadCategoryBanner.single('bannerIm
     }
 
     let bannerImage = null
-    if (req.file) {
-      bannerImage = getBannerUrl(req.file.filename)
+    let bannerImages = []
+
+    if (req.files && req.files.length > 0) {
+      bannerImages = req.files.map(file => getBannerUrl(file.filename))
+      bannerImage = bannerImages[0] // Keep first banner as primary for backward compatibility
     }
 
     const category = await Category.create({ 
       categoryName, 
       status: 'active',
-      bannerImage 
+      bannerImage,
+      bannerImages: bannerImages.length > 0 ? bannerImages : null
     })
     res.status(201).json({ message: 'Category created successfully', category })
   } catch (err) {
@@ -487,35 +504,93 @@ router.post('/categories', authMiddleware, uploadCategoryBanner.single('bannerIm
   }
 })
 
-// Update category (admin only)
-router.put('/categories/:id', authMiddleware, uploadCategoryBanner.single('bannerImage'), async (req, res) => {
+// Update category status only (admin only)
+router.put('/categories/:id/status', authMiddleware, async (req, res) => {
   try {
-    const { categoryName, status, removeBanner } = req.body
+    const { status } = req.body
     const category = await Category.findByPk(req.params.id)
     if (!category) {
       return res.status(404).json({ message: 'Category not found' })
     }
 
-    // Handle banner removal
-    if (removeBanner === 'true' && category.bannerImage) {
-      deleteOldBanner(category.bannerImage)
-      await category.update({ categoryName, status, bannerImage: null })
-      res.json({ message: 'Category updated successfully', category })
-      return
+    await category.update({ status })
+    res.json({ message: 'Category status updated successfully', category })
+  } catch (err) {
+    console.error('Error updating category status:', err)
+    res.status(500).json({ message: 'Failed to update category' })
+  }
+})
+
+// Update category (admin only)
+router.put('/categories/:id', authMiddleware, uploadCategoryBanners.array('bannerImages', 10), async (req, res) => {
+  try {
+    const { categoryName, status, removeBanner, removeBannerIndex, existingBanners, bannerOrder } = req.body
+    const category = await Category.findByPk(req.params.id)
+    if (!category) {
+      return res.status(404).json({ message: 'Category not found' })
     }
 
-    // Handle banner update
-    let bannerImage = category.bannerImage
-    if (req.file) {
-      // Delete old banner if exists
-      if (category.bannerImage) {
-        deleteOldBanner(category.bannerImage)
+    // Get current banners
+    let currentBanners = getBannerImagesArray(category)
+
+    // Handle individual banner removal by index
+    if (removeBanner === 'true' && removeBannerIndex !== undefined) {
+      const index = parseInt(removeBannerIndex)
+      if (index >= 0 && index < currentBanners.length) {
+        deleteOldBanner(currentBanners[index])
+        currentBanners.splice(index, 1)
       }
-      bannerImage = getBannerUrl(req.file.filename)
     }
 
-    await category.update({ categoryName, status, bannerImage })
-    res.json({ message: 'Category updated successfully', category })
+    // Handle existing banners order (from drag-and-drop)
+    if (existingBanners) {
+      try {
+        const parsedExisting = JSON.parse(existingBanners)
+        if (Array.isArray(parsedExisting)) {
+          // Keep only banners that still exist in the parsed list
+          currentBanners = currentBanners.filter(b => parsedExisting.includes(b))
+          // Reorder based on the parsed order
+          currentBanners = parsedExisting.filter(b => currentBanners.includes(b))
+        }
+      } catch (e) {
+        console.error('Error parsing existingBanners:', e)
+      }
+    }
+
+    // Handle new banner uploads
+    if (req.files && req.files.length > 0) {
+      const newBanners = req.files.map(file => getBannerUrl(file.filename))
+      currentBanners = [...currentBanners, ...newBanners]
+    }
+
+    // Handle banner order from drag-and-drop
+    if (bannerOrder) {
+      try {
+        const parsedOrder = JSON.parse(bannerOrder)
+        if (Array.isArray(parsedOrder) && parsedOrder.length === currentBanners.length) {
+          currentBanners = parsedOrder
+        }
+      } catch (e) {
+        console.error('Error parsing bannerOrder:', e)
+      }
+    }
+
+    // Update category
+    const updateData = { categoryName, status }
+    
+    if (currentBanners.length > 0) {
+      updateData.bannerImage = currentBanners[0] // Keep first as primary
+      updateData.bannerImages = currentBanners
+    } else {
+      updateData.bannerImage = null
+      updateData.bannerImages = null
+    }
+
+    await category.update(updateData)
+    
+    // Fetch updated category to return
+    const updatedCategory = await Category.findByPk(req.params.id)
+    res.json({ message: 'Category updated successfully', category: updatedCategory })
   } catch (err) {
     console.error('Error updating category:', err)
     res.status(500).json({ message: 'Failed to update category' })
@@ -529,6 +604,11 @@ router.delete('/categories/:id', authMiddleware, async (req, res) => {
     if (!category) {
       return res.status(404).json({ message: 'Category not found' })
     }
+    
+    // Delete all banner images
+    const banners = getBannerImagesArray(category)
+    banners.forEach(banner => deleteOldBanner(banner))
+    
     await category.destroy()
     res.json({ message: 'Category deleted successfully' })
   } catch (err) {

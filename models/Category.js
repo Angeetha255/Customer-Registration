@@ -22,6 +22,11 @@ const Category = sequelize.define(
       allowNull: true,
       field: 'banner_image'
     },
+    bannerImages: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      field: 'banner_images'
+    },
   },
   {
     tableName: 'categories',

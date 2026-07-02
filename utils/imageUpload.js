@@ -31,12 +31,22 @@ const fileFilter = (req, file, cb) => {
   }
 }
 
-// Configure multer upload
+// Configure multer upload for single file
 export const uploadCategoryBanner = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+})
+
+// Configure multer upload for multiple files
+export const uploadCategoryBanners = multer({
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit per file
+    files: 10 // Maximum 10 banner images
   }
 })
 

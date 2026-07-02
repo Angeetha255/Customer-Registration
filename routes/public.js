@@ -240,7 +240,31 @@ router.get('/categories', asyncHandler(async (req, res) => {
         }
       ]
     })
-    res.json({ categories })
+
+    // Process categories to include bannerImages array
+    const categoriesWithBanners = categories.map(category => {
+      const categoryData = category.toJSON()
+
+      // Build bannerImages array from both sources
+      let bannerImages = []
+
+      // If bannerImages exists and is an array, use it
+      if (categoryData.bannerImages && Array.isArray(categoryData.bannerImages) && categoryData.bannerImages.length > 0) {
+        bannerImages = [...categoryData.bannerImages]
+      }
+      // If only bannerImage exists, add it to the array
+      else if (categoryData.bannerImage) {
+        bannerImages = [categoryData.bannerImage]
+      }
+
+      // Return category with bannerImages array
+      return {
+        ...categoryData,
+        bannerImages
+      }
+    })
+
+    res.json({ categories: categoriesWithBanners })
   } catch (err) {
     console.error('Error fetching categories:', err)
     res.status(500).json({ message: 'Failed to fetch categories' })
@@ -261,12 +285,32 @@ router.get('/categories/:id', asyncHandler(async (req, res) => {
         }
       ]
     })
-    
+
     if (!category) {
       return res.status(404).json({ message: 'Category not found' })
     }
-    
-    res.json({ category })
+
+    const categoryData = category.toJSON()
+
+    // Build bannerImages array from both sources
+    let bannerImages = []
+
+    // If bannerImages exists and is an array, use it
+    if (categoryData.bannerImages && Array.isArray(categoryData.bannerImages) && categoryData.bannerImages.length > 0) {
+      bannerImages = [...categoryData.bannerImages]
+    }
+    // If only bannerImage exists, add it to the array
+    else if (categoryData.bannerImage) {
+      bannerImages = [categoryData.bannerImage]
+    }
+
+    // Return category with bannerImages array
+    res.json({
+      category: {
+        ...categoryData,
+        bannerImages
+      }
+    })
   } catch (err) {
     console.error('Error fetching category:', err)
     res.status(500).json({ message: 'Failed to fetch category' })
@@ -612,7 +656,25 @@ router.get('/master-data/categories', asyncHandler(async (req, res) => {
         }
       ]
     })
-    res.json({ categories })
+
+    // Process categories to include bannerImages array
+    const categoriesWithBanners = categories.map(category => {
+      const categoryData = category.toJSON()
+      let bannerImages = []
+
+      if (categoryData.bannerImages && Array.isArray(categoryData.bannerImages) && categoryData.bannerImages.length > 0) {
+        bannerImages = [...categoryData.bannerImages]
+      } else if (categoryData.bannerImage) {
+        bannerImages = [categoryData.bannerImage]
+      }
+
+      return {
+        ...categoryData,
+        bannerImages
+      }
+    })
+
+    res.json({ categories: categoriesWithBanners })
   } catch (err) {
     console.error('Error fetching categories:', err)
     res.status(500).json({ message: 'Failed to fetch categories' })
