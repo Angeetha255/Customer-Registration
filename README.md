@@ -1,6 +1,6 @@
 # Customer Registration and Management System
 
-A full-stack customer registration system built with React, Node.js, Express, and MongoDB.
+A full-stack customer registration system built with React, Node.js, Express, and MySQL.
 
 ## Features
 
@@ -9,7 +9,7 @@ A full-stack customer registration system built with React, Node.js, Express, an
 - Optional Introducer ID referral tracking
 - Customer profile update and password reset flow
 - Admin panel with customer search, sorting, pagination, edit/delete, and export
-- MongoDB database integration with secure password hashing
+- MySQL database integration with secure password hashing
 - Responsive dashboard UI with sidebar navigation
 
 ## Project structure
@@ -29,7 +29,7 @@ A full-stack customer registration system built with React, Node.js, Express, an
 cp .env.example .env
 ```
 
-2. Edit `.env` with your MongoDB connection and JWT secret.
+2. Edit `.env` with your MySQL connection and JWT secret.
 
 3. Install dependencies:
 
